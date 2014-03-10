@@ -1,0 +1,409 @@
+<Scene Name = "Dragon">
+	<Camera Name = "c1">
+		<width>512</width>
+		<height>512</height>
+		<sightDist>400</sightDist>
+		<focus>(0, 0, 0)</focus>
+		<position>(-0.4, 0.4, 2)</position>
+		<up>(0, 1, 0)</up>
+	</Camera>
+	<Object>
+		<filePath>objs/plane.obj</filePath>
+		<transform>[0.2, 0, 0, 0][0, -0.2, 0, 0.99][0, 0, 0.2, 0][0, 0, 0, 1]</transform>
+		<Material>
+			<path>Materials.xml</path>
+			<name>EmissionWhite</name>
+		</Material>
+	</Object>
+	<Object>
+		<filePath>objs/dragon.obj</filePath>
+		<transform>[0.7, 0, 0, 0][0, 0.7, 0, -0.4][0, 0, 0.7, -0.2][0, 0, 0, 1]</transform>
+		<Material>
+			<path>Materials.xml</path>
+			<name>Sub1</name>
+		</Material>
+	</Object>
+	<Object>
+		<filePath>objs/plane.obj</filePath>
+		<transform>[0, 1, 0, -1][1, 0, 0, 0][0, 0, 1, 0][0, 0, 0, 1]</transform>
+		<Material>
+			<path>Materials.xml</path>
+			<name>DiffuseRed</name>
+		</Material>
+	</Object>
+	<Object>
+		<filePath>objs/plane.obj</filePath>
+		<transform>[0, -1, 0, 1][1, 0, 0, 0][0, 0, 1, 0][0, 0, 0, 1]</transform>
+		<Material>
+			<path>Materials.xml</path>
+			<name>DiffuseBlue</name>
+		</Material>
+	</Object>
+	<Object>
+		<filePath>objs/plane.obj</filePath>
+		<transform>[1, 0, 0, 0][0, -1, 0, 1][0, 0, 1, 0][0, 0, 0, 1]</transform>
+		<Material>
+			<path>Materials.xml</path>
+			<name>DiffuseGrey</name>
+		</Material>
+	</Object>
+	<Object>
+		<filePath>objs/plane.obj</filePath>
+		<transform>[1, 0, 0, 0][0, 1, 0, -1][0, 0, 1, 0][0, 0, 0, 1]</transform>
+		<Material>
+			<path>Materials.xml</path>
+			<name>DiffuseGrey</name>
+		</Material>
+	</Object>
+	<Object>
+		<filePath>objs/plane.obj</filePath>
+		<transform>[1, 0, 0, 0][0, 0, 1, 0][0, 1, 0, -1][0, 0, 0, 1]</transform>
+		<Material>
+			<path>Materials.xml</path>
+			<name>DiffuseGreen</name>
+		</Material>
+	</Object>
+</Scene>
+
+<Scene Name = "cube_hole">
+	<Camera Name = "c1">
+		<width>512</width>
+		<height>512</height>
+		<sightDist>350</sightDist>
+		<focus>(0, 0, 0)</focus>
+		<position>(0, 0, 2)</position>
+		<up>(0, 1, 0)</up>
+	</Camera>
+	<Object>
+		<filePath>objs/plane.obj</filePath>
+		<transform>[0.2, 0, 0, 0][0, -0.2, 0, 0.99][0, 0, 0.2, 0.5][0, 0, 0, 1]</transform>
+		<Material>
+			<path>Materials.xml</path>
+			<name>EmissionWhite</name>
+		</Material>
+	</Object>
+	<Object>
+		<filePath>objs/cube_hole.obj</filePath>
+		<transform>[0.433, 0, -0.25, 0][0, 0.5, 0, -0.3][0.25, 0, 0.433, -0.3][0, 0, 0, 1]</transform>
+		<Material>
+			<path>Materials.xml</path>
+			<name>Sub1</name>
+		</Material>
+	</Object>
+	<Object>
+		<filePath>objs/plane.obj</filePath>
+		<transform>[0, 1, 0, -1][1, 0, 0, 0][0, 0, 1, 0][0, 0, 0, 1]</transform>
+		<Material>
+			<path>Materials.xml</path>
+			<name>DiffuseRed</name>
+		</Material>
+	</Object>
+	<Object>
+		<filePath>objs/plane.obj</filePath>
+		<transform>[0, -1, 0, 1][1, 0, 0, 0][0, 0, 1, 0][0, 0, 0, 1]</transform>
+		<Material>
+			<path>Materials.xml</path>
+			<name>DiffuseBlue</name>
+		</Material>
+	</Object>
+	<Object>
+		<filePath>objs/plane.obj</filePath>
+		<transform>[1, 0, 0, 0][0, -1, 0, 1][0, 0, 1, 0][0, 0, 0, 1]</transform>
+		<Material>
+			<path>Materials.xml</path>
+			<name>DiffuseGrey</name>
+		</Material>
+	</Object>
+	<Object>
+		<filePath>objs/plane.obj</filePath>
+		<transform>[1, 0, 0, 0][0, 1, 0, -1][0, 0, 1, 0][0, 0, 0, 1]</transform>
+		<Material>
+			<path>Materials.xml</path>
+			<name>DiffuseGrey</name>
+		</Material>
+	</Object>
+	<Object>
+		<filePath>objs/plane.obj</filePath>
+		<transform>[1, 0, 0, 0][0, 0, 1, 0][0, 1, 0, -1][0, 0, 0, 1]</transform>
+		<Material>
+			<path>Materials.xml</path>
+			<name>DiffuseGreen</name>
+		</Material>
+	</Object>
+</Scene>
+
+<Scene Name = "cube">
+	<Camera Name = "c1">
+		<width>512</width>
+		<height>512</height>
+		<sightDist>350</sightDist>
+		<focus>(0, 0, 0)</focus>
+		<position>(0, 0, 2)</position>
+		<up>(0, 1, 0)</up>
+	</Camera>
+	<Object>
+		<filePath>objs/plane.obj</filePath>
+		<transform>[0.2, 0, 0, 0][0, -0.2, 0, 0.99][0, 0, 0.2, 0.5][0, 0, 0, 1]</transform>
+		<Material>
+			<path>Materials.xml</path>
+			<name>EmissionWhite</name>
+		</Material>
+	</Object>
+	<Object>
+		<filePath>objs/dragon.obj</filePath>
+		<transform>[0.433, 0, -0.25, 0][0, 0.5, 0, -0.9][0.25, 0, 0.433, -0.3][0, 0, 0, 1]</transform>
+		<Material>
+			<path>Materials.xml</path>
+			<name>Sub2</name>
+		</Material>
+	</Object>
+	<Object>
+		<filePath>objs/plane.obj</filePath>
+		<transform>[0, 1, 0, -1][1, 0, 0, 0][0, 0, 1, 0][0, 0, 0, 1]</transform>
+		<Material>
+			<path>Materials.xml</path>
+			<name>DiffuseRed</name>
+		</Material>
+	</Object>
+	<Object>
+		<filePath>objs/plane.obj</filePath>
+		<transform>[0, -1, 0, 1][1, 0, 0, 0][0, 0, 1, 0][0, 0, 0, 1]</transform>
+		<Material>
+			<path>Materials.xml</path>
+			<name>DiffuseBlue</name>
+		</Material>
+	</Object>
+	<Object>
+		<filePath>objs/plane.obj</filePath>
+		<transform>[1, 0, 0, 0][0, -1, 0, 1][0, 0, 1, 0][0, 0, 0, 1]</transform>
+		<Material>
+			<path>Materials.xml</path>
+			<name>DiffuseGrey</name>
+		</Material>
+	</Object>
+	<Object>
+		<filePath>objs/plane.obj</filePath>
+		<transform>[1, 0, 0, 0][0, 1, 0, -1][0, 0, 1, 0][0, 0, 0, 1]</transform>
+		<Material>
+			<path>Materials.xml</path>
+			<name>DiffuseGrey</name>
+		</Material>
+	</Object>
+	<Object>
+		<filePath>objs/plane.obj</filePath>
+		<transform>[1, 0, 0, 0][0, 0, 1, 0][0, 1, 0, -1][0, 0, 0, 1]</transform>
+		<Material>
+			<path>Materials.xml</path>
+			<name>DiffuseGreen</name>
+		</Material>
+	</Object>
+</Scene>
+
+<Scene Name = "Ball">
+	<Camera Name = "c1">
+		<width>512</width>
+		<height>512</height>
+		<sightDist>350</sightDist>
+		<focus>(0, 0, 0)</focus>
+		<position>(0, 0, 2)</position>
+		<up>(0, 1, 0)</up>
+	</Camera>
+	<Object>
+		<filePath>objs/plane.obj</filePath>
+		<transform>[0.2, 0, 0, 0][0, -0.2, 0, 0.99][0, 0, 0.2, 0][0, 0, 0, 1]</transform>
+		<Material>
+			<path>Materials.xml</path>
+			<name>EmissionWhite</name>
+		</Material>
+	</Object>
+	<Object>
+		<filePath>objs/ball.obj</filePath>
+		<transform>[0.5, 0, 0, 0][0, 0.5, 0, 0][0, 0, 0.5, 0][0, 0, 0, 1]</transform>
+		<Material>
+			<path>Materials.xml</path>
+			<name>VPM</name>
+		</Material>
+	</Object>
+	<Object>
+		<filePath>objs/plane.obj</filePath>
+		<transform>[0, 1, 0, -1][1, 0, 0, 0][0, 0, 1, 0][0, 0, 0, 1]</transform>
+		<Material>
+			<path>Materials.xml</path>
+			<name>DiffuseRed</name>
+		</Material>
+	</Object>
+	<Object>
+		<filePath>objs/plane.obj</filePath>
+		<transform>[0, -1, 0, 1][1, 0, 0, 0][0, 0, 1, 0][0, 0, 0, 1]</transform>
+		<Material>
+			<path>Materials.xml</path>
+			<name>DiffuseBlue</name>
+		</Material>
+	</Object>
+	<Object>
+		<filePath>objs/plane.obj</filePath>
+		<transform>[1, 0, 0, 0][0, -1, 0, 1][0, 0, 1, 0][0, 0, 0, 1]</transform>
+		<Material>
+			<path>Materials.xml</path>
+			<name>DiffuseGrey</name>
+		</Material>
+	</Object>
+	<Object>
+		<filePath>objs/plane.obj</filePath>
+		<transform>[1, 0, 0, 0][0, 1, 0, -1][0, 0, 1, 0][0, 0, 0, 1]</transform>
+		<Material>
+			<path>Materials.xml</path>
+			<name>DiffuseGrey</name>
+		</Material>
+	</Object>
+	<Object>
+		<filePath>objs/plane.obj</filePath>
+		<transform>[1, 0, 0, 0][0, 0, 1, 0][0, 1, 0, -1][0, 0, 0, 1]</transform>
+		<Material>
+			<path>Materials.xml</path>
+			<name>DiffuseGreen</name>
+		</Material>
+	</Object>
+</Scene>
+
+<Scene Name = "BallInFog">
+	<Camera Name = "c1">
+		<width>512</width>
+		<height>512</height>
+		<sightDist>350</sightDist>
+		<focus>(0, 0, 0)</focus>
+		<position>(0, 0, 2)</position>
+		<up>(0, 1, 0)</up>
+	</Camera>
+	<Object>
+		<filePath>objs/cube.obj</filePath>
+		<transform>[3, 0, 0, 0][0, 3, 0, 0][0, 0, 3, 0][0, 0, 0, 1]</transform>
+		<Material>
+			<path>Materials.xml</path>
+			<name>Fog</name>
+		</Material>
+	</Object>
+	<Object>
+		<filePath>objs/plane.obj</filePath>
+		<transform>[0.2, 0, 0, 0][0, -0.2, 0, 0.99][0, 0, 0.2, 0][0, 0, 0, 1]</transform>
+		<Material>
+			<path>Materials.xml</path>
+			<name>EmissionWhite</name>
+		</Material>
+	</Object>
+	<Object>
+		<filePath>objs/ball.obj</filePath>
+		<transform>[0.5, 0, 0, 0][0, 0.5, 0, 0][0, 0, 0.5, 0][0, 0, 0, 1]</transform>
+		<Material>
+			<path>Materials.xml</path>
+			<name>Refractive</name>
+		</Material>
+	</Object>
+	<Object>
+		<filePath>objs/plane.obj</filePath>
+		<transform>[0, 1, 0, -1][1, 0, 0, 0][0, 0, 1, 0][0, 0, 0, 1]</transform>
+		<Material>
+			<path>Materials.xml</path>
+			<name>DiffuseRed</name>
+		</Material>
+	</Object>
+	<Object>
+		<filePath>objs/plane.obj</filePath>
+		<transform>[0, -1, 0, 1][1, 0, 0, 0][0, 0, 1, 0][0, 0, 0, 1]</transform>
+		<Material>
+			<path>Materials.xml</path>
+			<name>DiffuseBlue</name>
+		</Material>
+	</Object>
+	<Object>
+		<filePath>objs/plane.obj</filePath>
+		<transform>[1, 0, 0, 0][0, -1, 0, 1][0, 0, 1, 0][0, 0, 0, 1]</transform>
+		<Material>
+			<path>Materials.xml</path>
+			<name>DiffuseGrey</name>
+		</Material>
+	</Object>
+	<Object>
+		<filePath>objs/plane.obj</filePath>
+		<transform>[1, 0, 0, 0][0, 1, 0, -1][0, 0, 1, 0][0, 0, 0, 1]</transform>
+		<Material>
+			<path>Materials.xml</path>
+			<name>DiffuseGrey</name>
+		</Material>
+	</Object>
+	<Object>
+		<filePath>objs/plane.obj</filePath>
+		<transform>[1, 0, 0, 0][0, 0, 1, 0][0, 1, 0, -1][0, 0, 0, 1]</transform>
+		<Material>
+			<path>Materials.xml</path>
+			<name>DiffuseGreen</name>
+		</Material>
+	</Object>
+</Scene>
+
+<Scene Name = "Ring">
+	<Camera Name = "c1">
+		<width>512</width>
+		<height>512</height>
+		<sightDist>350</sightDist>
+		<focus>(0, 0, 0)</focus>
+		<position>(0, 0, 2)</position>
+		<up>(0, 1, 0)</up>
+	</Camera>
+	<Object>
+		<filePath>objs/plane.obj</filePath>
+		<transform>[0.2, 0, 0, 0][0, -0.2, 0, 0.99][0, 0, 0.2, 0][0, 0, 0, 1]</transform>
+		<Material>
+			<path>Materials.xml</path>
+			<name>EmissionWhite</name>
+		</Material>
+	</Object>
+	<Object>
+		<filePath>objs/ring_small.obj</filePath>
+		<transform>[0.5, 0, 0, 0.2][0, 0.5, 0, -0.6][0, 0, 0.5, 0.2][0, 0, 0, 1]</transform>
+		<Material>
+			<path>Materials.xml</path>
+			<name>VPM</name>
+		</Material>
+	</Object>
+	<Object>
+		<filePath>objs/plane.obj</filePath>
+		<transform>[0, 1, 0, -1][1, 0, 0, 0][0, 0, 1, 0][0, 0, 0, 1]</transform>
+		<Material>
+			<path>Materials.xml</path>
+			<name>DiffuseRed</name>
+		</Material>
+	</Object>
+	<Object>
+		<filePath>objs/plane.obj</filePath>
+		<transform>[0, -1, 0, 1][1, 0, 0, 0][0, 0, 1, 0][0, 0, 0, 1]</transform>
+		<Material>
+			<path>Materials.xml</path>
+			<name>DiffuseBlue</name>
+		</Material>
+	</Object>
+	<Object>
+		<filePath>objs/plane.obj</filePath>
+		<transform>[1, 0, 0, 0][0, -1, 0, 1][0, 0, 1, 0][0, 0, 0, 1]</transform>
+		<Material>
+			<path>Materials.xml</path>
+			<name>DiffuseGrey</name>
+		</Material>
+	</Object>
+	<Object>
+		<filePath>objs/plane.obj</filePath>
+		<transform>[1, 0, 0, 0][0, 1, 0, -1][0, 0, 1, 0][0, 0, 0, 1]</transform>
+		<Material>
+			<path>Materials.xml</path>
+			<name>DiffuseGrey</name>
+		</Material>
+	</Object>
+	<Object>
+		<filePath>objs/plane.obj</filePath>
+		<transform>[1, 0, 0, 0][0, 0, 1, 0][0, 1, 0, -1][0, 0, 0, 1]</transform>
+		<Material>
+			<path>Materials.xml</path>
+			<name>DiffuseGreen</name>
+		</Material>
+	</Object>
+</Scene>

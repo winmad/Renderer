@@ -1,0 +1,260 @@
+<Material Name = "VPM">
+	<type>VPM</type>
+	<sigma_s>(71.4300, 116.8800, 171.69005)</sigma_s> 
+	<sigma_a>(69.6600, 114.8000, 171.6900 )</sigma_a>
+	<inrate>1</inrate>
+	<g>0.2</g>
+</Material>
+
+<Material Name = "Coke">
+	<type>VPM</type>
+	<sigma_s>(71.4300, 116.8800, 171.69005)</sigma_s> 
+	<sigma_a>(69.6600, 114.8000, 171.6900 )</sigma_a>
+	<inrate>1</inrate>
+	<g>0.2</g>
+</Material>
+
+<Material Name = "Fog">
+	<type>VPM</type>
+	<sigma_s>(0.6, 0.6, 0.6)</sigma_s> 
+	<sigma_a>(0.3, 0.3, 0.3)</sigma_a>
+	<inrate>1.03</inrate>
+	<g>0</g>
+</Material>
+
+<Material Name = "ThinFog">
+	<type>VPM</type>
+	<sigma_s>(0.4, 0.5, 0.4)</sigma_s> 
+	<sigma_a>(0.2, 0.2, 0.2)</sigma_a>
+	<inrate>1.03</inrate>
+	<g>0</g>
+</Material>
+
+<Material Name = "Water">
+	<type>Refractive</type>
+	<coeff>1.33</coeff>
+</Material>
+
+<Material Name = "Ocean">
+	<type>VPM</type>
+	<sigma_s>(0.6, 0.6, 0.3)</sigma_s> 
+	<sigma_a>(0.3, 0.3, 0.2)</sigma_a>
+	<inrate>1.33</inrate>
+	<g>0</g>
+</Material>
+
+<Material Name = "Sub1">
+	<type>VPM</type>
+	<sigma_s>(50, 50, 50)</sigma_s> 
+	<sigma_a>(1.25, 1.25, 1.25)</sigma_a>
+	<inrate>1.5</inrate>
+	<g>0</g>
+</Material>
+
+<Material Name = "Sub2">
+	<type>VPM</type>
+	<sigma_s>(5, 5, 5)</sigma_s> 
+	<sigma_a>(1.25, 1.25, 1.25)</sigma_a>
+	<inrate>1.5</inrate>
+	<g>0</g>
+</Material>
+
+<Material Name = "Sub3">
+	<type>VPM</type>
+	<sigma_s>(50, 50, 50)</sigma_s> 
+	<sigma_a>(1.25, 1.25, 1.25)</sigma_a>
+	<inrate>1</inrate>
+	<g>0</g>
+</Material>
+
+<Material Name = "DiffuseRed">
+	<type>Diffuse</type>
+	<color>(0.75, 0.25, 0.25)</color>
+</Material>
+
+<Material Name = "DiffuseTex">
+	<type>Diffuse</type>
+	<Texture>
+		<path>textures/brick.pfm</path>
+	</Texture>
+</Material>
+
+<Material Name = "GlossyTex">
+	<type>Glossy</type>
+	<coeff>5</coeff>
+	<ColorTexture>
+		<path>textures/strips.pfm</path>
+	</ColorTexture>
+</Material>
+
+<Material Name = "BumpTex">
+	<type>Reflective</type>
+	<color>(0.25, 0.75, 0.25)</color>
+	<coeff>5</coeff>
+	<BumpTexture>
+		<path>textures/bags.pfm</path>
+		<colorScale>5</colorScale>
+	</BumpTexture>
+</Material>
+
+<Material Name = "BumpRefractive">
+	<type>Refractive</type>
+	<coeff>1.5</coeff>
+	<BumpTexture>
+		<path>textures/bags.pfm</path>
+		<colorScale>20</colorScale>
+		<coordTransform>[0.5, 0, 0, 0][0, 0.5, 0, 0][0, 0, 0.5, 0][0, 0, 0, 1]</coordTransform>
+	</BumpTexture>
+</Material>
+
+<Material Name = "BumpMirror">
+	<type>Reflective</type>
+	<BumpTexture>
+		<path>textures/brick2.pfm</path>
+		<colorScale>3</colorScale>
+	</BumpTexture>
+</Material>
+
+<Material Name = "PhongTex">
+	<type>Phong</type>
+	<BumpTexture>
+		<path>textures/bags.pfm</path>
+		<colorScale>2</colorScale>
+		<coordTransform>[2, 0, 0, 0][0, 2, 0, 0][0, 0, 2, 0][0, 0, 0, 1]</coordTransform>
+	</BumpTexture>
+	<GlossyComponent>
+		<coeff>5</coeff>
+		<ColorTexture>
+			<path>textures/strips.pfm</path>
+			<colorScale>0.5</colorScale>
+		</ColorTexture>
+	</GlossyComponent>
+	<DiffuseComponent>
+		<Texture>
+			<path>textures/carpet.pfm</path>
+			<colorScale>0.5</colorScale>
+		</Texture>
+	</DiffuseComponent>
+</Material>
+
+<Material Name = "DiffuseBlue">
+	<type>Diffuse</type>
+	<color>(0.25, 0.25, 0.75)</color>
+</Material>
+
+<Material Name = "DiffuseGreen">
+	<type>Diffuse</type>
+	<color>(0.25, 0.75, 0.25)</color>
+</Material>
+
+<Material Name = "DiffuseYellow">
+	<type>Diffuse</type>
+	<color>(0.75, 0.75, 0.25)</color>
+</Material>
+
+<Material Name = "DiffuseGrey">
+	<type>Diffuse</type>
+	<color>(0.5, 0.5, 0.5)</color>
+</Material>
+
+<Material Name = "DiffuseGrey2">
+	<type>Diffuse</type>
+	<color>(0.75, 0.75, 0.75)</color>
+</Material>
+
+<Material Name = "Refractive">
+	<type>Refractive</type>
+	<coeff>1.5</coeff>
+</Material>
+
+<Material Name = "YellowGlass">
+	<type>Refractive</type>
+	<coeff>1.5</coeff>
+	<decayColor>(1, 1, 0.05)</decayColor>
+</Material>
+
+<Material Name = "Glass0">
+	<type>Refractive</type>
+	<coeff>1</coeff>
+</Material>
+
+<Material Name = "Glass1">
+	<type>Refractive</type>
+	<coeff>1.1</coeff>
+</Material>
+
+<Material Name = "Glass2">
+	<type>Refractive</type>
+	<coeff>2</coeff>
+</Material>
+
+<Material Name = "Glass3">
+	<type>Refractive</type>
+	<coeff>3</coeff>
+</Material>
+
+<Material Name = "Reflective">
+	<type>Reflective</type>
+</Material>
+
+<Material Name = "Glossy">
+	<type>Glossy</type>
+	<color>(0.75, 0.75, 0.75)</color>
+	<coeff>5</coeff>
+</Material>
+
+<Material Name = "GlossyGreen">
+	<type>Glossy</type>
+	<color>(0.25, 0.75, 0.25)</color>
+	<coeff>3</coeff>
+</Material>
+
+<Material Name = "EmissionWhite">
+	<type>Emissive</type>
+	<color>(50, 50, 50)</color>
+</Material>
+
+<Material Name = "EmissionWhiteMedium">
+	<type>Emissive</type>
+	<color>(100, 100, 100)</color>
+</Material>
+
+<Material Name = "EmissionWhiteWeak">
+	<type>Emissive</type>
+	<color>(25, 25, 25)</color>
+</Material>
+
+<Material Name = "EmissionWhiteIntensive">
+	<type>Emissive</type>
+	<color>(200, 200, 200)</color>
+</Material>
+
+<Material Name = "VPM">
+	<type>VPM</type>
+</Material>
+
+<Material Name = "DiffuseRedWeak">
+	<!-- Diffuse Specular Refractive Emissive VPM -->
+	<type>Diffuse</type>
+	<color>(0.4, 0.1, 0.1)</color>
+</Material>
+
+<Material Name = "DiffuseBlueWeak">
+	<type>Diffuse</type>
+	<color>(0.1, 0.1, 0.4)</color>
+</Material>
+
+<Material Name = "DiffuseGreenWeak">
+	<type>Diffuse</type>
+	<color>(0.1, 0.4, 0.1)</color>
+</Material>
+
+<Material Name = "DiffuseYellowWeak">
+	<type>Diffuse</type>
+	<color>(0.4, 0.4, 0.1)</color>
+</Material>
+
+<Material Name = "DiffuseGreyWeak">
+	<type>Diffuse</type>
+	<color>(0.4, 0.4, 0.4)</color>
+</Material>

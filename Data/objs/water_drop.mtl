@@ -1,0 +1,86 @@
+# 
+# Wavefront material file
+# Converted by the DEEP Exploration  Deep Exploration 5.5 5.5.4.2708 Release
+# Right Hemisphere, LTD
+# http://www.righthemisphere.com/
+# 
+
+newmtl wire_006134006
+Ka 0 0 0
+Kd 1 1 1
+Ks 0.5 0.5 0.5
+illum 2
+Ns 8
+map_Kd 
+map_bump 
+bump 
+map_opacity 
+map_d 
+refl 
+map_kS 
+map_kA 
+map_Ns 
+
+newmtl wire_087224198
+Ka 0 0 0
+Kd 1 1 1
+Ks 0.5 0.5 0.5
+illum 2
+Ns 8
+map_Kd 
+map_bump 
+bump 
+map_opacity 
+map_d 
+refl 
+map_kS 
+map_kA 
+map_Ns 
+
+newmtl wire_134006006
+Ka 0 0 0
+Kd 1 1 1
+Ks 0.5 0.5 0.5
+illum 2
+Ns 8
+map_Kd 
+map_bump 
+bump 
+map_opacity 
+map_d 
+refl 
+map_kS 
+map_kA 
+map_Ns 
+
+newmtl wire_134110008
+Ka 0 0 0
+Kd 1 1 1
+Ks 0.5 0.5 0.5
+illum 2
+Ns 8
+map_Kd 
+map_bump 
+bump 
+map_opacity 
+map_d 
+refl 
+map_kS 
+map_kA 
+map_Ns 
+
+newmtl wire_224198087
+Ka 0 0 0
+Kd 1 1 1
+Ks 0.5 0.5 0.5
+illum 2
+Ns 8
+map_Kd 
+map_bump 
+bump 
+map_opacity 
+map_d 
+refl 
+map_kS 
+map_kA 
+map_Ns 

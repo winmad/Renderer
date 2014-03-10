@@ -1,0 +1,187 @@
+<Scene Name = "pool">
+	<Camera Name = "c1">
+		<width>512</width>
+		<height>512</height>
+		<sightDist>350</sightDist>
+		<focus>(0, 0, 0)</focus>
+		<position>(1, 1.5, 0.5)</position>
+		<up>(0, 1, 0)</up>
+	</Camera>
+	<Object>
+		<filePath>objs/plane.obj</filePath>
+		<transform>[0.3, 0, 0, 0][0, -0.3, 0, 4][0, 0, 0.3, 0][0, 0, 0, 1]</transform>
+		<Material>
+			<name>EmissionWhite2</name>
+		</Material>
+	</Object>
+	
+	<GroupObject>
+		<filePath>objs/pool.obj</filePath>
+		<transform>[0.05, 0, 0, 0][0, 0, 0.05, -0.8][0, 0.05, 0, 0][0, 0, 0, 1]</transform>
+		<Object Name = "pool">
+			<Material>
+				<name>DiffuseBlue</name>
+			</Material>
+		</Object>
+		<Object Name = "bottom">
+			<Material>
+				<name>DiffuseBlue</name>
+			</Material>
+		</Object>
+		<Object Name = "wave">
+			<Material>
+				<name>Water</name>
+			</Material>
+		</Object>
+	</GroupObject>
+</Scene>
+
+<Scene Name = "torus_cube">
+	<Camera Name = "c1">
+		<width>512</width>
+		<height>512</height>
+		<sightDist>500</sightDist>
+		<focus>(0, -0.05, 0)</focus>
+		<position>(-0.12, 0.1, 0.23)</position>
+		<up>(0, 1, 0)</up>
+	</Camera>
+	<GroupObject>
+		<filePath>objs/torus_cube.obj</filePath>
+		<transform>[1, 0, 0, 0][0, 1, 0, 0][0, 0, 1, 0][0, 0, 0, 1]</transform>
+		<Object Name = "torus">
+			<Material>
+				<name>DiffuseYellow</name>
+			</Material>
+		</Object>
+		<Object Name = "cube">
+			<Material>
+				<name>BlueGlass</name>
+			</Material>
+		</Object>
+		<Object Name = "plane">
+			<Material>
+				<name>DiffuseGrey</name>
+			</Material>
+		</Object>
+		<Object Name = "light">
+			<Material>
+				<name>EmissionWhite3</name>
+			</Material>
+		</Object>
+	</GroupObject>
+</Scene>
+
+<Scene Name = "wedding-band">
+	<Camera Name = "c1">
+		<width>512</width>
+		<height>512</height>
+		<sightDist>350</sightDist>
+		<focus>(0, 0, 0)</focus>
+		<position>(1, 1.5, 0.5)</position>
+		<up>(0, 1, 0)</up>
+	</Camera>
+	<Object>
+		<filePath>objs/plane.obj</filePath>
+		<transform>[0.3, 0, 0, 0][0, -0.3, 0, 5][0, 0, 0.3, 0][0, 0, 0, 1]</transform>
+		<Material>
+			<name>EmissionWhite</name>
+		</Material>
+	</Object>
+	<Object>
+		<filePath>objs/plane.obj</filePath>
+		<transform>[0.3, 0, 0, 4][0, -0.3, 0, 2][0, 0, 0.3, 0][0, 0, 0, 1]</transform>
+		<Material>
+			<name>EmissionWhite2</name>
+		</Material>
+	</Object>
+	<GroupObject>
+		<filePath>objs/wedding-band.obj</filePath>
+		<transform>[1, 0, 0, 0][0, 1, 0, 0][0, 0, 1, 0][0, 0, 0, 1]</transform>
+		<Object Name = "Table_Top">
+			<Material>
+				<name>DiffuseBrown</name>
+			</Material>
+		</Object>
+		<Object Name = "Ring_Small">
+			<Material>
+				<name>Refractive</name>
+			</Material>
+		</Object>
+		<Object Name = "Ring_Medium">
+			<Material>
+				<name>GlossyGreen</name>
+			</Material>
+		</Object>
+		<Object Name = "Ring_Large">
+			<Material>
+				<name>Reflective</name>
+			</Material>
+		</Object>
+	</GroupObject>
+</Scene>
+
+<Material Name = "EmissionWhite">
+	<type>Emissive</type>
+	<color>(50, 50, 50)</color>
+</Material>
+
+<Material Name = "EmissionWhite2">
+	<type>Emissive</type>
+	<color>(200, 200, 200)</color>
+</Material>
+
+<Material Name = "EmissionWhite3">
+	<type>Emissive</type>
+	<color>(1000, 1000, 1000)</color>
+</Material>
+
+<Material Name = "DiffuseBrown">
+	<type>Diffuse</type>
+	<color>(0.75, 0.35, 0.25)</color>
+</Material>
+
+<Material Name = "DiffuseGrey">
+	<type>Diffuse</type>
+	<color>(0.9, 0.9, 0.9)</color>
+</Material>
+
+<Material Name = "DiffuseBlue">
+	<type>Diffuse</type>
+	<color>(0.3, 0.5, 0.75)</color>
+</Material>
+
+<Material Name = "DiffuseGreen">
+	<type>Diffuse</type>
+	<color>(0.5, 0.75, 0.5)</color>
+</Material>
+
+<Material Name = "DiffuseYellow">
+	<type>Diffuse</type>
+	<color>(0.4, 0.4, 0.3)</color>
+</Material>
+
+<Material Name = "Refractive">
+	<type>Refractive</type>
+	<coeff>1.5</coeff>
+</Material>
+
+<Material Name = "BlueGlass">
+	<type>Refractive</type>
+	<coeff>1.5</coeff>
+	<decayColor>(0.1, 0.1, 1)</decayColor>
+</Material>
+
+<Material Name = "Water">
+	<type>Refractive</type>
+	<coeff>1.33</coeff>
+</Material>
+
+<Material Name = "Reflective">
+	<type>Reflective</type>
+</Material>
+
+<Material Name = "GlossyGreen">
+	<type>Glossy</type>
+	<color>(0.25, 0.5, 0.25)</color>
+	<coeff>5</coeff>
+</Material>

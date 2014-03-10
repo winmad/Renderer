@@ -1,0 +1,249 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{7ED7FB77-24E2-435F-B212-05ED0B3EF531}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>Renderer</RootNamespace>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>EXT/OPENCV/include;EXT/rapidxml</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>EXT/OPENCV/lib</AdditionalLibraryDirectories>
+      <AdditionalDependencies>opencv_core247d.lib;opencv_highgui247d.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>EXT/OPENCV/include;EXT/rapidxml</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>EXT/OPENCV/lib</AdditionalLibraryDirectories>
+      <AdditionalDependencies>opencv_core247d.lib;opencv_highgui247d.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>EXT/OPENCV/include;EXT/rapidxml;EXT/glew/include;EXT/freeglut/include</AdditionalIncludeDirectories>
+      <OpenMPSupport>true</OpenMPSupport>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalLibraryDirectories>EXT/OPENCV/lib;EXT/freeglut/lib;EXT/glew/lib</AdditionalLibraryDirectories>
+      <AdditionalDependencies>opencv_core247.lib;opencv_highgui247.lib;glew32.lib;freeglut.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>EXT/OPENCV/include;EXT/rapidxml;EXT/glew/include;EXT/freeglut/include</AdditionalIncludeDirectories>
+      <OpenMPSupport>true</OpenMPSupport>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalLibraryDirectories>EXT/OPENCV/lib;EXT/freeglut/lib;EXT/glew/lib</AdditionalLibraryDirectories>
+      <AdditionalDependencies>opencv_core247.lib;opencv_highgui247.lib;glew32.lib;freeglut.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <None Include="ReadMe.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="BidirectionalPathTracer.h" />
+    <ClInclude Include="BSDF.h" />
+    <ClInclude Include="Camera.h" />
+    <ClInclude Include="DiffuseMaterial.h" />
+    <ClInclude Include="GlossyBSDF.h" />
+    <ClInclude Include="GlossyMaterial.h" />
+    <ClInclude Include="Hashgrid.h" />
+    <ClInclude Include="HGPhaseSampler.h" />
+    <ClInclude Include="HomoMediaDistSampler.h" />
+    <ClInclude Include="IntersectionGPU.h" />
+    <ClInclude Include="IptTracer.h" />
+    <ClInclude Include="IsotropicPhaseFunc.h" />
+    <ClInclude Include="IsotropicPhaseSampler.h" />
+    <ClInclude Include="macros.h" />
+    <ClInclude Include="Material.h" />
+    <ClInclude Include="NoSelfIntersectionCondition.h" />
+    <ClInclude Include="ConfigManager.h" />
+    <ClInclude Include="CosineSphericalSampler.h" />
+    <ClInclude Include="DiffuseBSDF.h" />
+    <ClInclude Include="DistanceSampler.h" />
+    <ClInclude Include="HGPhaseFunc.h" />
+    <ClInclude Include="KDTree.h" />
+    <ClInclude Include="LocalFrame.h" />
+    <ClInclude Include="LogDistSampler.h" />
+    <ClInclude Include="MCRenderer.h" />
+    <ClInclude Include="PathTracer.h" />
+    <ClInclude Include="Photonmap.h" />
+    <ClInclude Include="PointKDTree.h" />
+    <ClInclude Include="RandGenerator.h" />
+    <ClInclude Include="Ray.h" />
+    <ClInclude Include="RefractiveMaterial.h" />
+    <ClInclude Include="Renderer.h" />
+    <ClInclude Include="SceneGlossyObject.h" />
+    <ClInclude Include="SceneHeteroObject.h" />
+    <ClInclude Include="SceneParallelLight.h" />
+    <ClInclude Include="ScenePhongObject.h" />
+    <ClInclude Include="SceneVPMObject.h" />
+    <ClInclude Include="Shader.h" />
+    <ClInclude Include="SphericalSampler.h" />
+    <ClInclude Include="Scene.h" />
+    <ClInclude Include="SceneDiffuseObject.h" />
+    <ClInclude Include="SceneEmissiveObject.h" />
+    <ClInclude Include="SceneObject.h" />
+    <ClInclude Include="SceneReflectiveObject.h" />
+    <ClInclude Include="SceneRefractiveObject.h" />
+    <ClInclude Include="SimpleShape.h" />
+    <ClInclude Include="smallFuncs.h" />
+    <ClInclude Include="stdafx.h" />
+    <ClInclude Include="targetver.h" />
+    <ClInclude Include="textfile.h" />
+    <ClInclude Include="Texture.h" />
+    <ClInclude Include="UniformSphericalSampler.h" />
+    <ClInclude Include="VCMTracer.h" />
+    <ClInclude Include="volumeData.h" />
+    <ClInclude Include="xmlHelper.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="BidirectionalPathTracer.cpp" />
+    <ClCompile Include="Camera.cpp" />
+    <ClCompile Include="ConfigManager.cpp" />
+    <ClCompile Include="DiffuseMaterial.cpp" />
+    <ClCompile Include="GlossyMaterial.cpp" />
+    <ClCompile Include="IntersectionGPU.cpp" />
+    <ClCompile Include="IptTracer.cpp" />
+    <ClCompile Include="KDTree.cpp" />
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="Material.cpp" />
+    <ClCompile Include="MCRenderer.cpp" />
+    <ClCompile Include="NoSelfIntersectionCondition.cpp" />
+    <ClCompile Include="PathTracer.cpp" />
+    <ClCompile Include="Photonmap.cpp" />
+    <ClCompile Include="RandGenerator.cpp" />
+    <ClCompile Include="Ray.cpp" />
+    <ClCompile Include="RefractiveMaterial.cpp" />
+    <ClCompile Include="Renderer.cpp" />
+    <ClCompile Include="Scene.cpp" />
+    <ClCompile Include="SceneEmissiveObject.cpp" />
+    <ClCompile Include="SceneHeteroObject.cpp" />
+    <ClCompile Include="SceneObject.cpp" />
+    <ClCompile Include="SceneParallelLight.cpp" />
+    <ClCompile Include="SceneVPMObject.cpp" />
+    <ClCompile Include="Shader.cpp" />
+    <ClCompile Include="SimpleShape.cpp" />
+    <ClCompile Include="stdafx.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="textfile.cpp" />
+    <ClCompile Include="Texture.cpp" />
+    <ClCompile Include="VCMTracer.cpp" />
+    <ClCompile Include="volumeData.cpp" />
+    <ClCompile Include="xmlHelper.cpp" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

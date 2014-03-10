@@ -1,0 +1,148 @@
+<Scene Name = "BallsInFog">
+	<Camera Name = "c1">
+		<width>512</width>
+		<height>512</height>
+		<sightDist>400</sightDist>
+		<focus>(0, 0, 0)</focus>
+		<position>(0.4, 0.4, 2.2)</position>
+		<up>(0, 1, 0)</up>
+	</Camera>
+	<Object>
+		<filePath>objs/cube.obj</filePath>
+		<transform>[3, 0, 0, 0][0, 3, 0, 0][0, 0, 3, 0][0, 0, 0, 1]</transform>
+		<Material>
+			<name>ThinFog</name>
+		</Material>
+	</Object>
+	<GroupObject>
+		<filePath>objs/spot_light2.obj</filePath>
+		<transform>[0.2, 0, 0, 0][0, -0.2, 0, 0.88][0, 0, 0.2, 0][0, 0, 0, 1]</transform>
+		<Object Name = "light">
+			<Material>
+				<name>EmissionWhite</name>
+			</Material>
+		</Object>
+		<Object Name = "frame">
+			<Material>
+				<name>DiffuseGrey</name>
+			</Material>
+		</Object>
+	</GroupObject>
+	<Object>
+		<filePath>objs/ball.obj</filePath>
+		<transform>[0.3, 0, 0, -0.4][0, 0.3, 0, 0.2][0, 0, 0.3, 0][0, 0, 0, 1]</transform>
+		<Material>
+			<name>YellowGlass</name>
+		</Material>
+	</Object>
+	<Object>
+		<filePath>objs/cube_hole.obj</filePath>
+		<transform>[0.1025,-0.04995,0.097425,0.300000][0.097425,0.1025,-0.04995,0.500000][-0.04995,0.097425,0.1025,0.300000][0.000000,0.000000,0.000000,1.000000]</transform>
+		<Material>
+			<name>DiffuseYellow</name>
+		</Material>
+	</Object>
+	<Object>
+		<filePath>objs/ball.obj</filePath>
+		<transform>[0.3, 0, 0, 0.3][0, 0.3, 0, -0.7][0, 0, 0.3, -0.3][0, 0, 0, 1]</transform>
+		<Material>
+			<name>Mirror</name>
+		</Material>
+	</Object>
+	<Object>
+		<filePath>objs/teapot.obj</filePath>
+		<transform>[0.4, 0, 0, -0.2][0, 0, 0.4, -0.65][0, 0.4, 0, 0.3][0, 0, 0, 1]</transform>
+		<Material>
+			<name>GlossyMegenta</name>
+		</Material>
+	</Object>
+	<Object>
+		<filePath>objs/plane.obj</filePath>
+		<transform>[0, 1, 0, -1][1, 0, 0, 0][0, 0, 1, 0][0, 0, 0, 1]</transform>
+		<Material>
+			<name>DiffuseRed</name>
+		</Material>
+	</Object>
+	<Object>
+		<filePath>objs/plane.obj</filePath>
+		<transform>[0, -1, 0, 1][1, 0, 0, 0][0, 0, 1, 0][0, 0, 0, 1]</transform>
+		<Material>
+			<name>DiffuseBlue</name>
+		</Material>
+	</Object>
+	<Object>
+		<filePath>objs/plane.obj</filePath>
+		<transform>[1, 0, 0, 0][0, -1, 0, 1][0, 0, 1, 0][0, 0, 0, 1]</transform>
+		<Material>
+			<name>DiffuseGrey</name>
+		</Material>
+	</Object>
+	<Object>
+		<filePath>objs/plane.obj</filePath>
+		<transform>[1, 0, 0, 0][0, 1, 0, -1][0, 0, 1, 0][0, 0, 0, 1]</transform>
+		<Material>
+			<name>DiffuseGrey</name>
+		</Material>
+	</Object>
+	<Object>
+		<filePath>objs/plane.obj</filePath>
+		<transform>[1, 0, 0, 0][0, 0, 1, 0][0, 1, 0, -1][0, 0, 0, 1]</transform>
+		<Material>
+			<name>DiffuseGreen</name>
+		</Material>
+	</Object>
+</Scene>
+
+<Material Name = "ThinFog">
+	<type>VPM</type>
+	<sigma_s>(0.3, 0.3, 0.3)</sigma_s> 
+	<sigma_a>(0.3, 0.3, 0.3)</sigma_a>
+	<inrate>1.03</inrate>
+	<g>0</g>
+</Material>
+
+<Material Name = "EmissionWhite">
+	<type>Emissive</type>
+	<color>(20000, 20000, 20000)</color>
+</Material>
+
+<Material Name = "YellowGlass">
+	<type>Refractive</type>
+	<coeff>1.5</coeff>
+	<decayColor>(0.5, 0.5, 0.02)</decayColor>
+</Material>
+
+<Material Name = "GlossyMegenta">
+	<type>Glossy</type>
+	<coeff>5</coeff>
+	<color>(0.75, 0.25, 0.75)</color>
+</Material>
+
+<Material Name = "DiffuseRed">
+	<type>Diffuse</type>
+	<color>(0.75, 0.25, 0.25)</color>
+</Material>
+
+<Material Name = "DiffuseBlue">
+	<type>Diffuse</type>
+	<color>(0.25, 0.25, 0.75)</color>
+</Material>
+
+<Material Name = "DiffuseGreen">
+	<type>Diffuse</type>
+	<color>(0.25, 0.75, 0.25)</color>
+</Material>
+
+<Material Name = "DiffuseYellow">
+	<type>Diffuse</type>
+	<color>(0.75, 0.75, 0.25)</color>
+</Material>
+
+<Material Name = "DiffuseGrey">
+	<type>Diffuse</type>
+	<color>(0.5, 0.5, 0.5)</color>
+</Material>
+
+<Material Name = "Mirror">
+	<type>Reflective</type>
+</Material>

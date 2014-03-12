@@ -140,7 +140,7 @@
 	</Object>
 </Scene>
 
-<Scene Name = "Dragon">
+<!--Scene Name = "Dragon">
 	<Camera Name = "c1">
 		<width>512</width>
 		<height>512</height>
@@ -205,7 +205,7 @@
 			<name>DiffuseGreen</name>
 		</Material>
 	</Object>
-</Scene>
+</Scene-->
 
 <Scene Name = "Rabbit">
 	<Camera Name = "c1">

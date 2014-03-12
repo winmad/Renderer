@@ -38,9 +38,9 @@ protected:
 
 	void mergePartialPaths(vector<omp_lock_t> &contribLocks , vector<vec3f>& contribs , const IptPathState& lightState);
 
-	void colorByMergingPaths(vector<omp_lock_t> &pixelLocks, vector<vec3f>& colors, const IptPathState& cameraState, PointKDTree<IptPathState>& partialSubPaths);
+	vec3f colorByMergingPaths(vector<omp_lock_t> &pixelLocks, vector<vec3f>& colors, const IptPathState& cameraState, PointKDTree<IptPathState>& partialSubPaths);
 
-	void colorByConnectingLights(vector<omp_lock_t> &pixelLocks, const Camera& camera, vector<vec3f>& colors, const IptPathState& cameraState);
+	vec3f colorByConnectingLights(vector<omp_lock_t> &pixelLocks, const Camera& camera, vector<vec3f>& colors, const IptPathState& cameraState);
 
 	void colorByConnectingCamera(vector<omp_lock_t> &pixelLocks, const Camera& camera, vector<vec3f>& colors, const IptPathState& lightState);
 

@@ -64,7 +64,7 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 				IptPathState& subPath = partialSubPathList[i];
 
 				//omp_set_lock(&cmdLock);
-				//colorByConnectingCamera(pixelLocks , camera , singleImageColors , subPath);
+				colorByConnectingCamera(pixelLocks , camera , singleImageColors , subPath);
 				//omp_unset_lock(&cmdLock);
 
 				/*
@@ -116,7 +116,7 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 
 							colorHitLight = le * cameraState.throughput * cosAtLight;
 							omp_set_lock(&pixelLocks[cameraState.index]);
-							//singleImageColors[cameraState.index] += colorHitLight;
+							singleImageColors[cameraState.index] += colorHitLight;
 							omp_unset_lock(&pixelLocks[cameraState.index]);
 						}	
 						break;
@@ -130,7 +130,7 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 					{
 						//omp_set_lock(&cmdLock);
 						colorDirIllu = colorByConnectingLights(pixelLocks , camera , singleImageColors , cameraState);
-						//colorGlbIllu = colorByMergingPaths(pixelLocks , singleImageColors , cameraState , partialSubPaths);
+						colorGlbIllu = colorByMergingPaths(pixelLocks , singleImageColors , cameraState , partialSubPaths);
 						//omp_unset_lock(&cmdLock);
 					}
 

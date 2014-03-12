@@ -74,7 +74,7 @@ public:
 		//return 0.5;
 		Real s = 1.0;
 		if (volScale)
-			s = *volScale;
+			s = *volScale / sqrt(totArea);
 		return 0.5 * mergeRadius * mergeRadius * 
 			partialPathNum * s / totArea;
 	}

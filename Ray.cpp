@@ -49,6 +49,20 @@ float Ray::getOriginSampleProbDensity(const Ray& outRay) const
 	return prob;
 }
 
+float Ray::getContinueSampleProbDensity(const Ray& outRay) const
+{
+	float prob = 0;
+	if (outRay.contactObject)
+	{
+		prob = outRay.contactObject->getContinueProbability(*this , outRay);
+	}
+	else if (outRay.insideObject)
+	{
+		prob = outRay.insideObject->getContinueProbability(*this , outRay);
+	}
+	return prob;
+}
+
 vec3f Ray::getRadianceDecay(const float& dist) const
 {
 	return insideObject ? insideObject->getRadianceDecay(*this, dist) : vec3f(1, 1, 1);

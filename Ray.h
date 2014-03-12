@@ -57,6 +57,7 @@ public:
 
 	float getDirectionSampleProbDensity(const Ray& outRay) const;
 	float getOriginSampleProbDensity(const Ray& outRay) const;
+	float getContinueSampleProbDensity(const Ray& outRay) const;
 	vec3f getContactNormal(bool flat = false) const;
 };
 

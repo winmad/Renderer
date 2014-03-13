@@ -36,15 +36,13 @@ protected:
 
 	Ray genIntermediateSamples(vector<IptPathState>& partialSubPathList , Scene& scene);
 
-	void mergePartialPaths(vector<omp_lock_t> &contribLocks , vector<vec3f>& contribs , const IptPathState& lightState);
+	void mergePartialPaths(vector<vec3f>& contribs , const IptPathState& lightState);
 
-	vec3f colorByMergingPaths(vector<omp_lock_t> &pixelLocks, vector<vec3f>& colors, const IptPathState& cameraState, PointKDTree<IptPathState>& partialSubPaths);
+	vec3f colorByMergingPaths(vector<vec3f>& colors, const IptPathState& cameraState, PointKDTree<IptPathState>& partialSubPaths);
 
-	vec3f colorByConnectingLights(vector<omp_lock_t> &pixelLocks, const Camera& camera, vector<vec3f>& colors, const IptPathState& cameraState);
+	vec3f colorByConnectingLights(const Camera& camera, vector<vec3f>& colors, const IptPathState& cameraState);
 
 	void colorByConnectingCamera(vector<omp_lock_t> &pixelLocks, const Camera& camera, vector<vec3f>& colors, const IptPathState& lightState);
-
-	bool connectRays(Path& path, int connectIndex, bool merged = false);
 
 public:
 	Real mergeRadius;

@@ -88,9 +88,9 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 				IptPathState cameraState;
 				cameraState.isSpecularPath = 1;
 
-				//cameraState.throughput = vec3f(1) * eyePath[0].getCosineTerm()
-				//	/ (eyePath[0].directionProb * eyePath[1].originProb);
-				cameraState.throughput = vec3f(1) / (eyePath[0].directionProb * eyePath[1].originProb);
+				//cameraState.throughput = vec3f(1.f) / (eyePath[0].directionProb * eyePath[1].originProb);
+				cameraState.throughput = vec3f(1.f) * powf(eyePath[0].getCosineTerm() , 4)
+					/ (pixelNum * eyePath[1].originProb);
 	
 				cameraState.index = eyePath.front().pixelID;
 

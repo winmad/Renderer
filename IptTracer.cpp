@@ -35,7 +35,7 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 			partialSubPathList.clear();
 
 			mergeRadius = r0 * sqrt(pow(s+1, alpha-1));
-			mergeRadius = std::max(mergeRadius , 1e-6f);
+			mergeRadius = std::max(mergeRadius , 1e-7f);
 
 			mergeKernel = 1.f / (M_PI * mergeRadius * 
 				mergeRadius * (Real)partialPathNum);
@@ -90,8 +90,7 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 
 				//cameraState.throughput = vec3f(1) * eyePath[0].getCosineTerm()
 				//	/ (eyePath[0].directionProb * eyePath[1].originProb);
-				cameraState.throughput = vec3f(1) * eyePath[0].getCosineTerm()
-					/ (lightPathNum * eyePath[1].originProb);
+				cameraState.throughput = vec3f(1) / (eyePath[0].directionProb * eyePath[1].originProb);
 	
 				cameraState.index = eyePath.front().pixelID;
 
@@ -196,6 +195,7 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 				lightPathList[i]->clear();
 				delete lightPathList[i];
 			}
+			
 			for (int i = 0; i < interPathNum; i++)
 			{
 				interPathList[i]->clear();
@@ -572,7 +572,6 @@ void IptTracer::colorByConnectingCamera(vector<omp_lock_t> &pixelLocks, const Ca
 		volMergeScale = 4.0 / 3.0 * mergeRadius;
 	}
 
-	/*
 	Real imagePointToCameraDist = camera.sightDist / cosAtCamera;
 	Real imageToSolidAngleFactor = imagePointToCameraDist *
 		imagePointToCameraDist / cosAtCamera;
@@ -581,15 +580,19 @@ void IptTracer::colorByConnectingCamera(vector<omp_lock_t> &pixelLocks, const Ca
 	Real cameraPdfArea = imageToSurfaceFactor * 1.f; // pixel area is 1
 	
 	Real surfaceToImageFactor = 1.f / imageToSurfaceFactor;
-	*/
+	
 	Real bsdfDirPdf = lightState.lastRay->getDirectionSampleProbDensity(outRay);
 
 	vec3f totContrib = lightState.dirContrib + lightState.indirContrib;
 
 	//---- still buggy, fix me ----
-	vec3f color = (totContrib * bsdfFactor * decayFactor) * 
-		cosAtCamera * cosToCamera * cameraDistToScreen2 / 
-		(distEye2 * lightPathNum * lightPathNum);
+	vec3f color = (totContrib * bsdfFactor * decayFactor) /
+		(lightPathNum * surfaceToImageFactor);
+	color *= powf(cosAtCamera , 4) / lightPathNum;
+
+	//vec3f color = (totContrib * bsdfFactor * decayFactor) * 
+	//	cosAtCamera * cosToCamera * cameraDistToScreen2 / 
+	//	(distEye2 * lightPathNum * lightPathNum);
 
 	//vec3f color = (totContrib * bsdfFactor * decayFactor) * 
 	//	cosAtCamera * cosToCamera / (distEye2 * lightPathNum);
@@ -661,7 +664,7 @@ vec3f IptTracer::colorByConnectingLights(const Camera& camera, vector<vec3f>& co
 
 	vec3f res = tmp * decayFactor * weightFactor;
 	vec3f resx = camera.eliminateVignetting(res , cameraState.index) * lightPathNum;
-
+	/*
 	if (resx[0] + resx[1] + resx[2] > 0)
 	{
 		fprintf(fp , "=====================\n");
@@ -669,7 +672,7 @@ vec3f IptTracer::colorByConnectingLights(const Camera& camera, vector<vec3f>& co
 			decayFactor[0] , decayFactor[1] , decayFactor[2] , bsdfFactor[0] , bsdfFactor[1] , bsdfFactor[2] ,
 			lightRay.color[0] , lightRay.color[1] , lightRay.color[2] , weightFactor , resx[0] , resx[1] , resx[2]);
 	}
-	
+	*/
 	return res;
 }
 

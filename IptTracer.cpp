@@ -51,9 +51,9 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 
 			genLightPaths(cmdLock , lightPathList);
 
-			genIntermediatePaths(cmdLock , interPathList);
+			//genIntermediatePaths(cmdLock , interPathList);
 	
-			mergePartialPaths(cmdLock);
+			//mergePartialPaths(cmdLock);
 
 			printf("%d\n" , partialSubPathList.size());
 
@@ -61,7 +61,7 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 			for (int i = 0; i < partialSubPathList.size(); i++)
 			{
 				IptPathState& subPath = partialSubPathList[i];
-				colorByConnectingCamera(pixelLocks , camera , singleImageColors , subPath);
+				//colorByConnectingCamera(pixelLocks , camera , singleImageColors , subPath);
 
 				/*
 				if (s == 0)
@@ -113,7 +113,7 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 
 							colorHitLight = le * cameraState.throughput;
 							omp_set_lock(&pixelLocks[cameraState.index]);
-							singleImageColors[cameraState.index] += colorHitLight;
+							//singleImageColors[cameraState.index] += colorHitLight;
 							omp_unset_lock(&pixelLocks[cameraState.index]);
 						}	
 						break;
@@ -130,7 +130,8 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 					}
 
 					omp_set_lock(&pixelLocks[cameraState.index]);
-					singleImageColors[cameraState.index] += colorDirIllu + colorGlbIllu;
+					//singleImageColors[cameraState.index] += colorDirIllu;
+					singleImageColors[cameraState.index] += colorGlbIllu;
 					omp_unset_lock(&pixelLocks[cameraState.index]);
 
 					if (eyePath[i].contactObject != NULL && eyePath[i].directionSampleType == Ray::RANDOM)
@@ -191,19 +192,10 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 				pixelColors[i] += singleImageColors[i] / (s + 1) * camera.width * camera.height; 
 			}
 			for (int i = 0; i < lightPathNum; i++)
-			{
-				lightPathList[i]->clear();
 				delete lightPathList[i];
-			}
 			
 			for (int i = 0; i < interPathNum; i++)
-			{
-				interPathList[i]->clear();
 				delete interPathList[i];
-			}
-			
-			lightPathList.clear();
-			interPathList.clear();
 			
 			printf("Iter: %d  IterTime: %ds  TotalTime: %ds\n", s+1, (clock()-t)/1000, clock()/1000);
 
@@ -728,7 +720,7 @@ vec3f IptTracer::colorByMergingPaths(vector<vec3f>& colors, const IptPathState& 
 			vec3f totContrib = lightState.dirContrib + lightState.indirContrib;
 			vec3f tmp = totContrib * bsdfFactor * 
 				cameraState->throughput * cameraState->ray->originProb / volMergeScale; 
-
+			
 			Real lastPdf , weightFactor;
 			lastPdf = lightState.lastRay->getDirectionSampleProbDensity(outRay);
 			weightFactor = tracer->mergeFactor(&volMergeScale) / 
@@ -737,6 +729,14 @@ vec3f IptTracer::colorByMergingPaths(vector<vec3f>& colors, const IptPathState& 
 
 			mergeNum++;
 			color += tmp * weightFactor;
+
+			vec3f resx = tracer->renderer->camera.eliminateVignetting(tmp * weightFactor , cameraState->index) * tracer->pixelNum;	
+			if (tmp[0] + tmp[1] + tmp[2] > 1)
+			{
+				fprintf(fp , "totContrib = (%.8f,%.8f,%.8f), bsdf = (%.8f,%.8f,%.8f), cameraThr = (%.8f,%.8f,%.8f), weightFactor = %.8f\n" ,
+					totContrib[0] , totContrib[1] , totContrib[2] , bsdfFactor[0] , bsdfFactor[1] , bsdfFactor[2] , 
+					cameraState->throughput[0] , cameraState->throughput[1] , cameraState->throughput[2] , weightFactor);
+			}
 		}
 	};
 

@@ -63,13 +63,13 @@ public:
 
 	Real connectFactor(Real pdf)
 	{
-		//return 0.5;
+		return 0.5;
 		return pdf;
 	}
 
 	Real mergeFactor(Real *volScale = NULL)
 	{
-		//return 0.5;
+		return 0.5;
 		Real s = 1.0;
 		if (volScale)
 			s = *volScale / sqrt(totArea);

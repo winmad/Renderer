@@ -79,7 +79,7 @@ vector<vec3f> VCMTracer::renderPixels(const Camera& camera)
 
 				colorByMergingPaths(singleImageColors, eyePath, tree);
 
-				colorByConnectingPaths(pixelLocks, renderer->camera, singleImageColors, eyePath, lightPath);
+				//colorByConnectingPaths(pixelLocks, renderer->camera, singleImageColors, eyePath, lightPath);
 
 			}
 
@@ -483,6 +483,8 @@ void VCMTracer::colorByMergingPaths(vector<vec3f>& colors, const Path& eyePath, 
 			if(vec3f(color_prob).length()==0 || color_prob.w==0)
 				return;
 			float weight = tracer->connectMergeWeight(wholePath, lpp.index-1, true);
+			if (abs(weight) < 1e-7)
+				return;
 			color += vec3f(color_prob) / color_prob.w * weight;
 		}
 	};

@@ -20,7 +20,7 @@ class IptTracer : public MCRenderer
 protected:
 	unsigned spp;
 
-	int lightPathNum , cameraPathNum , interPathNum , partialPathNum;
+	int pixelNum , lightPathNum , cameraPathNum , interPathNum , partialPathNum;
 
 	vector<vector<int> > partPathMergeIndex;
 
@@ -55,7 +55,7 @@ public:
 		alpha = 0.666;
 		spp = -1; 
 
-		lightPathNum = cameraPathNum = interPathNum = partialPathNum = 
+		pixelNum = lightPathNum = cameraPathNum = interPathNum = partialPathNum = 
 			renderer->camera.height * renderer->camera.width;
 	}
 	void setRadius(const Real& r) { mergeRadius = r; }

@@ -24,6 +24,8 @@ protected:
 
 	vector<vector<int> > partPathMergeIndex;
 
+	vector<float> weights;
+
 	int *revIndex;
 
 	vector<IptPathState> partialSubPathList;
@@ -63,18 +65,30 @@ public:
 
 	Real connectFactor(Real pdf)
 	{
-		return 0.5;
+		//return 0.5;
 		return pdf;
 	}
 
-	Real mergeFactor(Real *volScale = NULL)
+	Real mergeFactor(Real *volScale = NULL , Real *initProb = NULL , Real *dirProb = NULL)
 	{
-		return 0.5;
+		//return 0.5;
 		Real s = 1.0;
 		if (volScale)
-			s = *volScale / sqrt(totArea);
-		return 0.5 * mergeRadius * mergeRadius * 
-			partialPathNum * s / totArea;
+			s = *volScale;
+		if (initProb)
+			s *= *initProb;
+		if (dirProb)
+			s *= *dirProb;
+		return mergeRadius * mergeRadius * partialPathNum * s;
+	}
+
+	Real gatherFactor(Real *volScale = NULL)
+	{
+		//return 0.5;
+		Real s = 1.0;
+		if (volScale)
+			s *= *volScale;
+		return mergeRadius * mergeRadius * partialPathNum * s;
 	}
 };
 

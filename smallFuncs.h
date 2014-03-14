@@ -37,3 +37,8 @@ inline int clamp(int v, int min_v, int max_v)
 {
 	return v < min_v ? min_v : v > max_v ? max_v : v;
 }
+
+inline float y(const vec3f& v)
+{
+	return 0.212671f * v[0] + 0.715160f * v[1] + 0.072169f * v[2];
+}

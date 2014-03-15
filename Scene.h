@@ -66,6 +66,7 @@ public:
 	vector<bool> testVisibility(const vector<Ray>& rays);
 	void clear();
 	float getTotalArea();
+	float getBoundSphereRadius();
 	~Scene();
 };
 

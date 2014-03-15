@@ -39,7 +39,10 @@ struct KDTree::Node
 	} boundingBox;
 };
 
-
+vec3f KDTree::getDiagonal()
+{
+	return root->boundingBox.maxCoord - root->boundingBox.minCoord;
+}
 
 float KDTree::Node::BoundingBox::intersect(const Ray& ray) const
 {

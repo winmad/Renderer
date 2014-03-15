@@ -155,7 +155,7 @@ vector<vec3f> VCMTracer::renderPixels(const Camera& camera)
 
 				colorByMergingPaths(singleImageColors, ep, tree);
 
-				colorByConnectingPaths(pixelLocks, renderer->camera, singleImageColors, eyePath, lightPath, &visibilityList[p]);
+				//colorByConnectingPaths(pixelLocks, renderer->camera, singleImageColors, eyePath, lightPath, &visibilityList[p]);
 
 			}
 

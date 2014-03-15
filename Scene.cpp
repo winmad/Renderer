@@ -101,6 +101,12 @@ void Scene::preprocessOtherSampler()
 	otherSurfaceSampler->preprocess();
 }
 
+float Scene::getBoundSphereRadius()
+{
+	vec3f diameter = tree.getDiagonal();
+	return diameter.length() * 0.5f;
+}
+
 void Scene::buildKDTree()
 {
 	unsigned vi_offset = 0;

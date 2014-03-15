@@ -8,7 +8,7 @@
 		<type>IPT</type>
 		<radius>0.001</radius>
 	</Renderer>
-	<savePath>results/fog_cb_ipt.pfm</savePath>
+	<savePath>results/fog_cb_ipt_merge.pfm</savePath>
 </Config>
 
 <Config>

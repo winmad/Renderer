@@ -52,6 +52,7 @@ public:
 	float intersect(const Ray& ray, unsigned& triangleID, const Condition* condition = NULL) const;
 
 	KDTree();
+	vec3f getDiagonal();
 	void build(Strategy strategy = BEST);
 	void destroy();
 	void serializeForGPU(vector<vec4f>& nodes, vector<vec4f>& nodes_minCoords, vector<vec4f>& nodes_maxCoords, vector<vec4f>& leaf_v1, vector<vec4f>& leaf_v2, vector<vec4f>& leaf_v3) const;

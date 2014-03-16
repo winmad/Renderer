@@ -262,6 +262,9 @@ void IptTracer::genLightPaths(omp_lock_t& cmdLock , vector<Path*>& lightPathList
 				(lightPath[i].insideObject != NULL || lightPath[i].contactObject != NULL) &&
 				(lightState.pos != lightState.originRay->origin))
 			{
+				if (lightPath[i].contactObject && 
+					lightPath[i].contactObject->emissive())
+					break;
 				omp_set_lock(&cmdLock);
 				partialSubPathList.push_back(lightState);
 				partPathMergeIndex[p].push_back(partialSubPathList.size() - 1);
@@ -360,6 +363,9 @@ void IptTracer::genIntermediatePaths(omp_lock_t& cmdLock , vector<Path*>& interP
 				(interPath[i].insideObject != NULL || interPath[i].contactObject != NULL) &&
 				(interState.pos != interState.originRay->origin))
 			{
+				if (interPath[i].contactObject && 
+					interPath[i].contactObject->emissive())
+					break;
 				omp_set_lock(&cmdLock);
 				partialSubPathList.push_back(interState);
 				partPathMergeIndex[lightPathNum + p].push_back(partialSubPathList.size() - 1);
@@ -451,21 +457,40 @@ void IptTracer::mergePartialPaths(omp_lock_t& cmdLock)
 		//fprintf(fp , "mergeNum = %d\n" , query.mergeIndex.size());
 
 		partPathMergeIndex[i].clear();
+		
+		omp_set_lock(&cmdLock);
+		if (query.mergeIndex.size() > 100)
+		{
+			flag++;
+			fprintf(fp , "%d\n" , query.mergeIndex.size());
+		}
+		
 		for (int j = 0; j < query.mergeIndex.size(); j++)
 		{
 			partPathMergeIndex[i].push_back(query.mergeIndex[j]);
-			
-			if (flag == 0 && query.mergeIndex.size() > 100)
+				
+			if (flag == 1 && query.mergeIndex.size() > 100)
 			{
 			IptPathState& subPath = partialSubPathList[query.mergeIndex[j]];
+			
+			if (subPath.ray->insideObject && !subPath.ray->contactObject)
+			{
+				fprintf(fp , "volume\n");
+			}
+			else if (subPath.ray->contactObject)
+			{
+				if (subPath.ray->contactObject->emissive())
+					fprintf(fp , "light\n");
+				else
+					fprintf(fp , "surface\n");
+			}
 			fprintf(fp , "pos=(%.4f,%.4f,%.4f), originPos=(%.4f,%.4f,%.4f)\ncontrib=(%.8f,%.8f,%.8f)\n" ,
 				subPath.pos[0] , subPath.pos[1] , subPath.pos[2] ,
 				subPath.originRay->origin[0] , subPath.originRay->origin[1] , subPath.originRay->origin[2] ,
 				subPath.dirContrib[0] , subPath.dirContrib[1] , subPath.dirContrib[2]);
 			}
 		}
-		if (query.mergeIndex.size() > 100)
-			flag++;
+		omp_unset_lock(&cmdLock);
 	}
 
 	int mergeIterations = 1;
@@ -875,7 +900,7 @@ void IptTracer::mergePartialPaths(vector<vec3f>& contribs , const IptPathState& 
 	query.color = vec3f(0, 0, 0);
 
 	int pa = revIndex[lightState.index];
-	fprintf(fp , "%d\n" , partPathMergeIndex[pa].size());
+	//fprintf(fp , "%d\n" , partPathMergeIndex[pa].size());
 	for (int j = 0; j < partPathMergeIndex[pa].size(); j++)
 	{
 		int k = partPathMergeIndex[pa][j];

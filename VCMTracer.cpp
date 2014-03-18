@@ -1,6 +1,7 @@
 #include "StdAfx.h"
 #include "VCMTracer.h"
 
+static FILE* fp = fopen("debug_vcm.txt" , "w");
 
 vector<vec3f> VCMTracer::renderPixels(const Camera& camera)
 {
@@ -79,7 +80,7 @@ vector<vec3f> VCMTracer::renderPixels(const Camera& camera)
 
 				colorByMergingPaths(singleImageColors, eyePath, tree);
 
-				//colorByConnectingPaths(pixelLocks, renderer->camera, singleImageColors, eyePath, lightPath);
+				colorByConnectingPaths(pixelLocks, renderer->camera, singleImageColors, eyePath, lightPath);
 
 			}
 
@@ -155,7 +156,7 @@ vector<vec3f> VCMTracer::renderPixels(const Camera& camera)
 
 				colorByMergingPaths(singleImageColors, ep, tree);
 
-				//colorByConnectingPaths(pixelLocks, renderer->camera, singleImageColors, eyePath, lightPath, &visibilityList[p]);
+				colorByConnectingPaths(pixelLocks, renderer->camera, singleImageColors, eyePath, lightPath, &visibilityList[p]);
 
 			}
 
@@ -469,6 +470,8 @@ void VCMTracer::colorByMergingPaths(vector<vec3f>& colors, const Path& eyePath, 
 		unsigned eyePathLen;
 		Path wholePath;
 
+		int cnt;
+
 		Query(VCMTracer* tracer) { this->tracer = tracer; }
 
 		void process(const LightPathPoint& lpp)
@@ -483,9 +486,13 @@ void VCMTracer::colorByMergingPaths(vector<vec3f>& colors, const Path& eyePath, 
 			if(vec3f(color_prob).length()==0 || color_prob.w==0)
 				return;
 			float weight = tracer->connectMergeWeight(wholePath, lpp.index-1, true);
-			if (abs(weight) < 1e-7)
+			vec3f res = vec3f(color_prob) / color_prob.w * weight;
+			if (y(res) < 1e-10f)
 				return;
-			color += vec3f(color_prob) / color_prob.w * weight;
+			color += res;
+			fprintf(fp , "res = (%.7f,%.7f,%.7f), c = (%.7f,%.7f,%.7f), prob = %.7f, weight = %.7f\n" ,
+				res[0] , res[1] , res[2] , color_prob[0] , color_prob[1] , color_prob[2] , color_prob.w , weight);
+			cnt++;
 		}
 	};
 
@@ -500,8 +507,11 @@ void VCMTracer::colorByMergingPaths(vector<vec3f>& colors, const Path& eyePath, 
 			continue;
 		query.color = vec3f(0, 0, 0);
 		query.eyePathLen = ei + 1;
-		
+		query.cnt = 0;
+
 		tree.searchInRadius(0, eyePath[ei].origin, mergeRadius, query);
+		if (query.cnt > 0)
+			fprintf(fp , "===================\n");
 
 		colors[eyePath.front().pixelID] += query.color;
 	}

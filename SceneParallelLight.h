@@ -5,7 +5,7 @@ class SceneParallelLight : public SceneEmissiveObject
 {
 public:
 	SceneParallelLight(Scene* scene) : SceneEmissiveObject(scene){
-		canMerge = true;
+		canMerge = false; // FIX ME
 	}
 	Ray scatter(const Ray& inRay) const;
 	Ray emit();

@@ -173,7 +173,7 @@ vec3f SceneObject::getRadianceDecay(const Ray& inRay, const float& dist) const
 
 Ray SceneObject::scatter(const Ray& inRay) const
 {
-	if(materialList.size())
+	if(materialList.size() && this)
 	{
 		return materialList[rand()%materialList.size()]->scatter(this, inRay);
 	}

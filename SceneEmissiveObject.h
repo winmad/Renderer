@@ -10,7 +10,7 @@ public:
 	vec3f getColor() const { return color; }
 	void setColor(const vec3f& color){ this->color = color; }
 	SceneEmissiveObject(Scene* scene) : SceneObject(scene){
-		canMerge = true;
+		canMerge = false; // FIX ME
 	}
 	bool emissive() const { return true; }
 

@@ -13,6 +13,7 @@ public:
 		material->setSurfColor(vec3f(1, 1, 1));
 		material->setRefrCoeff(-1);
 		materialList.push_back(material);
+		canMerge = false;
 	}
 };
 

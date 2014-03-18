@@ -13,6 +13,7 @@ public:
 	{
 		material = new GlossyMaterial();
 		materialList.push_back(material);
+		canMerge = true;
 	}
 };
 

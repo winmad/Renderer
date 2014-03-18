@@ -16,6 +16,7 @@ public:
 		material->setSurfColor(vec3f(1, 1, 1));
 		material->setDecayColor(vec3f(1, 1, 1));
 		materialList.push_back(material);
+		canMerge = false;
 	}
 	void setRefrCoeff(const float& coeff) { material->setRefrCoeff(coeff); }
 	float getRefrCoeff() const{ return material->getRefrCoeff(); }

@@ -12,6 +12,7 @@ struct IptPathState
 	bool isSpecularPath;
 	vec3f pos;
 	int index;
+	float accuProb;
 };
 
 
@@ -65,13 +66,13 @@ public:
 
 	Real connectFactor(Real pdf)
 	{
-		return 0.5;
+		//return 0.5;
 		return pdf;
 	}
 
 	Real mergeFactor(Real *volScale = NULL , Real *initProb = NULL , Real *dirProb = NULL)
 	{
-		return 0.5;
+		//return 0.5;
 		Real s = 1.0;
 		if (volScale)
 			s = *volScale;
@@ -79,15 +80,6 @@ public:
 			s *= *initProb;
 		if (dirProb)
 			s *= *dirProb;
-		return mergeRadius * mergeRadius * partialPathNum * s;
-	}
-
-	Real gatherFactor(Real *volScale = NULL)
-	{
-		return 0.5;
-		Real s = 1.0;
-		if (volScale)
-			s *= *volScale;
 		return mergeRadius * mergeRadius * partialPathNum * s;
 	}
 };

@@ -18,5 +18,6 @@ public:
 		materialList.push_back(glossyMaterial);
 		diffuseMaterial = new DiffuseMaterial();
 		materialList.push_back(diffuseMaterial);
+		canMerge = true;
 	}
 };

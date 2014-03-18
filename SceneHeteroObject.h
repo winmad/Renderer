@@ -2,8 +2,7 @@
 #include "SceneObject.h"
 #include "HGPhaseFunc.h"
 
-class SceneHeteroObject :
-	public SceneObject
+class SceneHeteroObject : public SceneObject
 {
 private:
 	BSDF* bsdf;
@@ -51,6 +50,7 @@ public:
 		ds = vec3f(2.55, 3.21, 3.77);
 		da = vec3f(0.0011, 0.0024, 0.014);
 		dt = ds + da;
+		canMerge = true;
 	}
 	~SceneHeteroObject(void){
 		delete bsdf;

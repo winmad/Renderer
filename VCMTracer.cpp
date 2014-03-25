@@ -208,11 +208,19 @@ vec4<float> VCMTracer::connectColorProb(const Path& connectedPath, int connectIn
 			dist = max2((connectedPath[i-1].origin - connectedPath[i].origin).length(), EPSILON);
 			color *= connectedPath[i].getRadianceDecay(dist);
 		}
-
+		
 		if(i==connectIndex && i<connectedPath.size()-1)
 		{
 			color *= connectedPath[i].getCosineTerm() * connectedPath[i+1].getCosineTerm() / (dist*dist);
 			connectDist = dist;
+			/*
+			if (_isnan((y(vec3f(color)))))
+			{
+				fprintf(fp , "cos_i = %.8f, cos_i+1 = %.8f, dist = %.8f\n" , connectedPath[i].getCosineTerm() , 
+					connectedPath[i + 1].getCosineTerm() , dist);
+				printf("color error\n");
+			}
+			*/
 		}
 
 		if(i!=connectIndex && i!=connectIndex+1)
@@ -235,10 +243,24 @@ vec4<float> VCMTracer::connectColorProb(const Path& connectedPath, int connectIn
 
 		if(i > 0 && i <= connectIndex) // correct sample density difference in interpolating normal.
 		{
-			color *= fabs(connectedPath[i-1].direction.dot(connectedPath[i].getContactNormal())) /
-				fabs(connectedPath[i-1].direction.dot(connectedPath[i].getContactNormal(true)));
+			if (fabs(connectedPath[i-1].direction.dot(connectedPath[i].getContactNormal())) != 0 &&
+				fabs(connectedPath[i-1].direction.dot(connectedPath[i].getContactNormal(true))) != 0)
+			{
+				color *= fabs(connectedPath[i-1].direction.dot(connectedPath[i].getContactNormal())) /
+					fabs(connectedPath[i-1].direction.dot(connectedPath[i].getContactNormal(true)));
+			}
+			/*
+			if (fabs(connectedPath[i-1].direction.dot(connectedPath[i].getContactNormal())) == 0 ||
+				fabs(connectedPath[i-1].direction.dot(connectedPath[i].getContactNormal(true))) == 0)
+			{
+				fprintf(fp , "cos = %.8f , cos' = %.8f\n" , fabs(connectedPath[i-1].direction.dot(connectedPath[i].getContactNormal())) ,
+					fabs(connectedPath[i-1].direction.dot(connectedPath[i].getContactNormal(true))));
+				printf("error\n");
+			}
+			*/
 		}
 	}
+
 	return vec4<float>(color, prob);
 }
 
@@ -437,6 +459,9 @@ void VCMTracer::colorByConnectingPaths(vector<omp_lock_t> &pixelLocks, const Cam
 
 			Ray &camRay = wholePath[wholePath.size()-1];
 
+			if (_isnan(y(color)))
+				printf("connect error\n");
+
 			if(eyePathLen > 1)
 			{
 				omp_set_lock(&pixelLocks[camRay.pixelID]);
@@ -487,12 +512,13 @@ void VCMTracer::colorByMergingPaths(vector<vec3f>& colors, const Path& eyePath, 
 				return;
 			float weight = tracer->connectMergeWeight(wholePath, lpp.index-1, true);
 			vec3f res = vec3f(color_prob) / color_prob.w * weight;
-			if (y(res) < 1e-10f)
-				return;
+
 			color += res;
+			/*
 			fprintf(fp , "res = (%.7f,%.7f,%.7f), c = (%.7f,%.7f,%.7f), prob = %.7f, weight = %.7f\n" ,
 				res[0] , res[1] , res[2] , color_prob[0] , color_prob[1] , color_prob[2] , color_prob.w , weight);
 			cnt++;
+			*/
 		}
 	};
 

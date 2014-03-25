@@ -12,7 +12,7 @@ struct IptPathState
 	bool isSpecularPath;
 	vec3f pos;
 	int index;
-	float accuProb;
+	double accuProb;
 };
 
 
@@ -52,16 +52,19 @@ public:
 	Real mergeKernel;
 	Real alpha;
 	Real totArea;
+	Real initialProb;
 	IptTracer(Renderer* renderer) : MCRenderer(renderer)
 	{ 
 		maxDepth = 20;
 		alpha = 0.75f;
 		spp = -1; 
+		initialProb = 1.f;
 
 		pixelNum = lightPathNum = cameraPathNum = interPathNum = partialPathNum = 
 			renderer->camera.height * renderer->camera.width;
 	}
 	void setRadius(const Real& r) { mergeRadius = r; }
+	void setInitProb(const Real& r) { initialProb = r; }
 	virtual vector<vec3f> renderPixels(const Camera& camera);
 
 	Real connectFactor(Real pdf)
@@ -80,7 +83,8 @@ public:
 			s *= *initProb;
 		if (dirProb)
 			s *= *dirProb;
-		return mergeRadius * mergeRadius * partialPathNum * s;
+		Real res = mergeRadius * mergeRadius * partialPathNum * s;
+		return res;
 	}
 };
 

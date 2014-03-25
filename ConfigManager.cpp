@@ -238,6 +238,7 @@ void ConfigManager::load(const string &configFilePath)
 		{
 			renderer->mcRenderer = new IptTracer(renderer);
 			((IptTracer*)renderer->mcRenderer)->setRadius(atof(nodeConfig->first_node("radius")->value()));
+			((IptTracer*)renderer->mcRenderer)->setInitProb(atof(nodeConfig->first_node("initProb")->value()));
 		}
 	}
 

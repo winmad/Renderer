@@ -1,0 +1,117 @@
+﻿<Scene Name = "SSS">
+	<Camera Name = "c1">
+		<width>800</width>
+		<height>500</height>
+		<sightDist>400</sightDist>
+		<focus>(1, 0, 0)</focus>
+		<position>(1, -0.2, 2.5)</position>
+		<up>(0, 1, 0)</up>
+	</Camera>
+	<Object>
+		<filePath>objs/plane.obj</filePath>
+		<transform>[0.2, 0, 0, 0][0, -0.2, 0, 0.99][0, 0, 0.2, 0][0, 0, 0, 1]</transform>
+		<Material>
+			<path>Materials.xml</path>
+			<name>EmissionWhite</name>
+		</Material>
+	</Object>
+	<Object>
+		<filePath>objs/plane.obj</filePath>
+		<transform>[0.2, 0, 0, 2][0, -0.2, 0, 0.99][0, 0, 0.2, 0][0, 0, 0, 1]</transform>
+		<Material>
+			<path>Materials.xml</path>
+			<name>EmissionWhite</name>
+		</Material>
+	</Object>
+	<Object>
+		<filePath>objs/dragon.obj</filePath>
+		<transform>[0.699, 0, 0, -0.4][0, 0.699, 0, -0.4][0, 0, 0.699, -0.2][0, 0, 0, 1]</transform>
+		<Material>
+			<path>Materials.xml</path>
+			<name>SubA</name>
+		</Material>
+	</Object>
+	<Object>
+		<filePath>objs/dragon.obj</filePath>
+		<transform>[0.699, 0, 0, 1][0, 0.699, 0, -0.4][0, 0, 0.699, -0.2][0, 0, 0, 1]</transform>
+		<Material>
+			<path>Materials.xml</path>
+			<name>SubB</name>
+		</Material>
+	</Object>
+	<Object>
+		<filePath>objs/dragon.obj</filePath>
+		<transform>[0.699, 0, 0, 2.4][0, 0.699, 0, -0.4][0, 0, 0.699, -0.2][0, 0, 0, 1]</transform>
+		<Material>
+			<path>Materials.xml</path>
+			<name>SubC</name>
+		</Material>
+	</Object-->
+	<Object>
+		<filePath>objs/plane.obj</filePath>
+		<transform>[0, 1, 0, -1][1, 0, 0, 0][0, 0, 1, 0][0, 0, 0, 1]</transform>
+		<Material>
+			<path>Materials.xml</path>
+			<name>DiffuseYellow</name>
+		</Material>
+	</Object>
+	<Object>
+		<filePath>objs/plane.obj</filePath>
+		<transform>[0, -1, 0, 3][1, 0, 0, 0][0, 0, 1, 0][0, 0, 0, 1]</transform>
+		<Material>
+			<path>Materials.xml</path>
+			<name>DiffuseGreen</name>
+		</Material>
+	</Object>
+	<Object>
+		<filePath>objs/plane.obj</filePath>
+		<transform>[3, 0, 0, 0][0, -1, 0, 1][0, 0, 1, 0][0, 0, 0, 1]</transform>
+		<Material>
+			<path>Materials.xml</path>
+			<name>DiffuseGrey</name>
+		</Material>
+	</Object>
+	<Object>
+		<filePath>objs/plane.obj</filePath>
+		<transform>[3, 0, 0, 0][0, 1, 0, -1][0, 0, 1, 0][0, 0, 0, 1]</transform>
+		<Material>
+			<path>Materials.xml</path>
+			<name>DiffuseGrey</name>
+		</Material>
+	</Object>
+	<Object>
+		<filePath>objs/plane.obj</filePath>
+		<transform>[3, 0, 0, 0][0, 0, 1, 0][0, 1, 0, -1][0, 0, 0, 1]</transform>
+		<Material>
+			<path>Materials.xml</path>
+			<name>DiffuseGrey</name>
+		</Material>
+	</Object>
+</Scene>
+
+
+
+
+<Material Name = "SubA"> <!-- skin -->
+	<type>Volume</type>
+	<sigma_s>(7.4, 8.8, 10.1)</sigma_s> 
+	<sigma_a>(0.32, 1.7, 4.8)</sigma_a>
+	<coeff>1.2</coeff>
+	<g>0</g>
+</Material>
+ 
+<Material Name = "SubB"> <!-- Lemon tea -->
+	<type>Volume</type>
+	<sigma_s>(3.4, 5.8, 8.8)</sigma_s> 
+	<sigma_a>(2.6, 4.9, 7.7)</sigma_a>
+	<coeff>1.2</coeff>
+	<g>0</g>
+</Material>
+
+<Material Name = "SubC"> <!-- milk -->
+	<type>Volume</type>
+	<sigma_s>(2.4, 2.7, 4.5)</sigma_s> 
+	<sigma_a>(0.001, 0.005, 0.034)</sigma_a>
+	<coeff>1.5</coeff>
+	<g>0</g>
+</Material>

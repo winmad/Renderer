@@ -1,14 +1,27 @@
 <Config>
 	<Scene>
+		<path>Scene_sss.xml</path>
+		<name>SSS</name>
+		<camera>c1</camera>
+	</Scene>
+	<Renderer>
+		<type>VCM</type>
+		<radius>0.002</radius>
+	</Renderer>
+	<savePath>results/sss_vcm.pfm</savePath>
+</Config>
+
+<Config>
+	<Scene>
 		<path>scenes/fog_cornell_box.xml</path>
 		<name>BallsInFog</name>
 		<camera>c1</camera>
 	</Scene>
 	<Renderer>
 		<type>IPT</type>
-		<radius>0.001</radius>
+		<radius>0.002</radius>
 	</Renderer>
-	<savePath>results/fog_cb_ipt_merge.pfm</savePath>
+	<savePath>results/fog_cb_ipt_old_317.pfm</savePath>
 </Config>
 
 <Config>
@@ -18,10 +31,51 @@
 		<camera>c1</camera>
 	</Scene>
 	<Renderer>
-		<type>VCM</type>
-		<radius>0.005</radius>
+		<type>IPT</type>
+		<radius>0.002</radius>
 	</Renderer>
-	<savePath>results/dragon_vcm.pfm</savePath>
+	<savePath>results/dragon_test_ipt.pfm</savePath>
+</Config>
+
+<Config>
+	<Scene>
+		<path>scenes/2balls_cornell_box.xml</path>
+		<!--name>Toys</name-->
+		<camera>c1</camera>
+	</Scene>
+	<Renderer>
+		<type>IPT</type>
+		<radius>0.002</radius>
+		<initProb>0.05</initProb>
+	</Renderer>
+	<savePath>results/2balls_cornell_box_ipt.pfm</savePath>
+</Config>
+
+<Config>
+	<Scene>
+		<path>scenes/toys_cornell_box.xml</path>
+		<name>Toys</name>
+		<camera>c1</camera>
+	</Scene>
+	<Renderer>
+		<type>IPT</type>
+		<radius>0.002</radius>
+		<initProb>1</initProb>
+	</Renderer>
+	<savePath>results/toys_ipt.pfm</savePath>
+</Config>
+
+<Config>
+	<Scene>
+		<path>scenes/2balls_cornell_box.xml</path>
+		<!--name>Toys</name-->
+		<camera>c1</camera>
+	</Scene>
+	<Renderer>
+		<type>IPT</type>
+		<radius>0.001</radius>
+	</Renderer>
+	<savePath>results/2balls_cornell_box_ipt_merge.pfm</savePath>
 </Config>
 
 <Config>
@@ -35,19 +89,6 @@
 		<radius>0.005</radius>
 	</Renderer>
 	<savePath>results/torus_in_box_vcm.pfm</savePath>
-</Config>
-
-<Config>
-	<Scene>
-		<path>scenes/2balls_cornell_box.xml</path>
-		<!--name>Toys</name-->
-		<camera>c1</camera>
-	</Scene>
-	<Renderer>
-		<type>IPT</type>
-		<radius>0.005</radius>
-	</Renderer>
-	<savePath>results/2balls_cornell_box.pfm</savePath>
 </Config>
 
 

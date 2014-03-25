@@ -258,3 +258,27 @@
 	<type>Diffuse</type>
 	<color>(0.4, 0.4, 0.4)</color>
 </Material>
+
+<Material Name = "SubA"> <!-- skin -->
+	<type>VPM</type>
+	<sigma_s>(7.4, 8.8, 10.1)</sigma_s> 
+	<sigma_a>(0.32, 1.7, 4.8)</sigma_a>
+	<inrate>1.2</inrate>
+	<g>0</g>
+</Material>
+ 
+<Material Name = "SubB"> <!-- Lemon tea -->
+	<type>VPM</type>
+	<sigma_s>(3.4, 5.8, 8.8)</sigma_s> 
+	<sigma_a>(2.6, 4.9, 7.7)</sigma_a>
+	<inrate>1.2</inrate>
+	<g>0</g>
+</Material>
+
+<Material Name = "SubC"> <!-- milk -->
+	<type>VPM</type>
+	<sigma_s>(2.4, 2.7, 4.5)</sigma_s> 
+	<sigma_a>(0.001, 0.005, 0.034)</sigma_a>
+	<inrate>1.5</inrate>
+	<g>0</g>
+</Material>

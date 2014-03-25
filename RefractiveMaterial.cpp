@@ -6,6 +6,13 @@ Ray RefractiveMaterial::scatter(const SceneObject* object, const Ray& inRay) con
 	Ray outRay;
 	vec3f position = inRay.origin + inRay.direction*inRay.intersectDist;
 
+	if (inRay.intersectObject == NULL)
+	{
+		outRay.direction = vec3f(0.f);
+		outRay.directionSampleType = Ray::DEFINITE;
+		return outRay;
+	}
+	
 	LocalFrame lf = inRay.intersectObject->getAutoGenWorldLocalFrame(inRay.intersectObjectTriangleID, position);
 	vec3f normal = lf.n;
 

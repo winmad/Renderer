@@ -10,7 +10,7 @@ typedef unsigned int uint;
 struct CountQuery
 {
 	vec3f& pos;
-	int count;
+	float count;
 
 	CountQuery(vec3f& _pos) : pos(_pos) , count(0) {}
 };
@@ -33,10 +33,6 @@ public:
 	void build(const std::vector<tParticle> &aParticles,
 		float aRadius)
 	{
-		mRadius      = aRadius;
-		mRadiusSqr   = mRadius * mRadius;
-		mCellSize    = mRadius * 2.f;
-		mInvCellSize = 1.f / mCellSize;
 		mBBoxMin = vec3f( 1e36f);
 		mBBoxMax = vec3f(-1e36f);
 
@@ -50,16 +46,22 @@ public:
 			}
 		}
 
-		mCellEnds.resize(aParticles.size());
+		mCellSize = aRadius * 2.f;
+
+		mCellEnds.resize(aParticles.size() / 5);
 		memset(&mCellEnds[0], 0, mCellEnds.size() * sizeof(int));
 
 		// set mCellEnds[x] to number of particles within x
 		for(size_t i=0; i<aParticles.size(); i++)
 		{
 			const vec3f &pos = aParticles[i].pos;
-			mCellEnds[GetCellIndex(pos)]++;
+			vec3f totContrib = aParticles[i].dirContrib + aParticles[i].indirContrib;
+			mCellEnds[GetCellIndex(pos)] += y(totContrib);
 		}
 
+		sumContribs = 0;
+		for (size_t i = 0; i < mCellEnds.size(); i++)
+			sumContribs += mCellEnds[i];
 	}
 
 	template<typename tQuery>
@@ -111,13 +113,7 @@ public:
 		}
 	}
 
-private:
-	vec2i GetCellRange(int aCellIndex) const
-	{
-		if(aCellIndex == 0) return vec2i(0, mCellEnds[0]);
-		return vec2i(mCellEnds[aCellIndex-1], mCellEnds[aCellIndex]);
-	}
-
+public:
 	float Kernel(float distSqr, float radiusSqr) const{
 		float s = 1 - distSqr / radiusSqr;
 		return 3 * s * s / M_PI;
@@ -147,16 +143,14 @@ private:
 		return GetCellIndex(coordI);
 	}
 
-private:
-
+public:
 	vec3f mBBoxMin;
 	vec3f mBBoxMax;
-	std::vector<int> mCellEnds;
+	std::vector<float> mCellEnds;
 
-	float mRadius;
-	float mRadiusSqr;
 	float mCellSize;
 	float mInvCellSize;
-	float mConeFilter;
+
+	float sumContribs;
 };
 

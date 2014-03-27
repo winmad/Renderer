@@ -73,11 +73,11 @@ public:
 	void setInitProb(const Real& r) { initialProb = r; }
 	virtual vector<vec3f> renderPixels(const Camera& camera);
 
-	Real getOriginProb(CountHashGrid& hashGrid , vec3f& pos , const int& N)
+	Real getOriginProb(CountHashGrid& hashGrid , vec3f& pos)
 	{
 		CountQuery query(pos);
 		hashGrid.count(query);
-		return query.count / N;
+		return query.count / hashGrid.sumContribs;
 	}
 
 	Real connectFactor(Real pdf)

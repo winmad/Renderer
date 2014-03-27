@@ -110,11 +110,12 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 						break;
 					}
 				}
-				vector<float> ratios();
+				vector<float> ratios;
 				for (int i = 1; i < T; i++)
 				{
-					float r;
-					Ray inRay , outRay;
+					float r , dist;
+					Ray inRay , outRay , tmpRay;
+					vec3f dir;
 					
 					if (i == 1)
 					{
@@ -123,11 +124,70 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 						inRay.direction.normalize();
 						outRay = eyePath[i];
 						outRay.direction = eyePath[i - 1].origin - eyePath[i].origin;
+						dist = outRay.direction.length();
 						outRay.direction.normalize();
-						
+						tmpRay.origin = eyePath[i - 1].origin;
+						r = inRay.getDirectionSampleProbDensity(outRay) * outRay.getOriginSampleProbDensity(tmpRay);
+						r *= eyePath[i - 1].getCosineTerm() / (dist * dist);
 					}
+					else if (i == T - 1)
+					{
+						// uniform origin prob
+						if (eyePath[i].insideObject && !eyePath[i].contactObject)
+							r = 1.f / totVol;
+						else
+							r = 1.f / totArea;
+						dir = eyePath[i - 1].origin - eyePath[i].origin;
+						dist = dir.length();
+						dir.normalize();
+						r /= (eyePath[i - 1].directionProb * eyePath[i].originProb * 
+							abs(eyePath[i].getContactNormal().dot(dir)) / (dist * dist));
+					}
+					else
+					{
+						if (i == T - 2)
+						{
+							outRay = eyePath[i + 1];
+							outRay.direction = eyePath[i].origin - eyePath[i + 1].origin;
+							dist = outRay.direction.length();
+							outRay.direction.normalize();
+							tmpRay.origin = eyePath[i].origin;
+							r = INV_2_PI * outRay.getOriginSampleProbDensity(tmpRay)
+								* eyePath[i].getCosineTerm() / (dist * dist);				
+						}
+						else
+						{
+							inRay = eyePath[i + 2];
+							inRay.direction = eyePath[i + 1].origin - eyePath[i + 2].origin;
+							inRay.direction.normalize();
+							outRay = eyePath[i + 1];
+							outRay.direction = eyePath[i].origin - eyePath[i + 1].origin;
+							dist = outRay.direction.length();
+							outRay.direction.normalize();
+							tmpRay.origin = eyePath[i].origin;
+							r = inRay.getDirectionSampleProbDensity(outRay) * outRay.getOriginSampleProbDensity(tmpRay)
+								* eyePath[i].getCosineTerm() / (dist * dist);
+						}
+
+						dir = eyePath[i - 1].origin - eyePath[i].origin;
+						dist = dir.length();
+						dir.normalize();
+						r /= (eyePath[i - 1].directionProb * eyePath[i].originProb * 
+							abs(eyePath[i].getContactNormal().dot(dir)) / (dist * dist));
+					}
+					ratios.push_back(r);
 				}
 
+				/*
+				fprintf(fp , "=========eye path=========\n");
+				for (int i = 0; i < ratios.size(); i++)
+				{
+					fprintf(fp , "ratio = %.8f, weight = %.8f\n" , ratios[i] , 
+						calcEyePathWeight(eyePath , ratios , i + 1));
+				}
+				*/
+
+				// sample eye paths
 				for(unsigned i=1; i<eyePath.size(); i++)
 				{
 					vec3f colorHitLight(0.f) , colorDirIllu(0.f) , colorGlbIllu(0.f);
@@ -152,6 +212,12 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 						break;
 					}
 
+					if ((eyePath[i].insideObject == NULL && eyePath[i].contactObject == NULL) ||
+						(eyePath[i].origin == eyePath[i - 1].origin))
+						break;
+
+					Real eyeWeight = calcEyePathWeight(eyePath , ratios , i);
+
 					cameraState.pos = eyePath[i].origin;
 					cameraState.lastRay = &eyePath[i - 1];
 					cameraState.ray = &eyePath[i];
@@ -163,8 +229,8 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 					}
 
 					omp_set_lock(&pixelLocks[cameraState.index]);
-					singleImageColors[cameraState.index] += colorDirIllu;
-					singleImageColors[cameraState.index] += colorGlbIllu;
+					singleImageColors[cameraState.index] += colorDirIllu * eyeWeight;
+					singleImageColors[cameraState.index] += colorGlbIllu * eyeWeight;
 					omp_unset_lock(&pixelLocks[cameraState.index]);
 
 					if (eyePath[i].contactObject != NULL && eyePath[i].directionSampleType == Ray::RANDOM)
@@ -196,7 +262,7 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 					cameraState.throughput *= (bsdfFactor *
 						eyePath[i].getCosineTerm() / 
 						(eyePath[i + 1].originProb * eyePath[i].directionProb));
-
+					/*
 					if (eyePath[i].directionSampleType != Ray::DEFINITE)
 					{
 						Real weightFactor = 1.f;
@@ -218,6 +284,7 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 
 						cameraState.throughput *= weightFactor;
 					}
+					*/
 				}
 			}
 
@@ -816,7 +883,7 @@ vec3f IptTracer::colorByConnectingLights(const Camera& camera, vector<vec3f>& co
 	Real weightFactor = connectFactor(pdf) /
 		(connectFactor(pdf) + mergeFactor(&volMergeScale , &originProb , &pdf));
 
-	vec3f res = tmp * decayFactor * weightFactor;
+	vec3f res = tmp * decayFactor; //* weightFactor;
 	
 	vec3f resx = camera.eliminateVignetting(res , cameraState.index) * lightPathNum;
 	/*
@@ -893,7 +960,7 @@ vec3f IptTracer::colorByMergingPaths(vector<vec3f>& colors, const IptPathState& 
 				(tracer->connectFactor(lastPdf) + tracer->mergeFactor(&volMergeScale , &originProb , &lastPdf));
 
 			mergeNum++;
-			vec3f res = tmp * (weightFactor * tracer->mergeKernel / volMergeScale);
+			vec3f res = tmp * (tracer->mergeKernel * weightFactor / volMergeScale);
 			color += res;
 			
 			/*

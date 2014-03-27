@@ -19,6 +19,8 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 	totArea = renderer->scene.getTotalArea();
 	totVol = renderer->scene.getTotalVolume();
 
+	printf("scene totArea = %.8f, totVol = %.8f\n" , totArea , totVol);
+
 	for(int i=0; i<pixelLocks.size(); i++)
 	{
 		omp_init_lock(&pixelLocks[i]);
@@ -99,6 +101,7 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 				cameraState.accuProb = initialProb / (eyePath[0].directionProb);
 				//cameraState.accuProb = initialProb;
 
+				//omp_set_lock(&cmdLock);
 				int T = eyePath.size();
 				for (int i = 1; i < T; i++)
 				{
@@ -113,10 +116,11 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 				vector<float> ratios;
 				for (int i = 1; i < T; i++)
 				{
-					float r , dist;
+					float r , dist , deno = 1.f , nume = 1.f;
 					Ray inRay , outRay , tmpRay;
 					vec3f dir;
-					
+					if (T < 3)
+						break;
 					if (i == 1)
 					{
 						inRay = eyePath[i + 1];
@@ -126,22 +130,54 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 						outRay.direction = eyePath[i - 1].origin - eyePath[i].origin;
 						dist = outRay.direction.length();
 						outRay.direction.normalize();
-						tmpRay.origin = eyePath[i - 1].origin;
-						r = inRay.getDirectionSampleProbDensity(outRay) * outRay.getOriginSampleProbDensity(tmpRay);
-						r *= eyePath[i - 1].getCosineTerm() / (dist * dist);
+						tmpRay = eyePath[i - 1];
+						if (outRay.directionSampleType == Ray::DEFINITE)
+							nume = eyePath[i].directionProb;
+						else
+							nume = inRay.getDirectionSampleProbDensity(outRay);
+						//nume *= outRay.getOriginSampleProbDensity(tmpRay);
+						nume *= eyePath[i].originProb;
+						nume *= eyePath[i - 1].getCosineTerm() / (dist * dist);
+						deno = 1.f;
+						
+						/*
+						if (nume > 1e10f || abs(nume) < 1e-10f);
+						{
+							fprintf(fp , "=======nume error=======\n");
+							fprintf(fp , "nume = %.8f, %.8f, %.8f , %.8f , %.8f\n" , nume , inRay.getDirectionSampleProbDensity(outRay) , 
+								outRay.getOriginSampleProbDensity(tmpRay) , eyePath[i - 1].getCosineTerm() , dist);
+						}
+						*/
 					}
 					else if (i == T - 1)
 					{
 						// uniform origin prob
 						if (eyePath[i].insideObject && !eyePath[i].contactObject)
-							r = 1.f / totVol;
+							nume = 1.f / totVol;
 						else
-							r = 1.f / totArea;
+							nume = 1.f / totArea;
 						dir = eyePath[i - 1].origin - eyePath[i].origin;
 						dist = dir.length();
 						dir.normalize();
-						r /= (eyePath[i - 1].directionProb * eyePath[i].originProb * 
-							abs(eyePath[i].getContactNormal().dot(dir)) / (dist * dist));
+
+						deno = (eyePath[i - 1].directionProb * eyePath[i].originProb
+							 / (dist * dist));
+						if (eyePath[i].getContactNormal().length() > 0)
+							deno *= abs(eyePath[i].getContactNormal().dot(dir));
+						/*
+						if (nume > 1e6 || abs(nume) < 1e-6);
+						{
+							fprintf(fp , "=======nume error=======\n");
+							fprintf(fp , "nume = %.8f\n" , nume);
+						}
+
+						if (deno > 1e6 || abs(deno) < 1e-6);
+						{
+							fprintf(fp , "=======deno error=======\n");
+							fprintf(fp , "deno = %.8f, %.8f, %.8f , %.8f , %.8f\n" , deno , eyePath[i - 1].directionProb , eyePath[i].originProb , 
+								abs(eyePath[i].getContactNormal().dot(dir)) , dist);
+						}
+						*/
 					}
 					else
 					{
@@ -151,8 +187,8 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 							outRay.direction = eyePath[i].origin - eyePath[i + 1].origin;
 							dist = outRay.direction.length();
 							outRay.direction.normalize();
-							tmpRay.origin = eyePath[i].origin;
-							r = INV_2_PI * outRay.getOriginSampleProbDensity(tmpRay)
+							tmpRay = eyePath[i];
+							nume = INV_2_PI * outRay.getOriginSampleProbDensity(tmpRay)
 								* eyePath[i].getCosineTerm() / (dist * dist);				
 						}
 						else
@@ -164,17 +200,24 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 							outRay.direction = eyePath[i].origin - eyePath[i + 1].origin;
 							dist = outRay.direction.length();
 							outRay.direction.normalize();
-							tmpRay.origin = eyePath[i].origin;
-							r = inRay.getDirectionSampleProbDensity(outRay) * outRay.getOriginSampleProbDensity(tmpRay)
+							tmpRay = eyePath[i];
+							if (eyePath[i + 1].directionSampleType == Ray::DEFINITE)
+								nume = eyePath[i + 1].directionProb;
+							else 
+								nume = inRay.getDirectionSampleProbDensity(outRay);
+							nume *= outRay.getOriginSampleProbDensity(tmpRay)
 								* eyePath[i].getCosineTerm() / (dist * dist);
 						}
 
 						dir = eyePath[i - 1].origin - eyePath[i].origin;
 						dist = dir.length();
 						dir.normalize();
-						r /= (eyePath[i - 1].directionProb * eyePath[i].originProb * 
-							abs(eyePath[i].getContactNormal().dot(dir)) / (dist * dist));
+						deno = (eyePath[i - 1].directionProb * eyePath[i].originProb 
+							 / (dist * dist));
+						if (eyePath[i].getContactNormal().length() > 0)
+							deno *= abs(eyePath[i].getContactNormal().dot(dir));
 					}
+					r = nume / deno;
 					ratios.push_back(r);
 				}
 
@@ -186,6 +229,8 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 						calcEyePathWeight(eyePath , ratios , i + 1));
 				}
 				*/
+
+				//omp_unset_lock(&cmdLock);
 
 				// sample eye paths
 				for(unsigned i=1; i<eyePath.size(); i++)
@@ -262,7 +307,7 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 					cameraState.throughput *= (bsdfFactor *
 						eyePath[i].getCosineTerm() / 
 						(eyePath[i + 1].originProb * eyePath[i].directionProb));
-					/*
+					
 					if (eyePath[i].directionSampleType != Ray::DEFINITE)
 					{
 						Real weightFactor = 1.f;
@@ -277,14 +322,14 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 
 						//originProb = lastAccuProb;
 						
-						//weightFactor = connectFactor(pdf) /
-						//	(connectFactor(pdf) + mergeFactor(&volMergeScale , &originProb , &pdf));
+						weightFactor = connectFactor(pdf) /
+							(connectFactor(pdf) + mergeFactor(&volMergeScale , &originProb , &INV_2_PI));
 
 						//fprintf(fp , "w = %.8f\n" , weightFactor);
 
 						cameraState.throughput *= weightFactor;
 					}
-					*/
+					
 				}
 			}
 
@@ -413,7 +458,7 @@ void IptTracer::genLightPaths(omp_lock_t& cmdLock , vector<Path*>& lightPathList
 				}
 
 				weightFactor = connectFactor(pdf) /
-					(connectFactor(pdf) + mergeFactor(&volMergeScale , &originProb , &pdf));
+					(connectFactor(pdf) + mergeFactor(&volMergeScale , &originProb , &INV_2_PI));
 
 				lightState.throughput *= weightFactor;
 				lightState.dirContrib *= weightFactor;
@@ -528,7 +573,7 @@ void IptTracer::genIntermediatePaths(omp_lock_t& cmdLock , vector<Path*>& interP
 				//fprintf(fp , "originProb = %.8f\n" , originProb);
 				
 				weightFactor = connectFactor(pdf) /
-					(connectFactor(pdf) + mergeFactor(&volMergeScale , &originProb , &pdf));
+					(connectFactor(pdf) + mergeFactor(&volMergeScale , &originProb , &INV_2_PI));
 				interState.throughput *= weightFactor;
 			}
 		}
@@ -810,7 +855,7 @@ void IptTracer::colorByConnectingCamera(vector<omp_lock_t> &pixelLocks, const Ca
 	//originProb = getOriginProb(countHashGrid , outRay.origin , partialPhotonNum);
 
 	Real weightFactor = connectFactor(pdf) / 
-		(connectFactor(pdf) + mergeFactor(&volMergeScale , &originProb , &pdf));
+		(connectFactor(pdf) + mergeFactor(&volMergeScale , &originProb , &INV_2_PI));
 
 	color *= weightFactor;
 	/*
@@ -878,12 +923,12 @@ vec3f IptTracer::colorByConnectingLights(const Camera& camera, vector<vec3f>& co
 
 	outRay.direction = -cameraState.lastRay->direction;
 	Real pdf = lightRay.getDirectionSampleProbDensity(outRay);
-	originProb = cameraState.accuProb;
+	//originProb = cameraState.accuProb;
 
 	Real weightFactor = connectFactor(pdf) /
-		(connectFactor(pdf) + mergeFactor(&volMergeScale , &originProb , &pdf));
+		(connectFactor(pdf) + mergeFactor(&volMergeScale , &originProb , &INV_2_PI));
 
-	vec3f res = tmp * decayFactor; //* weightFactor;
+	vec3f res = tmp * decayFactor * weightFactor;
 	
 	vec3f resx = camera.eliminateVignetting(res , cameraState.index) * lightPathNum;
 	/*

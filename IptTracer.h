@@ -101,6 +101,8 @@ public:
 	Real calcEyePathWeight(Path& eyePath , vector<float>& ratios , int t)
 	{
 		Real sum = 1.f , tmp = 1.f;
+		if (t - 1 >= ratios.size())
+			return 1.f;
 		for (int i = t - 1; i >= 0; i--)
 		{
 			tmp *= ratios[i];

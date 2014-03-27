@@ -78,7 +78,7 @@ vector<vec3f> VCMTracer::renderPixels(const Camera& camera)
 
 				samplePath(eyePath, camera.generateRay(p));
 
-				colorByMergingPaths(singleImageColors, eyePath, tree);
+				//colorByMergingPaths(singleImageColors, eyePath, tree);
 
 				colorByConnectingPaths(pixelLocks, renderer->camera, singleImageColors, eyePath, lightPath);
 
@@ -213,14 +213,6 @@ vec4<float> VCMTracer::connectColorProb(const Path& connectedPath, int connectIn
 		{
 			color *= connectedPath[i].getCosineTerm() * connectedPath[i+1].getCosineTerm() / (dist*dist);
 			connectDist = dist;
-			/*
-			if (_isnan((y(vec3f(color)))))
-			{
-				fprintf(fp , "cos_i = %.8f, cos_i+1 = %.8f, dist = %.8f\n" , connectedPath[i].getCosineTerm() , 
-					connectedPath[i + 1].getCosineTerm() , dist);
-				printf("color error\n");
-			}
-			*/
 		}
 
 		if(i!=connectIndex && i!=connectIndex+1)
@@ -459,12 +451,12 @@ void VCMTracer::colorByConnectingPaths(vector<omp_lock_t> &pixelLocks, const Cam
 
 			Ray &camRay = wholePath[wholePath.size()-1];
 
-			if (_isnan(y(color)))
-				printf("connect error\n");
-
 			if(eyePathLen > 1)
 			{
 				omp_set_lock(&pixelLocks[camRay.pixelID]);
+
+				fprintf(fp , "w = %.8f\n" , weight);
+
 				colors[camRay.pixelID] += color;
 				omp_unset_lock(&pixelLocks[camRay.pixelID]);
 			}
@@ -476,7 +468,7 @@ void VCMTracer::colorByConnectingPaths(vector<omp_lock_t> &pixelLocks, const Cam
 				if(x >= 0 && x < camera.width && y >= 0 && y < camera.height)
 				{
 					omp_set_lock(&pixelLocks[y*camera.width + x]);
-					colors[y*camera.width + x] += color;
+					//colors[y*camera.width + x] += color;
 					omp_unset_lock(&pixelLocks[y*camera.width + x]);
 				}
 			}
@@ -514,11 +506,11 @@ void VCMTracer::colorByMergingPaths(vector<vec3f>& colors, const Path& eyePath, 
 			vec3f res = vec3f(color_prob) / color_prob.w * weight;
 
 			color += res;
-			/*
+			
 			fprintf(fp , "res = (%.7f,%.7f,%.7f), c = (%.7f,%.7f,%.7f), prob = %.7f, weight = %.7f\n" ,
 				res[0] , res[1] , res[2] , color_prob[0] , color_prob[1] , color_prob[2] , color_prob.w , weight);
 			cnt++;
-			*/
+			
 		}
 	};
 

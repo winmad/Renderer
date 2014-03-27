@@ -275,6 +275,8 @@ void ConfigManager::load(const string &configFilePath)
 			renderer->mcRenderer = new IptTracer(renderer);
 			if(nodeRenderer->first_node("radius"))
 				((IptTracer*)renderer->mcRenderer)->setRadius(atof(nodeRenderer->first_node("radius")->value()));
+			if (nodeRenderer->first_node("initProb"))
+				((IptTracer*)renderer->mcRenderer)->setInitProb(atof(nodeRenderer->first_node("initProb")->value()));
 		}
 		if(nodeRenderer->first_node("useGPU"))
 		{

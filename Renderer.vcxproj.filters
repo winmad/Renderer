@@ -219,6 +219,9 @@
     <ClInclude Include="VCMTracer.h">
       <Filter>头文件\Tracer</Filter>
     </ClInclude>
+    <ClInclude Include="CountHashGrid.h">
+      <Filter>头文件\Accleration</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">

@@ -1,14 +1,28 @@
 <Config>
 	<Scene>
+		<path>scenes/2balls_cornell_box.xml</path>
+		<!--name>Toys</name-->
+		<camera>c1</camera>
+	</Scene>
+	<Renderer>
+		<type>IPT</type>
+		<radius>0.002</radius>
+		<initProb>0.001</initProb>
+	</Renderer>
+	<savePath>results/2balls_cornell_box_ipt_connect_e=1.pfm</savePath>
+</Config>
+
+<Config>
+	<Scene>
 		<path>Scene_sss.xml</path>
 		<name>SSS</name>
 		<camera>c1</camera>
 	</Scene>
 	<Renderer>
-		<type>VCM</type>
+		<type>IPT</type>
 		<radius>0.002</radius>
 	</Renderer>
-	<savePath>results/sss_vcm.pfm</savePath>
+	<savePath>results/sss_ipt.pfm</savePath>
 </Config>
 
 <Config>
@@ -35,20 +49,6 @@
 		<radius>0.002</radius>
 	</Renderer>
 	<savePath>results/dragon_test_ipt.pfm</savePath>
-</Config>
-
-<Config>
-	<Scene>
-		<path>scenes/2balls_cornell_box.xml</path>
-		<!--name>Toys</name-->
-		<camera>c1</camera>
-	</Scene>
-	<Renderer>
-		<type>IPT</type>
-		<radius>0.002</radius>
-		<initProb>0.05</initProb>
-	</Renderer>
-	<savePath>results/2balls_cornell_box_ipt.pfm</savePath>
 </Config>
 
 <Config>

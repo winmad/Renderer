@@ -179,7 +179,7 @@ private:
     vec3f mBBoxMax;
     std::vector<int> mIndices;
     std::vector<int> mCellEnds;
-	int    mPhotonsWant;
+	int mPhotonsWant;
 
     float mRadius;
     float mRadiusSqr;

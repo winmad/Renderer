@@ -15,6 +15,7 @@ public:
 	float stepSize;
 	float IOR;
 	Ray scatter(const Ray& inRay) const;
+	bool isVolumeric() { return true; }
  protected:
 	float y(vec3f c) const {
         const float YWeight[3] = { 0.212671f, 0.715160f, 0.072169f };

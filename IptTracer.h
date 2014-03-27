@@ -2,6 +2,7 @@
 #include "mcrenderer.h"
 #include <omp.h>
 #include "PointKDTree.h"
+#include "CountHashGrid.h"
 #include "macros.h"
 
 struct IptPathState
@@ -22,6 +23,8 @@ protected:
 	unsigned spp;
 
 	int pixelNum , lightPathNum , cameraPathNum , interPathNum , partialPathNum;
+	int lightPhotonNum , partialPhotonNum;
+	int mergeIterations;
 
 	vector<vector<int> > partPathMergeIndex;
 
@@ -30,6 +33,8 @@ protected:
 	int *revIndex;
 
 	vector<IptPathState> partialSubPathList;
+
+	CountHashGrid countHashGrid;
 
 	void genLightPaths(omp_lock_t& cmdLock , vector<Path*>&);
 
@@ -51,7 +56,7 @@ public:
 	Real mergeRadius;
 	Real mergeKernel;
 	Real alpha;
-	Real totArea;
+	Real totArea , totVol;
 	Real initialProb;
 	IptTracer(Renderer* renderer) : MCRenderer(renderer)
 	{ 
@@ -59,6 +64,7 @@ public:
 		alpha = 0.75f;
 		spp = -1; 
 		initialProb = 1.f;
+		mergeIterations = 5;
 
 		pixelNum = lightPathNum = cameraPathNum = interPathNum = partialPathNum = 
 			renderer->camera.height * renderer->camera.width;
@@ -67,15 +73,20 @@ public:
 	void setInitProb(const Real& r) { initialProb = r; }
 	virtual vector<vec3f> renderPixels(const Camera& camera);
 
+	Real getOriginProb(CountHashGrid& hashGrid , vec3f& pos , const int& N)
+	{
+		CountQuery query(pos);
+		hashGrid.count(query);
+		return query.count / N;
+	}
+
 	Real connectFactor(Real pdf)
 	{
-		//return 0.5;
 		return pdf;
 	}
 
 	Real mergeFactor(Real *volScale = NULL , Real *initProb = NULL , Real *dirProb = NULL)
 	{
-		//return 0.5;
 		Real s = 1.0;
 		if (volScale)
 			s = *volScale;
@@ -83,7 +94,7 @@ public:
 			s *= *initProb;
 		if (dirProb)
 			s *= *dirProb;
-		Real res = mergeRadius * mergeRadius * partialPathNum * s;
+		Real res = M_PI * mergeRadius * mergeRadius * partialPathNum * s;
 		return res;
 	}
 };

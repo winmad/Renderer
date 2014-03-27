@@ -4,6 +4,8 @@
 
 class SceneHeteroObject : public SceneObject
 {
+public:
+	bool isVolumeric() { return true; }
 private:
 	BSDF* bsdf;
 	vec3f ds, da, dt;

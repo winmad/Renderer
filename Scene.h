@@ -17,6 +17,8 @@ public:
 	};
 
 private:
+	float totalArea;
+	float totalVolume;
 	KDTree tree;
 	vector<KDTree> objKDTrees;
 
@@ -66,6 +68,7 @@ public:
 	vector<bool> testVisibility(const vector<Ray>& rays);
 	void clear();
 	float getTotalArea();
+	float getTotalVolume();
 	float getBoundSphereRadius();
 	~Scene();
 };

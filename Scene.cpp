@@ -13,6 +13,11 @@ float Scene::getTotalArea()
 	// to be filled
 }
 
+float Scene::getTotalVolume()
+{
+	return totalVolume;
+}
+
 void Scene::SurfaceSampler::preprocess()
 {
 	totalWeight = 0;
@@ -165,6 +170,17 @@ void Scene::buildObjKDTrees()
 			objKDTrees[oi].triangleList.push_back(tri);
 		}
 		objKDTrees[oi].build();
+
+		if (obj->isVolumeric())
+		{
+			float r = objKDTrees[oi].getDiagonal().length() / 2;
+			obj->totalVolume = 4.f / 3.f * r * r * r;
+		}
+		else
+		{
+			obj->totalVolume = 0.f;
+		}
+		totalVolume += obj->totalVolume;
 	}
 }
 

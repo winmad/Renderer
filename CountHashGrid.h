@@ -12,16 +12,20 @@ struct CountQuery
 	vec3f& pos;
 	float count;
 
-	CountQuery(vec3f& _pos) : pos(_pos) , count(0) {}
+	CountQuery(vec3f& _pos) : pos(_pos) , count(0.f) {}
 };
 
 class CountHashGrid
 {
 public:
+	~CountHashGrid()
+	{
+		clear();
+	}
+
 	void clear()
 	{
 		mCellEnds.clear();
-		mCellEnds.shrink_to_fit();
 	}
 
 	void reserve(int aNumCells)
@@ -46,22 +50,31 @@ public:
 			}
 		}
 
-		mCellSize = aRadius * 2.f;
+		vec3f diag = mBBoxMax - mBBoxMin;
 
-		mCellEnds.resize(aParticles.size() / 5);
-		memset(&mCellEnds[0], 0, mCellEnds.size() * sizeof(int));
+		sizeNum = 50;
 
-		// set mCellEnds[x] to number of particles within x
+		mCellSize = max(diag[0] , max(diag[1] , diag[2])) / sizeNum;
+		mInvCellSize = 1.f / mCellSize;
+		//printf("cell size = %.8f\n" , mCellSize);
+
+		mCellEnds.resize(sizeNum * sizeNum * sizeNum);
+		memset(&mCellEnds[0], 0, mCellEnds.size() * sizeof(float));
+
 		for(size_t i=0; i<aParticles.size(); i++)
 		{
 			const vec3f &pos = aParticles[i].pos;
 			vec3f totContrib = aParticles[i].dirContrib + aParticles[i].indirContrib;
-			mCellEnds[GetCellIndex(pos)] += y(totContrib);
+			int cellIndex = GetCellIndex(pos);
+			mCellEnds[cellIndex] += y(totContrib);
 		}
 
 		sumContribs = 0;
 		for (size_t i = 0; i < mCellEnds.size(); i++)
 			sumContribs += mCellEnds[i];
+
+		for (size_t i = 0; i < mCellEnds.size(); i++)
+			mCellEnds[i] /= sumContribs;
 	}
 
 	template<typename tQuery>
@@ -108,7 +121,8 @@ public:
 				case 6: cellIndex = (GetCellIndex(vec3i(pxo, pyo, pz ))); break;
 				case 7: cellIndex = (GetCellIndex(vec3i(pxo, pyo, pzo))); break;
 			}
-
+			if (cellIndex == -1)
+				continue;
 			aQuery.count += mCellEnds[cellIndex];
 		}
 	}
@@ -125,18 +139,26 @@ public:
 		uint y = uint(aCoord.y);
 		uint z = uint(aCoord.z);
 
-		return int(((x * 73856093) ^ (y * 19349663) ^
-			(z * 83492791)) % uint(mCellEnds.size()));
+		if (x < 0 || x >= sizeNum || y < 0 || y >= sizeNum || z < 0 || z >= sizeNum)
+		{
+			//printf("error: x = %d, y = %d, z = %d\n" , x , y , z);
+			return -1;
+		}
+
+		return int(((x * sizeNum * sizeNum) + (y * sizeNum) + z));
 	}
 
 	int GetCellIndex(const vec3f &aPoint) const
 	{
 		const vec3f distMin = aPoint - mBBoxMin;
 
-		const vec3f coordF(
+		vec3f coordF(
 			std::floor(mInvCellSize * distMin.x),
 			std::floor(mInvCellSize * distMin.y),
 			std::floor(mInvCellSize * distMin.z));
+
+		for (int i = 0; i < 3; i++)
+			coordF[i] = clamp(coordF[i] , 0 , sizeNum - 1);
 
 		const vec3i coordI  = vec3i(int(coordF.x), int(coordF.y), int(coordF.z));
 
@@ -152,5 +174,6 @@ public:
 	float mInvCellSize;
 
 	float sumContribs;
+	int sizeNum;
 };
 

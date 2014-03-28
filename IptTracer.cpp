@@ -62,13 +62,21 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 			printf("partialPathNum = %d\n" , partialSubPathList.size());
 
 #pragma omp parallel for
-			for (int i = 0; i < partialSubPathList.size(); i++)
+			for (int i = 0; i < lightPhotonNum; i++)
 			{
 				IptPathState& subPath = partialSubPathList[i];
-				colorByConnectingCamera(pixelLocks , camera , singleImageColors , subPath);
-
+				int _x(0) , _y(0);
+				vec3f color(0.f);
+				color = colorByConnectingCamera(camera , subPath , _x , _y);
+				
+				if (y(color) > 0)
+				{
+					omp_set_lock(&pixelLocks[_y*camera.width + _x]);
+					singleImageColors[_y*camera.width + _x] += color;
+					omp_unset_lock(&pixelLocks[_y*camera.width + _x]);
+				}
 				/*
-				if (s == 0 && subPath.isSpecularPath)
+				if (s == 0)
 				{
 				fprintf(fp , "dirContrib=(%.4f,%.4f,%.4f), indirContrib=(%.4f,%.4f,%.4f), throughput=(%.4f,%.4f,%.4f)\n" ,
 					subPath.dirContrib[0] , subPath.dirContrib[1] , subPath.dirContrib[2] ,
@@ -80,7 +88,8 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 
 			PointKDTree<IptPathState> partialSubPaths(partialSubPathList);
 
-			//countHashGrid.build(partialSubPathList , mergeRadius);
+			countHashGrid.clear();
+			countHashGrid.build(partialSubPathList , mergeRadius);
 
 #pragma omp parallel for
 			for(int p=0; p<cameraPathNum; p++)
@@ -268,8 +277,8 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 
 					if(eyePath[i].directionSampleType != Ray::DEFINITE)
 					{
-						colorDirIllu = colorByConnectingLights(camera , singleImageColors , cameraState);
-						colorGlbIllu = colorByMergingPaths(singleImageColors , cameraState , partialSubPaths);
+						colorDirIllu = colorByConnectingLights(camera , cameraState);
+						colorGlbIllu = colorByMergingPaths(cameraState , partialSubPaths);
 					}
 
 					omp_set_lock(&pixelLocks[cameraState.index]);
@@ -350,8 +359,6 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 			{
 				delete interPathList[i];
 			}
-
-			//countHashGrid.clear();
 
 			printf("Iter: %d  IterTime: %ds  TotalTime: %ds\n", s+1, (clock()-t)/1000, clock()/1000);
 
@@ -775,21 +782,22 @@ Ray IptTracer::genIntermediateSamples(vector<IptPathState>& partialSubPathList ,
 	return ray;
 }
 
-void IptTracer::colorByConnectingCamera(vector<omp_lock_t> &pixelLocks, const Camera& camera, vector<vec3f>& colors, const IptPathState& lightState)
+vec3f IptTracer::colorByConnectingCamera(const Camera& camera, const IptPathState& lightState , int& _x , int& _y)
 {
 	vec2<float> pCoord = camera.transToPixel(lightState.pos);
 	int x = pCoord.x;
 	int y = pCoord.y;
-
+	
 	if(!(x >= 0 && x < camera.width && y >= 0 && y < camera.height))
-		return;
+		return vec3f(0.f);
+	_x = x; _y = y;
 
 	vec3f dirToCamera = camera.position - lightState.pos;
 	vec3f forward = camera.focus - camera.position;
 	forward.normalize();
 
 	if (forward.dot(-dirToCamera) <= 0)
-		return;
+		return vec3f(0.f);
 
 	Real dist = dirToCamera.length();
 	Real distEye2 = dist * dist;
@@ -847,13 +855,17 @@ void IptTracer::colorByConnectingCamera(vector<omp_lock_t> &pixelLocks, const Ca
 	inRay.direction = -dirToCamera;
 
 	if (!testVisibility(inRay , outRay))
-		return;
+		return vec3f(0.f);
 
 	Real pdf = bsdfDirPdf;
-	//originProb = getOriginProb(countHashGrid , outRay.origin , partialPhotonNum);
+	originProb = getOriginProb(countHashGrid , outRay.origin);
 
-	Real weightFactor = connectFactor(pdf) / 
-		(connectFactor(pdf) + mergeFactor(&volMergeScale , &originProb , &pdf));
+	//Real weightFactor = connectFactor(pdf) / 
+	//	(connectFactor(pdf) + mergeFactor(&volMergeScale , &originProb , &pdf));
+	Real weightFactor = cameraPdfArea / pixelNum;
+	weightFactor = 1.f / (1.f + weightFactor);
+
+	//fprintf(fp , "weight = %.8f\n" , weightFactor);
 
 	color *= weightFactor;
 	/*
@@ -874,12 +886,10 @@ void IptTracer::colorByConnectingCamera(vector<omp_lock_t> &pixelLocks, const Ca
 		resx[0] , resx[1] , resx[2]);
 	*/
 
-	omp_set_lock(&pixelLocks[y*camera.width + x]);
-	colors[y*camera.width + x] += color * 0.5f;
-	omp_unset_lock(&pixelLocks[y*camera.width + x]);
+	return color;
 }
 
-vec3f IptTracer::colorByConnectingLights(const Camera& camera, vector<vec3f>& colors, const IptPathState& cameraState)
+vec3f IptTracer::colorByConnectingLights(const Camera& camera, const IptPathState& cameraState)
 {
 	Ray lightRay = genEmissiveSurfaceSample();
 	lightRay.direction = (cameraState.pos - lightRay.origin);
@@ -888,6 +898,7 @@ vec3f IptTracer::colorByConnectingLights(const Camera& camera, vector<vec3f>& co
 	lightRay.direction.normalize();
 	Ray outRay = *cameraState.ray;
 	outRay.direction = -lightRay.direction;
+	Ray inRay = *cameraState.lastRay;
 
 	vec3f decayFactor = outRay.getRadianceDecay(dist);
 
@@ -919,13 +930,26 @@ vec3f IptTracer::colorByConnectingLights(const Camera& camera, vector<vec3f>& co
 	vec3f tmp = lightRay.color * cosAtLight * bsdfFactor * cosToLight * cameraState.throughput
 		/ (lightRay.originProb * dist2);
 
+	Real bsdfToLightPdf = inRay.getDirectionSampleProbDensity(outRay);
+
 	outRay.direction = -cameraState.lastRay->direction;
+	Real toLightOriginPdf = lightRay.getOriginSampleProbDensity(outRay);
 	Real pdf = lightRay.getDirectionSampleProbDensity(outRay);
 
 	//originProb = cameraState.accuProb; // seems better with this line
+	originProb = getOriginProb(countHashGrid , outRay.origin);
 
-	Real weightFactor = connectFactor(pdf) /
-		(connectFactor(pdf) + mergeFactor(&volMergeScale , &originProb , &pdf));
+	//Real weightFactor = connectFactor(pdf) /
+	//	(connectFactor(pdf) + mergeFactor(&volMergeScale , &originProb , &pdf));
+
+	Real weightFactor = bsdfToLightPdf / (lightRay.originProb / M_PI * cosToLight);
+
+	weightFactor = 1.f / (1.f + weightFactor);
+
+	/*
+	fprintf(fp , "weight = %.8f , bsdfToLightPdf = %.8f , cosAtLight = %.8f ,\ntoLightOriginPdf = %.8f , originProb = %.8f , dist = %.8f\n" , 
+		weightFactor , bsdfToLightPdf , cosAtLight , toLightOriginPdf , lightRay.originProb , dist);
+	*/
 
 	vec3f res = tmp * decayFactor * weightFactor;
 	
@@ -941,7 +965,7 @@ vec3f IptTracer::colorByConnectingLights(const Camera& camera, vector<vec3f>& co
 	return res;
 }
 
-vec3f IptTracer::colorByMergingPaths(vector<vec3f>& colors, const IptPathState& cameraState, PointKDTree<IptPathState>& partialSubPaths)
+vec3f IptTracer::colorByMergingPaths(const IptPathState& cameraState, PointKDTree<IptPathState>& partialSubPaths)
 {
 	struct GatherQuery
 	{
@@ -993,20 +1017,22 @@ vec3f IptTracer::colorByMergingPaths(vector<vec3f>& colors, const IptPathState& 
 				return;
 
 			vec3f totContrib = lightState.dirContrib + lightState.indirContrib; 
-			vec3f tmp = totContrib * bsdfFactor * 
-				cameraState->throughput; 
+			vec3f tmp = totContrib * bsdfFactor * cameraState->throughput; 
 
 			Real lastPdf , weightFactor;
 			lastPdf = lightState.lastRay->getDirectionSampleProbDensity(outRay);
 
 			//originProb = cameraState->accuProb;
+			originProb = tracer->getOriginProb(tracer->countHashGrid , outRay.origin);
+
 			weightFactor = tracer->mergeFactor(&volMergeScale , &originProb , &lastPdf) / 
 				(tracer->connectFactor(lastPdf) + tracer->mergeFactor(&volMergeScale , &originProb , &lastPdf));
+
+			//fprintf(fp , "weight = %.8f , cameraAccuProb = %.8f , hashOriginProb = %.8f\n" , weightFactor , cameraState->accuProb , originProb);
 
 			mergeNum++;
 			vec3f res = tmp * (weightFactor * tracer->mergeKernel / volMergeScale);
 			color += res;
-			
 			/*
 			vec3f resx = tracer->renderer->camera.eliminateVignetting(res , cameraState->index) *
 				tracer->pixelNum;	
@@ -1021,7 +1047,7 @@ vec3f IptTracer::colorByMergingPaths(vector<vec3f>& colors, const IptPathState& 
 					resx[0] , resx[1] , resx[2] ,
 					totContrib[0] , totContrib[1] , totContrib[2] , bsdfFactor[0] , bsdfFactor[1] , bsdfFactor[2] , 
 					cameraState->throughput[0] , cameraState->throughput[1] , cameraState->throughput[2] , 
-					weightFactor , cameraState->accuProb , lastPdf);
+					weightFactor , originProb , lastPdf);
 			}
 			*/
 		}
@@ -1094,7 +1120,7 @@ void IptTracer::mergePartialPaths(vector<vec3f>& contribs , const IptPathState& 
 			Real lastPdf , weightFactor;
 			lastPdf = lightState.lastRay->getDirectionSampleProbDensity(outRay);
 			weightFactor = tracer->mergeFactor(&volMergeScale , &interState->originRay->originProb ,
-				&interState->originRay->directionProb) / 
+				&interState->originRay->directionProb) /
 				(tracer->connectFactor(lastPdf) + tracer->mergeFactor(&volMergeScale , &interState->originRay->originProb ,
 				&interState->originRay->directionProb));
 			

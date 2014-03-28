@@ -46,11 +46,11 @@ protected:
 
 	void mergePartialPaths(vector<vec3f>& contribs , const IptPathState& lightState);
 
-	vec3f colorByMergingPaths(vector<vec3f>& colors, const IptPathState& cameraState, PointKDTree<IptPathState>& partialSubPaths);
+	vec3f colorByMergingPaths(const IptPathState& cameraState, PointKDTree<IptPathState>& partialSubPaths);
 
-	vec3f colorByConnectingLights(const Camera& camera, vector<vec3f>& colors, const IptPathState& cameraState);
+	vec3f colorByConnectingLights(const Camera& camera, const IptPathState& cameraState);
 
-	void colorByConnectingCamera(vector<omp_lock_t> &pixelLocks, const Camera& camera, vector<vec3f>& colors, const IptPathState& lightState);
+	vec3f colorByConnectingCamera(const Camera& camera, const IptPathState& lightState , int& _x , int& _y);
 
 public:
 	Real mergeRadius;

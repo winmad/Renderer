@@ -78,7 +78,7 @@ vector<vec3f> VCMTracer::renderPixels(const Camera& camera)
 
 				samplePath(eyePath, camera.generateRay(p));
 
-				//colorByMergingPaths(singleImageColors, eyePath, tree);
+				colorByMergingPaths(singleImageColors, eyePath, tree);
 
 				colorByConnectingPaths(pixelLocks, renderer->camera, singleImageColors, eyePath, lightPath);
 
@@ -455,9 +455,9 @@ void VCMTracer::colorByConnectingPaths(vector<omp_lock_t> &pixelLocks, const Cam
 			{
 				omp_set_lock(&pixelLocks[camRay.pixelID]);
 
-				fprintf(fp , "w = %.8f\n" , weight);
+				//fprintf(fp , "w = %.8f\n" , weight);
 
-				//colors[camRay.pixelID] += color;
+				colors[camRay.pixelID] += color;
 				omp_unset_lock(&pixelLocks[camRay.pixelID]);
 			}
 			else
@@ -507,8 +507,8 @@ void VCMTracer::colorByMergingPaths(vector<vec3f>& colors, const Path& eyePath, 
 
 			color += res;
 			
-			fprintf(fp , "res = (%.7f,%.7f,%.7f), c = (%.7f,%.7f,%.7f), prob = %.7f, weight = %.7f\n" ,
-				res[0] , res[1] , res[2] , color_prob[0] , color_prob[1] , color_prob[2] , color_prob.w , weight);
+			//fprintf(fp , "res = (%.7f,%.7f,%.7f), c = (%.7f,%.7f,%.7f), prob = %.7f, weight = %.7f\n" ,
+			//	res[0] , res[1] , res[2] , color_prob[0] , color_prob[1] , color_prob[2] , color_prob.w , weight);
 			cnt++;
 			
 		}
@@ -528,8 +528,8 @@ void VCMTracer::colorByMergingPaths(vector<vec3f>& colors, const Path& eyePath, 
 		query.cnt = 0;
 
 		tree.searchInRadius(0, eyePath[ei].origin, mergeRadius, query);
-		if (query.cnt > 0)
-			fprintf(fp , "===================\n");
+		//if (query.cnt > 0)
+		//	fprintf(fp , "===================\n");
 
 		colors[eyePath.front().pixelID] += query.color;
 	}

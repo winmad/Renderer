@@ -61,10 +61,10 @@ public:
 	IptTracer(Renderer* renderer) : MCRenderer(renderer)
 	{ 
 		maxDepth = 20;
-		alpha = 2.f / 3.f;
+		alpha = 0.75f;
 		spp = -1; 
 		initialProb = 1.f;
-		mergeIterations = 5;
+		mergeIterations = 1;
 
 		pixelNum = lightPathNum = cameraPathNum = interPathNum = partialPathNum = 
 			renderer->camera.height * renderer->camera.width;

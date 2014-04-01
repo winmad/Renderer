@@ -2,7 +2,7 @@
 #include "SceneEmissiveObject.h"
 
 
-Ray SceneEmissiveObject::scatter(const Ray& inRay) const
+Ray SceneEmissiveObject::scatter(const Ray& inRay , const bool russian) const
 {
 	Ray outRay;
 	vec3f position = inRay.origin + inRay.direction*inRay.intersectDist;

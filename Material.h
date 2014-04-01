@@ -14,7 +14,7 @@ class Material
 {
 public:
 	virtual float getOriginSampleProbDensity(const Ray& inRay, const Ray& outRay) { return 1; }
-	virtual Ray scatter(const SceneObject* object, const Ray& inRay) const { return Ray(); }
+	virtual Ray scatter(const SceneObject* object, const Ray& inRay, const bool russian = true) const { return Ray(); }
 	virtual float getDirectionSampleProbDensity(const Ray& inRay, const Ray& outRay) const{ return 1; }
 	virtual float getContinueProbability(const Ray &inRay, const Ray &outRay) const { return 1; }
 	virtual vec3f getBSDF(const Ray& inRay, const Ray& outRay) const { return vec3f(0, 0, 0); }

@@ -1,7 +1,7 @@
 #include "StdAfx.h"
 #include "DiffuseMaterial.h"
 
-Ray DiffuseMaterial::scatter(const SceneObject* object, const Ray& inRay) const
+Ray DiffuseMaterial::scatter(const SceneObject* object, const Ray& inRay, const bool russian) const
 {
 	Ray outRay;
 	outRay.origin = inRay.origin + inRay.direction*inRay.intersectDist;
@@ -34,7 +34,7 @@ Ray DiffuseMaterial::scatter(const SceneObject* object, const Ray& inRay) const
 
 	float p = *std::max_element<float*>(&color.x, (&color.x)+3);
 
-	if(RandGenerator::genFloat() < p)
+	if(RandGenerator::genFloat() < p || (!russian))
 	{
 		outRay.color = bsdf.evaluate(lf, inRay.direction, outRay.direction, color);
 		outRay.directionProb = p*cosineSphericalSampler.getProbDensity(lf, outRay.direction);

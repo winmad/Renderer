@@ -179,11 +179,11 @@ vec3f SceneObject::getRadianceDecay(const Ray& inRay, const float& dist) const
 	return vec3f(1, 1, 1);
 }
 
-Ray SceneObject::scatter(const Ray& inRay) const
+Ray SceneObject::scatter(const Ray& inRay, const bool russian) const
 {
 	if(materialList.size() && this)
 	{
-		return materialList[rand()%materialList.size()]->scatter(this, inRay);
+		return materialList[rand()%materialList.size()]->scatter(this, inRay, russian);
 	}
 	return Ray();
 }

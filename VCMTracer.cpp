@@ -78,7 +78,7 @@ vector<vec3f> VCMTracer::renderPixels(const Camera& camera)
 
 				samplePath(eyePath, camera.generateRay(p));
 
-				colorByMergingPaths(singleImageColors, eyePath, tree);
+				//colorByMergingPaths(singleImageColors, eyePath, tree);
 
 				colorByConnectingPaths(pixelLocks, renderer->camera, singleImageColors, eyePath, lightPath);
 
@@ -468,7 +468,7 @@ void VCMTracer::colorByConnectingPaths(vector<omp_lock_t> &pixelLocks, const Cam
 				if(x >= 0 && x < camera.width && y >= 0 && y < camera.height)
 				{
 					omp_set_lock(&pixelLocks[y*camera.width + x]);
-					colors[y*camera.width + x] += color;
+					//colors[y*camera.width + x] += color;
 					omp_unset_lock(&pixelLocks[y*camera.width + x]);
 				}
 			}

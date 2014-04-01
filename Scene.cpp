@@ -105,6 +105,10 @@ void Scene::preprocessOtherSampler()
 	}
 	otherSurfaceSampler->preprocess();
 }
+vec3f Scene::getDiagonal()
+{
+	return tree.getDiagonal();
+}
 
 float Scene::getBoundSphereRadius()
 {
@@ -137,6 +141,7 @@ void Scene::buildKDTree()
 		tri_offset += obj->getTriangleNum();
 		vi_offset += obj->getVertexNum();
 	}
+	
 	tree.build();
 	if(useGPU)
 	{

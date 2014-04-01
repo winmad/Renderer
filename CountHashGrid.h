@@ -25,56 +25,59 @@ public:
 
 	void clear()
 	{
-		mCellEnds.clear();
+		weights.clear();
+		weights.shrink_to_fit();
 	}
 
-	void reserve(int aNumCells)
+	void init(Scene& scene)
 	{
-		mCellEnds.resize(aNumCells);
-	}
+		vec3f diag = scene.getDiagonal();
+		mBBoxMin = scene.tree.root->boundingBox.minCoord;
+		mBBoxMax = scene.tree.root->boundingBox.maxCoord;
 
-	template<typename tParticle>
-	void build(const std::vector<tParticle> &aParticles,
-		float aRadius)
-	{
-		mBBoxMin = vec3f( 1e36f);
-		mBBoxMax = vec3f(-1e36f);
-
-		for(size_t i=0; i<aParticles.size(); i++)
-		{
-			const vec3f &pos = aParticles[i].pos;
-			for(int j=0; j<3; j++)
-			{
-				mBBoxMax = std::max(mBBoxMax[j], pos[j]);
-				mBBoxMin = std::min(mBBoxMin[j], pos[j]);
-			}
-		}
-
-		vec3f diag = mBBoxMax - mBBoxMin;
-
-		sizeNum = 50;
+		sizeNum = 100;
 
 		mCellSize = max(diag[0] , max(diag[1] , diag[2])) / sizeNum;
 		mInvCellSize = 1.f / mCellSize;
-		//printf("cell size = %.8f\n" , mCellSize);
+		cellVolume = mCellSize * mCellSize * mCellSize;
+		printf("cell size = %.8f\n" , mCellSize);
 
-		mCellEnds.resize(sizeNum * sizeNum * sizeNum);
-		memset(&mCellEnds[0], 0, mCellEnds.size() * sizeof(float));
+		weights.clear();
+		weights.resize(sizeNum * sizeNum * sizeNum);
+		memset(&weights[0] , 0 , sizeof(weights));
 
-		for(size_t i=0; i<aParticles.size(); i++)
+		sumContribs = 0;
+	}
+
+	template<typename tParticle>
+	void addPhotons(const std::vector<tParticle> &aParticles , const int st , const int ed)
+	{
+		double energy;
+
+		for (size_t i = 0; i < weights.size(); i++)
+			weights[i] *= sumContribs;
+
+		for(size_t i=st; i<ed; i++)
 		{
+			if (!(aParticles[i].ray->insideObject && !aParticles[i].ray->contactObject))
+				continue;
+
 			const vec3f &pos = aParticles[i].pos;
 			vec3f totContrib = aParticles[i].dirContrib + aParticles[i].indirContrib;
 			int cellIndex = GetCellIndex(pos);
-			mCellEnds[cellIndex] += y(totContrib);
+			if (cellIndex == -1)
+			{
+				printf("error index\n");
+				continue;
+			}
+			
+			energy = y(totContrib);
+			sumContribs += energy;
+			weights[cellIndex] += energy;
 		}
 
-		sumContribs = 0;
-		for (size_t i = 0; i < mCellEnds.size(); i++)
-			sumContribs += mCellEnds[i];
-
-		for (size_t i = 0; i < mCellEnds.size(); i++)
-			mCellEnds[i] /= sumContribs;
+		for (size_t i = 0; i < weights.size(); i++)
+			weights[i] /= sumContribs;
 	}
 
 	template<typename tQuery>
@@ -101,11 +104,9 @@ public:
 
 		const vec3f fractCoord = cellPt - coordF;
 
-		const int  pxo = px + (fractCoord.x < 0.5f ? -1 : +1);
-		const int  pyo = py + (fractCoord.y < 0.5f ? -1 : +1);
-		const int  pzo = pz + (fractCoord.z < 0.5f ? -1 : +1);
-
-		int found = 0;
+		const int pxo = px + (fractCoord.x < 0.5f ? -1 : +1);
+		const int pyo = py + (fractCoord.y < 0.5f ? -1 : +1);
+		const int pzo = pz + (fractCoord.z < 0.5f ? -1 : +1);
 
 		for(int j=0; j<8; j++)
 		{
@@ -123,16 +124,11 @@ public:
 			}
 			if (cellIndex == -1)
 				continue;
-			aQuery.count += mCellEnds[cellIndex];
+			aQuery.count += weights[cellIndex];
 		}
 	}
 
 public:
-	float Kernel(float distSqr, float radiusSqr) const{
-		float s = 1 - distSqr / radiusSqr;
-		return 3 * s * s / M_PI;
-	}
-
 	int GetCellIndex(const vec3i &aCoord) const
 	{
 		uint x = uint(aCoord.x);
@@ -168,12 +164,13 @@ public:
 public:
 	vec3f mBBoxMin;
 	vec3f mBBoxMax;
-	std::vector<float> mCellEnds;
+	std::vector<double> weights;
 
 	float mCellSize;
 	float mInvCellSize;
 
-	float sumContribs;
+	double sumContribs;
+	double cellVolume;
 	int sizeNum;
 };
 

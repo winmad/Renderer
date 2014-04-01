@@ -1,7 +1,7 @@
 #include "StdAfx.h"
 #include "GlossyMaterial.h"
 
-Ray GlossyMaterial::scatter(const SceneObject* object, const Ray& inRay) const
+Ray GlossyMaterial::scatter(const SceneObject* object, const Ray& inRay, const bool russian) const
 {
 	Ray outRay;
 	vec3f position = inRay.origin + inRay.direction*inRay.intersectDist;

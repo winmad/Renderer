@@ -58,13 +58,15 @@ public:
 	Real alpha;
 	Real totArea , totVol;
 	Real initialProb;
+	unsigned timeInterval , lastTime;
 	IptTracer(Renderer* renderer) : MCRenderer(renderer)
 	{ 
 		maxDepth = 20;
 		alpha = 0.75f;
 		spp = -1; 
 		initialProb = 1.f;
-		mergeIterations = 1;
+		mergeIterations = 5;
+		timeInterval = lastTime = 3600;
 
 		pixelNum = lightPathNum = cameraPathNum = interPathNum = partialPathNum = 
 			renderer->camera.height * renderer->camera.width;
@@ -77,7 +79,7 @@ public:
 	{
 		CountQuery query(pos);
 		hashGrid.count(query);
-		return query.count;
+		return query.count / hashGrid.cellVolume;
 	}
 
 	Real connectFactor(Real pdf)

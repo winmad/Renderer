@@ -26,19 +26,6 @@ KDTree::KDTree()
 	root = NULL;
 }
 
-struct KDTree::Node
-{
-	Node* left;
-	Node* right;
-	vector<unsigned> triangleIndices;
-	struct BoundingBox
-	{
-		vec3f minCoord;
-		vec3f maxCoord;
-		float intersect(const KDTree::Ray& ray) const;
-	} boundingBox;
-};
-
 vec3f KDTree::getDiagonal()
 {
 	return root->boundingBox.maxCoord - root->boundingBox.minCoord;

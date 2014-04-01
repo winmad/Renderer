@@ -27,7 +27,7 @@ public:
 	Texture bumpTex;
 	SceneObject* findInsideObject(const Ray& ray) const;
 	bool canMerge;
-	virtual Ray scatter(const Ray& inRay) const;
+	virtual Ray scatter(const Ray& inRay, const bool russian = true) const;
 	SceneObject(){ this->scene = NULL; }
 	SceneObject(Scene* scene)
 	{

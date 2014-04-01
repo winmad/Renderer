@@ -1,7 +1,7 @@
 #include "StdAfx.h"
 #include "SceneVPMObject.h"
 
-Ray SceneVPMObject::scatter(const Ray& inRay) const
+Ray SceneVPMObject::scatter(const Ray& inRay, const bool russian) const
 {
 	Ray outRay;
 	outRay.directionSampleType = Ray::RANDOM;
@@ -97,7 +97,8 @@ Ray SceneVPMObject::scatter(const Ray& inRay) const
 		float albedo = y(ds) / y(dt);
 		float rander = RandGenerator::genFloat();
 		outRay.originSampleType = Ray::RANDOM;
-		if(rander < albedo){
+
+		if(rander < albedo || (!russian)){
 			outRay.contactObject = NULL;
 			LocalFrame lf;	lf.n = inRay.direction;
 			float oPdfW = hgPhaseSampler.getProbDensity(lf, outRay.direction);//sp.getProbDensity(lf, outRay.direction);//
@@ -202,7 +203,9 @@ Ray SceneVPMObject::scatter(const Ray& inRay) const
 			
 			//------ FIX ME -------
 			if (inRay.intersectObject != NULL)
-				outRay = inRay.intersectObject->scatter(outRay);
+				outRay = inRay.intersectObject->scatter(outRay , russian);
+			else
+				printf("error\n");
 			//---------------------
 
 			outRay.originProb *= P_surface(inRay.intersectDist);

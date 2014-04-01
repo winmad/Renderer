@@ -1,18 +1,20 @@
 #include "StdAfx.h"
 #include "RefractiveMaterial.h"
 
-Ray RefractiveMaterial::scatter(const SceneObject* object, const Ray& inRay) const
+Ray RefractiveMaterial::scatter(const SceneObject* object, const Ray& inRay, const bool russian) const
 {
 	Ray outRay;
 	vec3f position = inRay.origin + inRay.direction*inRay.intersectDist;
 
+	//==== FIX ME =====
 	if (inRay.intersectObject == NULL)
 	{
 		outRay.direction = vec3f(0.f);
 		outRay.directionSampleType = Ray::DEFINITE;
 		return outRay;
 	}
-	
+	//=================
+
 	LocalFrame lf = inRay.intersectObject->getAutoGenWorldLocalFrame(inRay.intersectObjectTriangleID, position);
 	vec3f normal = lf.n;
 
@@ -80,7 +82,7 @@ Ray RefractiveMaterial::scatter(const SceneObject* object, const Ray& inRay) con
 
 		float p = min2(er, 0.8);
 		p = max2(p, 0.2);
-
+		
 		if(RandGenerator::genFloat() < p)
 		{
 			outRay.direction = reflDir;

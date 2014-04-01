@@ -52,7 +52,7 @@ protected:
 
 	vector<Path> samplePathList(const vector<Ray>& startRayList) const;
 
-	void showCurrentResult(const vector<vec3f>& pixelColors);
+	void showCurrentResult(const vector<vec3f>& pixelColors , unsigned* time = NULL);
 
 	void eliminateVignetting(vector<vec3f>& pixelColors);
 

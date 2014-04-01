@@ -49,6 +49,7 @@ public:
 		isDirectLightPhoton = false;
 		current_tid = -1;
 		intersect_tid = -1;
+		intersectDist = -1;
 	}
 
 	vec3f getRadianceDecay(const float& dist) const;

@@ -7,8 +7,6 @@
 using namespace std;
 using namespace nv;
 
-
-
 class KDTree
 {
 public:
@@ -33,10 +31,10 @@ public:
 			return true;
 		}
 	};
-
-private:
+public:
 	struct Node;
 	Node* root;
+private:
 	unsigned maxLeafTriangleNum;
 	unsigned maxDepth;
 	void splitLoop(Node* node, unsigned dim, unsigned depth = 0);
@@ -58,5 +56,18 @@ public:
 	void serializeForGPU(vector<vec4f>& nodes, vector<vec4f>& nodes_minCoords, vector<vec4f>& nodes_maxCoords, vector<vec4f>& leaf_v1, vector<vec4f>& leaf_v2, vector<vec4f>& leaf_v3) const;
 	~KDTree();
 
+};
+
+struct KDTree::Node
+{
+	Node* left;
+	Node* right;
+	vector<unsigned> triangleIndices;
+	struct BoundingBox
+	{
+		vec3f minCoord;
+		vec3f maxCoord;
+		float intersect(const KDTree::Ray& ray) const;
+	} boundingBox;
 };
 

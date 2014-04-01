@@ -291,7 +291,7 @@ vector<Path> MCRenderer::samplePathList(const vector<Ray>& startRayList) const
 	return pathList;
 }
 
-void MCRenderer::showCurrentResult(const vector<vec3f>& pixelColors)
+void MCRenderer::showCurrentResult(const vector<vec3f>& pixelColors , unsigned* time)
 {
 	IplImage* image = cvCreateImage(cvSize(renderer->camera.width, renderer->camera.height), IPL_DEPTH_32F, 3);
 	for(int x=0; x<renderer->camera.width; x++)
@@ -308,6 +308,25 @@ void MCRenderer::showCurrentResult(const vector<vec3f>& pixelColors)
 	if(savePath != "")
 	{
 		saveImagePFM(savePath, image);
+	}
+
+	if (time)
+	{
+		char timeStr[100];
+		memset(timeStr , 0 , sizeof(timeStr));
+		itoa(*time , timeStr , 10);
+		string fileName("");
+		for (int i = 0; i < savePath.length(); i++)
+		{
+			if (savePath[i] == '.')
+				break;
+			fileName.push_back(savePath[i]);
+		}
+		fileName.push_back('_');
+		for (int i = 0; i < strlen(timeStr); i++)
+			fileName.push_back(timeStr[i]);
+		fileName += ".pfm";
+		saveImagePFM(fileName , image);
 	}
 
 	for(int p=0; p<3*image->width*image->height; p++)

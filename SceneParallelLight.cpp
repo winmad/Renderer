@@ -44,7 +44,7 @@ Ray SceneParallelLight::emit()
 	return ray;
 }
 
-Ray SceneParallelLight::scatter(const Ray& inRay) const
+Ray SceneParallelLight::scatter(const Ray& inRay , const bool russian) const
 {
 	Ray outRay;
 	vec3f position = inRay.origin + inRay.direction*inRay.intersectDist;

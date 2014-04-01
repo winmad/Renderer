@@ -16,12 +16,12 @@ public:
 		unsigned triangleID;
 	};
 
-private:
 	float totalArea;
 	float totalVolume;
 	KDTree tree;
 	vector<KDTree> objKDTrees;
 
+private:
 	vector<unsigned> objTriangleOffsetMap;
 
 	bool useGPU;
@@ -70,6 +70,7 @@ public:
 	float getTotalArea();
 	float getTotalVolume();
 	float getBoundSphereRadius();
+	vec3f getDiagonal();
 	~Scene();
 };
 

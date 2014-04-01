@@ -14,7 +14,7 @@ public:
 	float g;
 	float stepSize;
 	float IOR;
-	Ray scatter(const Ray& inRay) const;
+	Ray scatter(const Ray& inRay, const bool russian = true) const;
 	bool isVolumeric() { return true; }
  protected:
 	float y(vec3f c) const {
@@ -22,7 +22,6 @@ public:
         return YWeight[0] * c[0] + YWeight[1] * c[1] + YWeight[2] * c[2];
     }
  
-
 	vec3f transmittance(float dist) const{
 		vec3f tr;
 		for(int i = 0; i < 3; i++){

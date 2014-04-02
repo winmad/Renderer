@@ -36,12 +36,14 @@ protected:
 public:
 	float mergeRadius;
 	float alpha;
+	unsigned timeInterval , lastTime;
 	VCMTracer(Renderer* renderer) : MCRenderer(renderer)
 	{ 
 		maxDepth = 20;
 		alpha = 0.6667;
 		spp = -1;
 		usePT = false;
+		timeInterval = lastTime = 3600;
 	}
 	void setRadius(const float& r) { mergeRadius = r; }
 	virtual vector<vec3f> renderPixels(const Camera& camera);

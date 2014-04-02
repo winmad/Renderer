@@ -10,7 +10,7 @@ typedef unsigned int uint;
 struct CountQuery
 {
 	vec3f& pos;
-	float count;
+	double count;
 
 	CountQuery(vec3f& _pos) : pos(_pos) , count(0.f) {}
 };
@@ -54,10 +54,10 @@ public:
 	{
 		double energy;
 
-		for (size_t i = 0; i < weights.size(); i++)
+		for (int i = 0; i < weights.size(); i++)
 			weights[i] *= sumContribs;
 
-		for(size_t i=st; i<ed; i++)
+		for(int i=st; i<ed; i++)
 		{
 			if (!(aParticles[i].ray->insideObject && !aParticles[i].ray->contactObject))
 				continue;
@@ -76,7 +76,7 @@ public:
 			weights[cellIndex] += energy;
 		}
 
-		for (size_t i = 0; i < weights.size(); i++)
+		for (int i = 0; i < weights.size(); i++)
 			weights[i] /= sumContribs;
 	}
 
@@ -108,7 +108,7 @@ public:
 		const int pyo = py + (fractCoord.y < 0.5f ? -1 : +1);
 		const int pzo = pz + (fractCoord.z < 0.5f ? -1 : +1);
 
-		for(int j=0; j<8; j++)
+		for(int j=0; j<1; j++)
 		{
 			int cellIndex;
 			switch(j)

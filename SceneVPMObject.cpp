@@ -238,7 +238,7 @@ float SceneVPMObject::getOriginSampleProbDensity(const Ray &inRay, const Ray &ou
 	if(outRay.contactObject)
 		return P_surface(dist);
 	else
-		return  p_medium(dist);
+		return p_medium(dist);
 	return 1;
 }
 

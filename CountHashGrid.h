@@ -39,6 +39,7 @@ public:
 
 		mCellSize = max(diag[0] , max(diag[1] , diag[2])) / sizeNum;
 		mInvCellSize = 1.f / mCellSize;
+		cellArea = 6 * mCellSize * mCellSize;
 		cellVolume = mCellSize * mCellSize * mCellSize;
 		printf("cell size = %.8f\n" , mCellSize);
 
@@ -170,6 +171,7 @@ public:
 	float mInvCellSize;
 
 	double sumContribs;
+	double cellArea;
 	double cellVolume;
 	int sizeNum;
 };

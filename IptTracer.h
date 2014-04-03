@@ -46,6 +46,8 @@ protected:
 
 	void mergePartialPaths(vector<vec3f>& contribs , const IptPathState& lightState);
 
+	void calcEyeProbRatios(Path& eyePath , vector<float>& ratios);
+
 	vec3f colorByMergingPaths(const IptPathState& cameraState, PointKDTree<IptPathState>& partialSubPaths);
 
 	vec3f colorByConnectingLights(const Camera& camera, const IptPathState& cameraState);
@@ -65,21 +67,27 @@ public:
 		alpha = 0.75f;
 		spp = -1; 
 		initialProb = 1.f;
-		mergeIterations = 1;
+		mergeIterations = 5;
 		timeInterval = lastTime = 3600;
 
-		pixelNum = lightPathNum = cameraPathNum = interPathNum = partialPathNum = 
-			renderer->camera.height * renderer->camera.width;
+		pixelNum = renderer->camera.height * renderer->camera.width;
+		cameraPathNum = pixelNum;
+		lightPathNum = pixelNum;
+		interPathNum = pixelNum;
+		partialPathNum = pixelNum;
 	}
 	void setRadius(const Real& r) { mergeRadius = r; }
 	void setInitProb(const Real& r) { initialProb = r; }
 	virtual vector<vec3f> renderPixels(const Camera& camera);
 
-	Real getOriginProb(CountHashGrid& hashGrid , vec3f& pos)
+	Real getOriginProb(CountHashGrid& hashGrid , vec3f& pos , const bool isVol)
 	{
 		CountQuery query(pos);
 		hashGrid.count(query);
-		return query.count / hashGrid.cellVolume;
+		if (isVol)
+			return query.count / hashGrid.cellVolume;
+		else
+			return query.count / hashGrid.cellArea;
 	}
 
 	Real connectFactor(Real pdf)

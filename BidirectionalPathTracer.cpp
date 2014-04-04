@@ -62,7 +62,13 @@ vector<vec3f> BidirectionalPathTracer::renderPixels(const Camera& camera)
 
 			printf("Iter: %d  IterTime: %ds  TotalTime: %ds\n", s+1, (clock()-t)/1000, (clock()-t_start)/1000);
 
-			showCurrentResult(pixelColors);
+			if (clock() / 1000 >= lastTime)
+			{
+				showCurrentResult(pixelColors , &lastTime);
+				lastTime += timeInterval;
+			}
+			else
+				showCurrentResult(pixelColors);
 		}
 		else
 		{
@@ -155,8 +161,12 @@ vec4f BidirectionalPathTracer::connectColorProb(const Path& connectedPath, int c
 
 		if(i > 0 && i <= connectIndex) // correct sample density difference in interpolating normal.
 		{
-			color *= fabs(connectedPath[i-1].direction.dot(connectedPath[i].getContactNormal())) /
-				fabs(connectedPath[i-1].direction.dot(connectedPath[i].getContactNormal(true)));
+			if (fabs(connectedPath[i-1].direction.dot(connectedPath[i].getContactNormal())) != 0 &&
+				fabs(connectedPath[i-1].direction.dot(connectedPath[i].getContactNormal(true))) != 0)
+			{
+				color *= fabs(connectedPath[i-1].direction.dot(connectedPath[i].getContactNormal())) /
+					fabs(connectedPath[i-1].direction.dot(connectedPath[i].getContactNormal(true)));
+			}
 		}
 
 		prob *= connectedPath[i].directionProb * connectedPath[i].originProb;

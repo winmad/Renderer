@@ -44,11 +44,11 @@ protected:
 
 	Ray genIntermediateSamples(vector<IptPathState>& partialSubPathList , Scene& scene);
 
-	void mergePartialPaths(vector<vec3f>& contribs , const IptPathState& lightState);
-
 	void calcEyeProbRatios(Path& eyePath , vector<float>& ratios);
 
-	vec3f colorByMergingPaths(const IptPathState& cameraState, PointKDTree<IptPathState>& partialSubPaths);
+	void mergePartialPaths(vector<vec3f>& contribs , const IptPathState& lightState , const int mergeIters);
+
+	vec3f colorByMergingPaths(const IptPathState& cameraState, PointKDTree<IptPathState>& partialSubPaths , const int mergeIters);
 
 	vec3f colorByConnectingLights(const Camera& camera, const IptPathState& cameraState);
 

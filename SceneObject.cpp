@@ -75,9 +75,13 @@ float SceneObject::getDirectionSampleProbDensity(const Ray& inRay, const Ray& ou
 {
 	if(&inRay == &outRay) // emitted
 	{
-		UniformSphericalSampler uniformSphericalSampler;
+		//UniformSphericalSampler uniformSphericalSampler;
+		CosineSphericalSampler cosineSphericalSampler;
+
 		LocalFrame lf = outRay.contactObject->getAutoGenWorldLocalFrame(outRay.contactObjectTriangleID, outRay.origin);
-		return uniformSphericalSampler.getProbDensity(lf, outRay.direction) * 2;
+
+		//return uniformSphericalSampler.getProbDensity(lf, outRay.direction) * 2;
+		return cosineSphericalSampler.getProbDensity(lf , outRay.direction);
 	}
 	if(materialList.size())
 	{

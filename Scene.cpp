@@ -56,9 +56,13 @@ Ray Scene::genOtherSample() const
 
 float Scene::SurfaceSampler::getDirectionProbDensity(const Ray& ray) const
 {
-	UniformSphericalSampler uniformSphericalSampler;
+	//UniformSphericalSampler uniformSphericalSampler;
+	CosineSphericalSampler cosineSphericalSampler;
+	
 	LocalFrame lf = ray.contactObject->getAutoGenWorldLocalFrame(ray.contactObjectTriangleID, ray.origin);
-	return uniformSphericalSampler.getProbDensity(lf, ray.direction) * 2;
+	
+	//return uniformSphericalSampler.getProbDensity(lf, ray.direction) * 2;
+	return cosineSphericalSampler.getProbDensity(lf , ray.direction);
 }
 
 void Scene::preprocessAllSamplers()

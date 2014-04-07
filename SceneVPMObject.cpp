@@ -91,7 +91,10 @@ Ray SceneVPMObject::scatter(const Ray& inRay, const bool russian) const
 		LocalFrame lf;		lf.n = inRay.direction;
 		outRay.direction = hgPhaseSampler.genSample(lf); 
 		outRay.insideObject = (SceneObject*)this;
-		outRay.contactObjectTriangleID = inRay.intersectObjectTriangleID;
+		outRay.contactObject = NULL;
+		//outRay.contactObjectTriangleID = inRay.intersectObjectTriangleID;
+		outRay.contactObjectTriangleID = -1;
+
 		outRay.directionProb = 1;
 		outRay.color = vec3f(1, 1, 1);
 		float albedo = y(ds) / y(dt);
@@ -115,7 +118,9 @@ Ray SceneVPMObject::scatter(const Ray& inRay, const bool russian) const
 			outRay.color = vec3f(0, 0, 0);  
 			outRay.directionProb = 1; 
 			outRay.originProb = p_medium(sampDist);
-			outRay.insideObject = NULL;
+			
+			outRay.insideObject = (SceneObject*)this; // FIXED
+			
 			outRay.contactObject = NULL;
 			outRay.directionSampleType = Ray::RANDOM;
 			outRay.photonType = inRay.isDirectLightPhoton ? Ray::NOUSE : Ray::INVOL;

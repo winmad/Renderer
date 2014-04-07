@@ -12,7 +12,6 @@ vector<vec3f> VCMTracer::renderPixels(const Camera& camera)
 
 	preprocessEmissionSampler();
 
-
 	for(int i=0; i<pixelLocks.size(); i++)
 	{
 		omp_init_lock(&pixelLocks[i]);
@@ -44,17 +43,43 @@ vector<vec3f> VCMTracer::renderPixels(const Camera& camera)
 
 			vector<LightPathPoint> lppList;
 
-#pragma omp parallel for
+//#pragma omp parallel for
 			for(int p=0; p<pixelColors.size(); p++)
 			{
 				Ray lightRay = genEmissiveSurfaceSample();
 				lightPathList[p] = new Path;
 				Path &lightPath = *lightPathList[p];
 				samplePath(lightPath, lightRay);
+
+				vec3f dirContrib(0.f);
+
+				dirContrib = lightPath[0].color * lightPath[0].getCosineTerm() / 
+					(lightPath[0].originProb * lightPath[0].directionProb *
+					lightPath[1].originProb);
+				
+				if (s == 0)
+					fprintf(fp , "=============\n");
+				
 				for(unsigned i=1; i<lightPath.size(); i++)
 				{
 					if(lightPath[i].contactObject && lightPath[i].contactObject->emissive())
 						break;
+
+					Real dist = std::max((lightPath[i].origin - lightPath[i - 1].origin).length() , 1e-5f);
+					vec3f decayFactor = lightPath[i - 1].getRadianceDecay(dist);
+					dirContrib *= decayFactor;
+					
+					if(lightPath[i].directionSampleType == Ray::RANDOM && s == 0 &&
+						lightPath[i].insideObject && !lightPath[i].contactObject)
+					{
+						fprintf(fp , "path length = %d, dirContrib = (%.8f,%.8f,%.8f)\n" , 
+							i , dirContrib[0] , dirContrib[1] , dirContrib[2]);
+					}
+					
+					if (i + 1 < lightPath.size())
+						dirContrib *= (lightPath[i].color * lightPath[i].getCosineTerm()) /
+							(lightPath[i].directionProb * lightPath[i + 1].originProb);
+
 					if(lightPath[i].directionSampleType == Ray::DEFINITE)
 						continue;
 					LightPathPoint lpp;
@@ -133,7 +158,7 @@ vector<vec3f> VCMTracer::renderPixels(const Camera& camera)
 			for(int p=0; p<pixelColors.size(); p++)
 			{
 				Path &lightPath = lightPathList[p];
-
+				
 				for(unsigned i=1; i<lightPath.size(); i++)
 				{
 					if(lightPath[i].contactObject && lightPath[i].contactObject->emissive())

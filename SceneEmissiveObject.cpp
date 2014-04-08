@@ -21,6 +21,8 @@ Ray SceneEmissiveObject::scatter(const Ray& inRay , const bool russian) const
 
 vec3f SceneEmissiveObject::getBSDF(const Ray& inRay, const Ray& outRay) const
 {
+	if (outRay.getContactNormal().dot(outRay.direction) < 0)
+		return vec3f(0.f);
 	return color;
 }
 

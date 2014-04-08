@@ -43,8 +43,6 @@ Ray SceneObject::emit() const
 	//ray.direction = uniformSphericalSampler.genSample(lf);
 	ray.direction = cosineSphericalSampler.genSample(lf);
 
-	if(ray.direction.dot(ray.getContactNormal()) < 0)
-		ray.direction = - ray.direction;
 	ray.insideObject = scene->findInsideObject(ray, ray.contactObject);
 	ray.current_tid = scene->getContactTreeTid(ray);
 	ray.color = ray.getBSDF(ray);
@@ -56,6 +54,10 @@ Ray SceneObject::emit() const
 
 	ray.originProb = weight / totalArea;
 	ray.directionSampleType = ray.originSampleType = Ray::RANDOM;
+
+	if(ray.getContactNormal().dot(ray.direction) < 0)
+		ray.direction = -ray.direction;
+
 	if(!scene->usingGPU())
 	{
 		Scene::ObjSourceInformation osi;

@@ -129,6 +129,17 @@ public:
 		}
 	}
 
+	void print(FILE* fp)
+	{
+		fprintf(fp , "============ one iter ============\n");
+		for (int i = 0; i < weights.size(); i++)
+		{
+			if (weights[i] <= 0)
+				continue;
+			fprintf(fp , "i = %d, weight = %.8f\n" , i , weights[i]);
+		}
+	}
+
 public:
 	int GetCellIndex(const vec3i &aCoord) const
 	{

@@ -20,11 +20,7 @@ vector<vec3f> VCMTracer::renderPixels(const Camera& camera)
 	omp_lock_t cmdLock;
 	omp_init_lock(&cmdLock);
 
-	
-
 	float r0 = mergeRadius;
-
-	
 
 	for(unsigned s=0; s<spp; s++)
 	{
@@ -43,14 +39,14 @@ vector<vec3f> VCMTracer::renderPixels(const Camera& camera)
 
 			vector<LightPathPoint> lppList;
 
-//#pragma omp parallel for
+#pragma omp parallel for
 			for(int p=0; p<pixelColors.size(); p++)
 			{
 				Ray lightRay = genEmissiveSurfaceSample();
 				lightPathList[p] = new Path;
 				Path &lightPath = *lightPathList[p];
 				samplePath(lightPath, lightRay);
-
+				/*
 				vec3f dirContrib(0.f);
 
 				dirContrib = lightPath[0].color * lightPath[0].getCosineTerm() / 
@@ -59,12 +55,12 @@ vector<vec3f> VCMTracer::renderPixels(const Camera& camera)
 				
 				if (s == 0)
 					fprintf(fp , "=============\n");
-				
+				*/
 				for(unsigned i=1; i<lightPath.size(); i++)
 				{
 					if(lightPath[i].contactObject && lightPath[i].contactObject->emissive())
 						break;
-
+					/*
 					Real dist = std::max((lightPath[i].origin - lightPath[i - 1].origin).length() , 1e-5f);
 					vec3f decayFactor = lightPath[i - 1].getRadianceDecay(dist);
 					dirContrib *= decayFactor;
@@ -79,7 +75,7 @@ vector<vec3f> VCMTracer::renderPixels(const Camera& camera)
 					if (i + 1 < lightPath.size())
 						dirContrib *= (lightPath[i].color * lightPath[i].getCosineTerm()) /
 							(lightPath[i].directionProb * lightPath[i + 1].originProb);
-
+					*/
 					if(lightPath[i].directionSampleType == Ray::DEFINITE)
 						continue;
 					LightPathPoint lpp;
@@ -499,7 +495,7 @@ void VCMTracer::colorByConnectingPaths(vector<omp_lock_t> &pixelLocks, const Cam
 				if(x >= 0 && x < camera.width && y >= 0 && y < camera.height)
 				{
 					omp_set_lock(&pixelLocks[y*camera.width + x]);
-					colors[y*camera.width + x] += color;
+					//colors[y*camera.width + x] += color;
 					omp_unset_lock(&pixelLocks[y*camera.width + x]);
 				}
 			}

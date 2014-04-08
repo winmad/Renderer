@@ -40,10 +40,7 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 
 			partialSubPathList.clear();
 
-			if (totVol > 0)
-				mergeRadius = r0 * (pow(s+1, (alpha-1)/3.f));
-			else
-				mergeRadius = r0 * (pow(s+1, (alpha-1)/2.f));
+			mergeRadius = r0 * (powf((Real)s+1.f, (alpha-1)/2.f));
 
 			mergeRadius = std::max(mergeRadius , 1e-7f);
 			printf("mergeRadius = %.8f\n" , mergeRadius);
@@ -63,16 +60,7 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 			genLightPaths(cmdLock , lightPathList);
 
 			//countHashGrid.addPhotons(partialSubPathList , 0 , lightPhotonNum);
-
-			/*
-			fprintf(fp , "============ one iter ============\n");
-			for (int i = 0; i < countHashGrid.weights.size(); i++)
-			{
-				if (countHashGrid.weights[i] <= 0)
-					continue;
-				fprintf(fp , "i = %d, weight = %.8f\n" , i , countHashGrid.weights[i]);
-			}
-			*/
+			//countHashGrid.print(fp);
 
 			genIntermediatePaths(cmdLock , interPathList);
 			
@@ -80,12 +68,10 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 
 			mergePartialPaths(cmdLock);
 
-			int st = 0;
-			int ed = partialPhotonNum;
 			int surNum = 0 , volNum = 0;
 			Real w = 1.f / (mergeIterations + 1);
 #pragma omp parallel for
-			for (int i = st; i < ed; i++)
+			for (int i = 0; i < lightPhotonNum; i++)
 			{
 				IptPathState& subPath = partialSubPathList[i];
 
@@ -94,12 +80,12 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 				int _x(0) , _y(0);
 				vec3f color(0.f);
 				color = colorByConnectingCamera(camera , subPath , _x , _y);
-				
+				/*
 				if (i < lightPhotonNum)
 					color *= (1 - w);
 				else
 					color *= w;
-				
+				*/
 				if (y(color) > 0)
 				{
 					omp_set_lock(&pixelLocks[_y*camera.width + _x]);
@@ -200,8 +186,8 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 						colorGlbIllu = colorByMergingPaths(cameraState , partialSubPaths , mergeIterations + 1);
 
 						omp_set_lock(&pixelLocks[cameraState.index]);
-						singleImageColors[cameraState.index] += colorDirIllu * eyeWeight;
-						singleImageColors[cameraState.index] += colorGlbIllu * eyeWeight;
+						singleImageColors[cameraState.index] += colorDirIllu;
+						singleImageColors[cameraState.index] += colorGlbIllu;
 						omp_unset_lock(&pixelLocks[cameraState.index]);
 					}
 
@@ -838,7 +824,8 @@ vec3f IptTracer::colorByConnectingCamera(const Camera& camera, const IptPathStat
 
 	//fprintf(fp , "weight = %.8f\n" , weightFactor);
 
-	color *= weightFactor;
+	//color *= weightFactor;
+
 	/*
 	if (lightState.isSpecularPath && bsdfFactor[2] > bsdfFactor[1] && bsdfFactor[2] > bsdfFactor[0])
 	{
@@ -924,8 +911,8 @@ vec3f IptTracer::colorByConnectingLights(const Camera& camera, const IptPathStat
 	fprintf(fp , "weight = %.8f , bsdfToLightPdf = %.8f , cosAtLight = %.8f ,\ntoLightOriginPdf = %.8f , originProb = %.8f , dist = %.8f\n" , 
 		weightFactor , bsdfToLightPdf , cosAtLight , toLightOriginPdf , lightRay.originProb , dist);
 	*/
-	weightFactor = 1.f;
-	vec3f res = tmp * decayFactor * weightFactor;
+
+	vec3f res = tmp * decayFactor;
 	
 	/*
 	vec3f resx = camera.eliminateVignetting(res , cameraState.index) * lightPathNum;

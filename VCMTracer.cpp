@@ -127,6 +127,7 @@ vector<vec3f> VCMTracer::renderPixels(const Camera& camera)
 		}
 		else
 		{
+			/*
 			mergeRadius = r0 * sqrt(powf(s+1, alpha-1));
 
 			vector<vec3f> singleImageColors(pixelColors.size(), vec3f(0, 0, 0));
@@ -199,6 +200,7 @@ vector<vec3f> VCMTracer::renderPixels(const Camera& camera)
 			}
 			printf("Iter: %d  IterTime: %ds  TotalTime: %ds\n", s+1, (clock()-t)/1000, (clock()-t_start)/1000);
 			showCurrentResult(pixelColors);
+			*/
 		}
 	}
 	return pixelColors;
@@ -495,7 +497,7 @@ void VCMTracer::colorByConnectingPaths(vector<omp_lock_t> &pixelLocks, const Cam
 				if(x >= 0 && x < camera.width && y >= 0 && y < camera.height)
 				{
 					omp_set_lock(&pixelLocks[y*camera.width + x]);
-					//colors[y*camera.width + x] += color;
+					colors[y*camera.width + x] += color;
 					omp_unset_lock(&pixelLocks[y*camera.width + x]);
 				}
 			}

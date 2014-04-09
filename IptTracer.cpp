@@ -133,8 +133,8 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 				IptPathState cameraState;
 				cameraState.isSpecularPath = 1;
 
-				//cameraState.throughput = vec3f(1.f) / (eyePath[0].directionProb * eyePath[1].originProb);
-				cameraState.throughput = vec3f(1.f) / eyePath[1].originProb;
+				cameraState.throughput = vec3f(1.f) / (eyePath[0].directionProb * eyePath[1].originProb);
+				//cameraState.throughput = vec3f(1.f) / eyePath[1].originProb;
 	
 				cameraState.index = eyePath.front().pixelID;
 
@@ -143,6 +143,10 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 
 				vector<float> ratios;
 				//calcEyeProbRatios(eyePath , ratios);
+
+				//fprintf(fp , "===================\n");
+
+				int nonSpecLength = 1;
 
 				for(unsigned i=1; i<eyePath.size(); i++)
 				{
@@ -177,7 +181,7 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 					cameraState.lastRay = &eyePath[i - 1];
 					cameraState.ray = &eyePath[i];
 
-					Real eyeWeight = 1.f;
+					Real eyeWeight = 1.f / (nonSpecLength + 1.f);
 					//eyeWeight = calcEyePathWeight(eyePath , ratios , i);
 
 					if(eyePath[i].directionSampleType != Ray::DEFINITE)
@@ -186,14 +190,15 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 						colorGlbIllu = colorByMergingPaths(cameraState , partialSubPaths , mergeIterations + 1);
 
 						omp_set_lock(&pixelLocks[cameraState.index]);
-						singleImageColors[cameraState.index] += colorDirIllu;
-						singleImageColors[cameraState.index] += colorGlbIllu;
+						singleImageColors[cameraState.index] += colorDirIllu * eyeWeight;
+						singleImageColors[cameraState.index] += colorGlbIllu * eyeWeight;
 						omp_unset_lock(&pixelLocks[cameraState.index]);
 					}
 
 					if (eyePath[i].directionSampleType == Ray::RANDOM)
 					{
 						cameraState.isSpecularPath = 0;
+						nonSpecLength++;
 					}
 
 					if (i >= eyePath.size() - 1)
@@ -205,6 +210,10 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 					cameraState.throughput *= (bsdfFactor * eyePath[i].getCosineTerm() / 
 						(eyePath[i + 1].originProb * eyePath[i].directionProb));
 
+					//fprintf(fp , "l=%d, thr=(%.8f,%.8f,%.8f), bsdf=(%.8f,%.8f,%.8f), cos=%.8f, prob=%.8f\n" , 
+					//	i , cameraState.throughput[0] , cameraState.throughput[1] , cameraState.throughput[2] ,
+					//	bsdfFactor[0] , bsdfFactor[1] , bsdfFactor[2] , eyePath[i].getCosineTerm() , eyePath[i].directionProb);
+					
 					/*
 					if (eyePath[i].directionSampleType != Ray::DEFINITE)
 					{
@@ -249,12 +258,12 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 			if(cmd == "exit")
 				return pixelColors;
 
-			//eliminateVignetting(singleImageColors);
+			eliminateVignetting(singleImageColors);
 
 			for(int i=0; i<pixelColors.size(); i++)
 			{
 				pixelColors[i] *= s / Real(s + 1);
-				pixelColors[i] += singleImageColors[i] / (s + 1);// * camera.width * camera.height; 
+				pixelColors[i] += singleImageColors[i] / (s + 1) * camera.width * camera.height; 
 			}
 			for (int i = 0; i < lightPathNum; i++)
 			{
@@ -803,7 +812,7 @@ vec3f IptTracer::colorByConnectingCamera(const Camera& camera, const IptPathStat
 	//---- still buggy, fix me ----
 	vec3f color = (totContrib * bsdfFactor * decayFactor) /
 		(lightPathNum * surfaceToImageFactor);
-	//color *= powf(cosAtCamera , 4) / pixelNum;
+	color *= powf(cosAtCamera , 4) / pixelNum;
 	//-----------------------------
 
 	Ray inRay;
@@ -824,7 +833,7 @@ vec3f IptTracer::colorByConnectingCamera(const Camera& camera, const IptPathStat
 
 	//fprintf(fp , "weight = %.8f\n" , weightFactor);
 
-	//color *= weightFactor;
+	color *= weightFactor;
 
 	/*
 	if (lightState.isSpecularPath && bsdfFactor[2] > bsdfFactor[1] && bsdfFactor[2] > bsdfFactor[0])
@@ -990,8 +999,8 @@ vec3f IptTracer::colorByMergingPaths(const IptPathState& cameraState, PointKDTre
 			//originProb = cameraState->accuProb;
 			//originProb = tracer->getOriginProb(tracer->countHashGrid , outRay.origin);
 
-			//weightFactor = tracer->mergeFactor(&volMergeScale , &originProb , &lastPdf) / 
-			//	(tracer->connectFactor(lastPdf) + tracer->mergeFactor(&volMergeScale , &originProb , &lastPdf));
+			weightFactor = tracer->mergeFactor(&volMergeScale , &originProb , &lastPdf) / 
+				(tracer->connectFactor(lastPdf) + tracer->mergeFactor(&volMergeScale , &originProb , &lastPdf));
 
 			//fprintf(fp , "weight = %.8f , cameraAccuProb = %.8f , hashOriginProb = %.8f\n" , weightFactor , cameraState->accuProb , originProb);
 
@@ -1002,7 +1011,7 @@ vec3f IptTracer::colorByMergingPaths(const IptPathState& cameraState, PointKDTre
 			/*
 			vec3f resx = tracer->renderer->camera.eliminateVignetting(res , cameraState->index) *
 				tracer->pixelNum;	
-			if (y(res) > 0)
+			if (y(res) > 1)
 			{
 				fprintf(fp , "=====================\n");
 				if (volMergeScale == 1)
@@ -1010,7 +1019,7 @@ vec3f IptTracer::colorByMergingPaths(const IptPathState& cameraState, PointKDTre
 				else 
 					fprintf(fp , "volume\n");
 				fprintf(fp , "res = (%.8f,%.8f,%.8f) \ntotContrib = (%.8f,%.8f,%.8f), bsdf = (%.8f,%.8f,%.8f),\n cameraThr = (%.8f,%.8f,%.8f) \nweightFactor = %.8f, originProb = %.8f, lastpdf = %.8f\n" ,
-					resx[0] , resx[1] , resx[2] ,
+					res[0] , res[1] , res[2] ,
 					totContrib[0] , totContrib[1] , totContrib[2] , bsdfFactor[0] , bsdfFactor[1] , bsdfFactor[2] , 
 					cameraState->throughput[0] , cameraState->throughput[1] , cameraState->throughput[2] , 
 					weightFactor , originProb , lastPdf);

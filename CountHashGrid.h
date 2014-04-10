@@ -72,7 +72,7 @@ public:
 				continue;
 			}
 			
-			energy = y(totContrib);
+			energy = y(totContrib) * 1e-3f;
 			sumContribs += energy;
 			weights[cellIndex] += energy;
 		}
@@ -131,7 +131,7 @@ public:
 
 	void print(FILE* fp)
 	{
-		fprintf(fp , "============ one iter ============\n");
+		fprintf(fp , "============ one iter, sum = %.8f ============\n" , sumContribs);
 		for (int i = 0; i < weights.size(); i++)
 		{
 			if (weights[i] <= 0)

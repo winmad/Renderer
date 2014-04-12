@@ -14,4 +14,3 @@ int _tmain(int argc, _TCHAR* argv[])
 	renderer.waitForCommand();
 	return 0;
 }
-

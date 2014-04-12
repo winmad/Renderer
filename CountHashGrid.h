@@ -39,7 +39,7 @@ public:
 
 		mCellSize = max(diag[0] , max(diag[1] , diag[2])) / sizeNum;
 		mInvCellSize = 1.f / mCellSize;
-		cellArea = 6 * mCellSize * mCellSize;
+		cellArea = mCellSize * mCellSize;
 		cellVolume = mCellSize * mCellSize * mCellSize;
 		printf("cell size = %.8f\n" , mCellSize);
 
@@ -60,9 +60,6 @@ public:
 
 		for(int i=st; i<ed; i++)
 		{
-			if (!(aParticles[i].ray->insideObject && !aParticles[i].ray->contactObject))
-				continue;
-
 			const vec3f &pos = aParticles[i].pos;
 			vec3f totContrib = aParticles[i].dirContrib + aParticles[i].indirContrib;
 			int cellIndex = GetCellIndex(pos);
@@ -72,7 +69,7 @@ public:
 				continue;
 			}
 			
-			energy = y(totContrib) * 1e-3f;
+			energy = y(totContrib) * 1e-7f;
 			sumContribs += energy;
 			weights[cellIndex] += energy;
 		}
@@ -109,7 +106,7 @@ public:
 		const int pyo = py + (fractCoord.y < 0.5f ? -1 : +1);
 		const int pzo = pz + (fractCoord.z < 0.5f ? -1 : +1);
 
-		for(int j=0; j<1; j++)
+		for(int j=0; j<7; j++)
 		{
 			int cellIndex;
 			switch(j)
@@ -125,7 +122,7 @@ public:
 			}
 			if (cellIndex == -1)
 				continue;
-			aQuery.count += weights[cellIndex];
+			aQuery.count += weights[cellIndex] / 8;
 		}
 	}
 

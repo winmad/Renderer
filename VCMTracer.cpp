@@ -464,7 +464,7 @@ void VCMTracer::colorByConnectingPaths(vector<omp_lock_t> &pixelLocks, const Cam
 			}
 
 			vec4<float> color_prob = connectColorProb(wholePath, lightConnectID);
-
+				
 			if(!(color_prob.w > 0))
 				continue;
 
@@ -480,24 +480,35 @@ void VCMTracer::colorByConnectingPaths(vector<omp_lock_t> &pixelLocks, const Cam
 
 			Ray &camRay = wholePath[wholePath.size()-1];
 
-			if(eyePathLen > 1 && lightPathLen == 1)
+			if(eyePathLen > 1)// && eyePath[1].directionSampleType == Ray::DEFINITE)
 			{
 				omp_set_lock(&pixelLocks[camRay.pixelID]);
 
 				//fprintf(fp , "w = %.8f\n" , weight);
 
-				colors[camRay.pixelID] += color;
+				//colors[camRay.pixelID] += color;
 				omp_unset_lock(&pixelLocks[camRay.pixelID]);
 			}
 			else
 			{
+				/*
+				if (eyePathLen <= 1)
+				{
+					fprintf(fp , "===========\n");
+					for (int i = 0; i < wholePath.size(); i++)
+					{
+						fprintf(fp , "c=(%.8f,%.8f,%.8f), p=%.8f\n" , wholePath[i].color[0] , wholePath[i].color[1] ,
+							wholePath[i].color[2] , wholePath[i].directionProb);
+					}
+				}
+				*/
 				vec2<float> pCoord = camera.transToPixel(wholePath[wholePath.size()-2].origin);
 				int x = pCoord.x;
 				int y = pCoord.y;
 				if(x >= 0 && x < camera.width && y >= 0 && y < camera.height)
 				{
 					omp_set_lock(&pixelLocks[y*camera.width + x]);
-					//colors[y*camera.width + x] += color;
+					colors[y*camera.width + x] += color;
 					omp_unset_lock(&pixelLocks[y*camera.width + x]);
 				}
 			}

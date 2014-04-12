@@ -208,6 +208,7 @@
   <ItemGroup>
     <ClCompile Include="BidirectionalPathTracer.cpp" />
     <ClCompile Include="Camera.cpp" />
+    <ClCompile Include="compare.cpp" />
     <ClCompile Include="ConfigManager.cpp" />
     <ClCompile Include="DiffuseMaterial.cpp" />
     <ClCompile Include="GlossyMaterial.cpp" />

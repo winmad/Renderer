@@ -79,7 +79,7 @@ public:
 	void setRadius(const Real& r) { mergeRadius = r; }
 	void setInitProb(const Real& r) { initialProb = r; }
 	virtual vector<vec3f> renderPixels(const Camera& camera);
-
+	
 	Real getOriginProb(CountHashGrid& hashGrid , vec3f& pos , const bool isVol)
 	{
 		CountQuery query(pos);
@@ -89,7 +89,7 @@ public:
 		else
 			return query.count / hashGrid.cellArea;
 	}
-
+	
 	Real connectFactor(Real pdf)
 	{
 		return pdf;

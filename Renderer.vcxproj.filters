@@ -320,5 +320,8 @@
     <ClCompile Include="KDTree.cpp">
       <Filter>源文件\Acceleration</Filter>
     </ClCompile>
+    <ClCompile Include="compare.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

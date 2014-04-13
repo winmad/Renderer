@@ -149,12 +149,17 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 				cameraState.accuProb = initialProb / (eyePath[0].directionProb);
 				//cameraState.accuProb = initialProb;
 
-				vector<float> ratios;
+				vector<float> ratios , weights;
 				//calcEyeProbRatios(eyePath , ratios);
 
 				//fprintf(fp , "===================\n");
 
 				int nonSpecLength = 1;
+				vector<vec3f> mergeContribs;
+				vec3f mergeContrib(0.f);
+
+				mergeContribs.clear();
+				weights.clear();
 
 				for(unsigned i=1; i<eyePath.size(); i++)
 				{
@@ -174,9 +179,7 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 						{
 							vec3f le = ((SceneEmissiveObject*)(eyePath[i].contactObject))->getColor();
 							colorHitLight = le * cameraState.throughput;
-							omp_set_lock(&pixelLocks[cameraState.index]);
 							singleImageColors[cameraState.index] += colorHitLight;
-							omp_unset_lock(&pixelLocks[cameraState.index]);
 						}	
 						break;
 					}
@@ -194,13 +197,13 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 
 					if(eyePath[i].directionSampleType != Ray::DEFINITE)
 					{
-						colorDirIllu = colorByConnectingLights(camera , cameraState) * eyeWeight;
-						colorGlbIllu = colorByMergingPaths(cameraState , partialSubPaths , mergeIterations + 1);
+						colorDirIllu = colorByConnectingLights(camera , cameraState);
+						colorGlbIllu = colorByMergingPaths(cameraState , partialSubPaths , mergeIterations + 1 , eyeWeight);
 
-						omp_set_lock(&pixelLocks[cameraState.index]);
 						singleImageColors[cameraState.index] += colorDirIllu;
-						singleImageColors[cameraState.index] += colorGlbIllu;
-						omp_unset_lock(&pixelLocks[cameraState.index]);
+						//singleImageColors[cameraState.index] += colorGlbIllu;
+						mergeContribs.push_back(colorGlbIllu);
+						//weights.push_back(eyeWeight);
 					}
 
 					if (eyePath[i].directionSampleType == Ray::RANDOM)
@@ -248,6 +251,13 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 						cameraState.throughput *= weightFactor;
 					}
 				}
+				
+				Real sumWeights = 0.f;
+				for (int i = 0; i < weights.size(); i++)
+					sumWeights += weights[i];
+				for (int i = 0; i < mergeContribs.size(); i++)
+					singleImageColors[cameraState.index] += mergeContribs[i] / (Real)nonSpecLength;
+				
 			}
 
 			if(cmd == "exit")
@@ -828,8 +838,7 @@ vec3f IptTracer::colorByConnectingCamera(const Camera& camera, const IptPathStat
 
 	//fprintf(fp , "weight = %.8f\n" , weightFactor);
 
-	if (!lightState.isSpecularPath)
-		color *= weightFactor;
+	color *= weightFactor;
 
 	/*
 	if (lightState.isSpecularPath && bsdfFactor[2] > bsdfFactor[1] && bsdfFactor[2] > bsdfFactor[0])
@@ -928,7 +937,8 @@ vec3f IptTracer::colorByConnectingLights(const Camera& camera, const IptPathStat
 	return res;
 }
 
-vec3f IptTracer::colorByMergingPaths(const IptPathState& cameraState, PointKDTree<IptPathState>& partialSubPaths , const int mergeIters)
+vec3f IptTracer::colorByMergingPaths(const IptPathState& cameraState, PointKDTree<IptPathState>& partialSubPaths , const int mergeIters ,
+	Real& weight)
 {
 	struct GatherQuery
 	{
@@ -936,9 +946,10 @@ vec3f IptTracer::colorByMergingPaths(const IptPathState& cameraState, PointKDTre
 		IptTracer *tracer;
 		const IptPathState* cameraState;
 		int mergeIters;
+		Real weight;
 		int mergeNum;
 
-		GatherQuery(IptTracer* tracer) { this->tracer = tracer; mergeNum = 0; }
+		GatherQuery(IptTracer* tracer) { this->tracer = tracer; mergeNum = 0; weight = 0.f; }
 
 		void process(IptPathState& lightState)
 		{
@@ -983,7 +994,8 @@ vec3f IptTracer::colorByMergingPaths(const IptPathState& cameraState, PointKDTre
 				return;
 
 			Real w = 1.f - 1.f / mergeIters;
-			vec3f totContrib = lightState.dirContrib * w + lightState.indirContrib * (1 - w); 
+			//vec3f totContrib = lightState.dirContrib * w + lightState.indirContrib * (1 - w); 
+			vec3f totContrib = lightState.dirContrib + lightState.indirContrib;
 			vec3f tmp = totContrib * bsdfFactor * cameraState->throughput; 
 
 			Real lastPdf , weightFactor;
@@ -993,7 +1005,7 @@ vec3f IptTracer::colorByMergingPaths(const IptPathState& cameraState, PointKDTre
 			//originProb = cameraState->accuProb;
 			//originProb = tracer->getOriginProb(tracer->countHashGrid , outRay.origin);
 
-			weightFactor = tracer->mergeFactor(&volMergeScale , &originProb , &INV_2_PI) / 
+			weightFactor = (tracer->mergeFactor(&volMergeScale , &originProb , &INV_2_PI)) /
 				(tracer->connectFactor(lastPdf) + tracer->mergeFactor(&volMergeScale , &originProb , &INV_2_PI));
 
 			//fprintf(fp , "weight = %.8f , cameraAccuProb = %.8f , hashOriginProb = %.8f\n" , weightFactor , cameraState->accuProb , originProb);
@@ -1002,8 +1014,9 @@ vec3f IptTracer::colorByMergingPaths(const IptPathState& cameraState, PointKDTre
 
 			vec3f res = tmp * (tracer->mergeKernel / volMergeScale);
 			
-			//if (volMergeScale == 1.f)
-			res *= weightFactor;
+			//res *= weightFactor;
+
+			weight += weightFactor;
 
 			color += res;
 			/*
@@ -1034,7 +1047,7 @@ vec3f IptTracer::colorByMergingPaths(const IptPathState& cameraState, PointKDTre
 	partialSubPaths.searchInRadius(0 , query.cameraState->pos , mergeRadius , query);
 	
 	//fprintf(fp , "mergeNum = %d\n" , query.mergeNum);
-
+	weight = query.weight;
 	return query.color;
 }
 
@@ -1083,6 +1096,7 @@ void IptTracer::mergePartialPaths(vector<vec3f>& contribs , const IptPathState& 
 			
 			Real w = 1.f - 1.f / mergeIters;
 			vec3f totContrib = lightState.dirContrib * w + lightState.indirContrib * (1 - w);
+			//vec3f totContrib = lightState.dirContrib + lightState.indirContrib;
 
 			Ray outRay , inRay;
 			vec3f bsdfFactor;

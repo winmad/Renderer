@@ -48,7 +48,7 @@ protected:
 
 	void mergePartialPaths(vector<vec3f>& contribs , const IptPathState& lightState , const int mergeIters);
 
-	vec3f colorByMergingPaths(const IptPathState& cameraState, PointKDTree<IptPathState>& partialSubPaths , const int mergeIters);
+	vec3f colorByMergingPaths(const IptPathState& cameraState, PointKDTree<IptPathState>& partialSubPaths , const int mergeIters , Real& weight);
 
 	vec3f colorByConnectingLights(const Camera& camera, const IptPathState& cameraState);
 

@@ -507,6 +507,7 @@ void VCMTracer::colorByConnectingPaths(vector<omp_lock_t> &pixelLocks, const Cam
 				int y = pCoord.y;
 				if(x >= 0 && x < camera.width && y >= 0 && y < camera.height)
 				{
+					//fprintf(fp , "%.8f\n" , weight);
 					omp_set_lock(&pixelLocks[y*camera.width + x]);
 					colors[y*camera.width + x] += color;
 					omp_unset_lock(&pixelLocks[y*camera.width + x]);

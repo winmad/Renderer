@@ -87,7 +87,7 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 
 				int _x(0) , _y(0);
 				vec3f color(0.f);
-				color = colorByConnectingCamera(camera , subPath , _x , _y);
+				//color = colorByConnectingCamera(camera , subPath , _x , _y);
 				
 				if (i < lightPhotonNum)
 					color *= (1 - w);
@@ -160,6 +160,7 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 
 				mergeContribs.clear();
 				weights.clear();
+				weights.push_back(1.f);
 
 				for(unsigned i=1; i<eyePath.size(); i++)
 				{
@@ -198,12 +199,10 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 					if(eyePath[i].directionSampleType != Ray::DEFINITE)
 					{
 						colorDirIllu = colorByConnectingLights(camera , cameraState);
-						colorGlbIllu = colorByMergingPaths(cameraState , partialSubPaths , mergeIterations + 1 , eyeWeight);
+						//singleImageColors[cameraState.index] += colorDirIllu;
 
-						singleImageColors[cameraState.index] += colorDirIllu;
-						//singleImageColors[cameraState.index] += colorGlbIllu;
-						mergeContribs.push_back(colorGlbIllu);
-						//weights.push_back(eyeWeight);
+						colorGlbIllu = colorByMergingPaths(cameraState , partialSubPaths , mergeIterations + 1 , eyeWeight);
+						mergeContribs.push_back(colorDirIllu + colorGlbIllu);
 					}
 
 					if (eyePath[i].directionSampleType == Ray::RANDOM)
@@ -248,7 +247,8 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 
 						//fprintf(fp , "w = %.8f\n" , weightFactor);
 
-						cameraState.throughput *= weightFactor;
+						//cameraState.throughput *= weightFactor;
+						weights.push_back(weightFactor);
 					}
 				}
 				
@@ -256,8 +256,7 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 				for (int i = 0; i < weights.size(); i++)
 					sumWeights += weights[i];
 				for (int i = 0; i < mergeContribs.size(); i++)
-					singleImageColors[cameraState.index] += mergeContribs[i] / (Real)nonSpecLength;
-				
+					singleImageColors[cameraState.index] += mergeContribs[i] * weights[i] / sumWeights;
 			}
 
 			if(cmd == "exit")
@@ -994,8 +993,8 @@ vec3f IptTracer::colorByMergingPaths(const IptPathState& cameraState, PointKDTre
 				return;
 
 			Real w = 1.f - 1.f / mergeIters;
-			//vec3f totContrib = lightState.dirContrib * w + lightState.indirContrib * (1 - w); 
-			vec3f totContrib = lightState.dirContrib + lightState.indirContrib;
+			vec3f totContrib = lightState.dirContrib * w + lightState.indirContrib * (1 - w); 
+			//vec3f totContrib = lightState.dirContrib + lightState.indirContrib;
 			vec3f tmp = totContrib * bsdfFactor * cameraState->throughput; 
 
 			Real lastPdf , weightFactor;

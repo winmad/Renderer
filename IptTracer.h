@@ -67,7 +67,7 @@ public:
 		alpha = 0.75f;
 		spp = -1; 
 		initialProb = 1.f;
-		mergeIterations = 5;
+		mergeIterations = 100;
 		timeInterval = lastTime = 3600;
 
 		pixelNum = renderer->camera.height * renderer->camera.width;

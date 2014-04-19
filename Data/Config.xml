@@ -1,5 +1,17 @@
 <Config>
 	<Scene>
+		<path>scenes/test_cornell_box.xml</path>
+		<name>cb</name>
+		<camera>c1</camera>
+	</Scene>
+	<Renderer>
+		<type>BPT</type>
+	</Renderer>
+	<savePath>results/test_bpt.pfm</savePath>
+</Config>
+
+<Config>
+	<Scene>
 		<path>Scene_sss.xml</path>
 		<name>SSS</name>
 		<camera>c1</camera>
@@ -7,8 +19,22 @@
 	<Renderer>
 		<type>IPT</type>
 		<radius>0.005</radius>
+		<initProb>1</initProb>
 	</Renderer>
-	<savePath>results/sss_ipt_3_30_merge_partial.pfm</savePath>
+	<savePath>results/sss_ipt_4_18.pfm</savePath>
+</Config>
+
+<Config>
+	<Scene>
+		<path>scenes/torus_in_box.xml</path>
+		<!--name>Toys</name-->
+		<camera>c1</camera>
+	</Scene>
+	<Renderer>
+		<type>IPT</type>
+		<radius>0.003</radius>
+	</Renderer>
+	<savePath>results/torus_in_box_ipt_4_18.pfm</savePath>
 </Config>
 
 <Config>
@@ -19,10 +45,50 @@
 	</Scene>
 	<Renderer>
 		<type>IPT</type>
-		<radius>0.002</radius>
+		<radius>0.003</radius>
 		<initProb>0.1</initProb>
 	</Renderer>
-	<savePath>results/2balls_cornell_box_ipt_3_30.pfm</savePath>
+	<savePath>results/2balls_cornell_box_ipt_4_16.pfm</savePath>
+</Config>
+
+<Config>
+	<Scene>
+		<path>Scene_VPM.xml</path>
+		<name>Dragon</name>
+		<camera>c1</camera>
+	</Scene>
+	<Renderer>
+		<type>IPT</type>
+		<radius>0.003</radius>
+	</Renderer>
+	<savePath>results/dragon_ipt_4_14.pfm</savePath>
+</Config>
+
+<Config>
+	<Scene>
+		<path>scenes/toys_cornell_box.xml</path>
+		<name>Toys</name>
+		<camera>c1</camera>
+	</Scene>
+	<Renderer>
+		<type>IPT</type>
+		<radius>0.005</radius>
+		<initProb>1</initProb>
+	</Renderer>
+	<savePath>results/toys_ipt_4_13.pfm</savePath>
+</Config>
+
+<Config>
+	<Scene>
+		<path>scenes/fog_cornell_box.xml</path>
+		<name>BallsInFog</name>
+		<camera>c1</camera>
+	</Scene>
+	<Renderer>
+		<type>IPT</type>
+		<radius>0.003</radius>
+	</Renderer>
+	<savePath>results/fog_cb_ipt_4_6.pfm</savePath>
 </Config>
 
 <Config>
@@ -37,32 +103,6 @@
 		<initProb>1</initProb>
 	</Renderer>
 	<savePath>results/toys_ipt_3_27.pfm</savePath>
-</Config>
-
-<Config>
-	<Scene>
-		<path>scenes/fog_cornell_box.xml</path>
-		<name>BallsInFog</name>
-		<camera>c1</camera>
-	</Scene>
-	<Renderer>
-		<type>IPT</type>
-		<radius>0.002</radius>
-	</Renderer>
-	<savePath>results/fog_cb_ipt_3_27.pfm</savePath>
-</Config>
-
-<Config>
-	<Scene>
-		<path>Scene_VPM.xml</path>
-		<name>Dragon</name>
-		<camera>c1</camera>
-	</Scene>
-	<Renderer>
-		<type>IPT</type>
-		<radius>0.002</radius>
-	</Renderer>
-	<savePath>results/dragon_test_ipt.pfm</savePath>
 </Config>
 
 <Config>

@@ -5,6 +5,16 @@ Ray DiffuseMaterial::scatter(const SceneObject* object, const Ray& inRay, const 
 {
 	Ray outRay;
 	outRay.origin = inRay.origin + inRay.direction*inRay.intersectDist;
+	
+	//==== FIX ME =====
+	if (inRay.intersectObject == NULL)
+	{
+		outRay.direction = vec3f(0.f);
+		outRay.directionSampleType = Ray::DEFINITE;
+		return outRay;
+	}
+	//=================
+
 	LocalFrame lf = inRay.intersectObject->getAutoGenWorldLocalFrame(inRay.intersectObjectTriangleID, outRay.origin);
 	
 	vec3f color = tex.getColor(inRay.intersectObject->getTexCoord(inRay.intersectObjectTriangleID, outRay.origin));

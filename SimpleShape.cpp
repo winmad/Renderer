@@ -125,6 +125,14 @@ void SimpleShape::loadShape(const string &fileName, bool normalize, vector<Simpl
 					ret = sscanf_s(parms[1],"%d//%d",&tri.y,&vnTri.y,sizeof(unsigned));
 					ret = sscanf_s(parms[2],"%d//%d",&tri.z,&vnTri.z,sizeof(unsigned));
 					has_n = ret == 2;
+
+					if (ret == 1)
+					{
+						ret = sscanf_s(parms[0],"%d",&tri.x,sizeof(unsigned));
+						ret = sscanf_s(parms[1],"%d",&tri.y,sizeof(unsigned));
+						ret = sscanf_s(parms[2],"%d",&tri.z,sizeof(unsigned));
+						has_n = false;
+					}		
 				}
 				else
 				{

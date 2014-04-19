@@ -192,7 +192,9 @@ void ConfigManager::load(const string &configFilePath)
 		}
 
 		SceneObject *obj = generateSceneObject(nodeObj, nodeMat);
-		obj->loadShape(path);
+
+		obj->loadShape(path , true); // NEED TO BE TRUE WHEN NOT TESTING
+
 		renderer->scene.objects.push_back(obj);
 	}
 
@@ -203,6 +205,7 @@ void ConfigManager::load(const string &configFilePath)
 	renderer->camera.focus = readVec(nodeCam->first_node("focus")->value());
 	renderer->camera.position = readVec(nodeCam->first_node("position")->value());
 	renderer->camera.up = readVec(nodeCam->first_node("up")->value());
+
 	renderer->scene.buildKDTree();
 
 	if(renderer->mcRenderer)

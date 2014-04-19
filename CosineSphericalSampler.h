@@ -14,18 +14,30 @@ public:
 
 	virtual vec3f genSample(const LocalFrame& lf) const
 	{
-		return RandGenerator::genHemiCosDirection(lf.n, coeff);
+		float pdf;
+		return RandGenerator::genHemiCosDirection(lf.n, coeff, &pdf);
 	}
 	virtual vec3f genSample(const LocalFrame& lf, const float& coeff) const
 	{
-		return RandGenerator::genHemiCosDirection(lf.n, coeff);
+		float pdf;
+		return RandGenerator::genHemiCosDirection(lf.n, coeff, &pdf);
 	}
 	virtual float getProbDensity(const LocalFrame& lf, const vec3f& dir) const
 	{
-		return lf.n.dot(dir) > 0 ? powf(max2(lf.n.dot(dir), coeff), COS_TERM_MIN)*(coeff+1)/(2*M_PI) : 0;
+		float res = (lf.n.dot(dir) > 1e-6f ? (powf(lf.n.dot(dir), coeff)*(coeff+1.f)/(2.f*M_PI)) : 0);
+		if (lf.n.dot(dir) > 1e-6f && abs(res - lf.n.dot(dir) / M_PI) > 1e-6f)
+		{
+			printf("error! %.6f,%6f,%.6f\n" , coeff , res , lf.n.dot(dir) / M_PI);
+		}
+		return max2(res , 0.f);
 	}
 	virtual float getProbDensity(const LocalFrame& lf, const vec3f& dir, const float& coeff) const
 	{
-		return lf.n.dot(dir) > 0 ? powf(max2(lf.n.dot(dir), coeff)*(coeff+1)/(2*M_PI), COS_TERM_MIN) : 0;
+		float res = (lf.n.dot(dir) > 1e-6f ? (powf(lf.n.dot(dir), coeff)*(coeff+1.f)/(2.f*M_PI)) : 0);
+		if (lf.n.dot(dir) > 1e-6f && abs(res - lf.n.dot(dir) / M_PI) > 1e-6f)
+		{
+			printf("error! %.6f,%6f,%.6f\n" , coeff , res , lf.n.dot(dir) / M_PI);
+		}
+		return max2(res , 0.f);
 	}
 };

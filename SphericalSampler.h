@@ -5,8 +5,6 @@
 class SphericalSampler
 {
 public:
-	
-
 	virtual vec3f genSample(const LocalFrame& lf) const
 	{
 		return vec3f(0, 0, 0);

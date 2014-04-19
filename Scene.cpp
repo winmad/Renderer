@@ -252,8 +252,7 @@ SceneObject* Scene::findInsideObject(const Ray& ray, const SceneObject* currentO
 			dist = objKDTrees[i].intersect(kdray_front, tid);
 			if(dist<0)
 				continue;
-			else
-				normal = objects[i]->getWorldNormal(tid, kdray_front.origin + kdray_front.direction*dist);
+			normal = objects[i]->getWorldNormal(tid, kdray_front.origin + kdray_front.direction*dist);
 			if(normal.dot(kdray_front.direction) < 0)
 				continue;
 

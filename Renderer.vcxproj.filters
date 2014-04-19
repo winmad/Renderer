@@ -84,13 +84,7 @@
     <ClInclude Include="smallFuncs.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="UniformSphericalSampler.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="LocalFrame.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="LogDistSampler.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="NoSelfIntersectionCondition.h">
@@ -221,6 +215,12 @@
     </ClInclude>
     <ClInclude Include="CountHashGrid.h">
       <Filter>头文件\Accleration</Filter>
+    </ClInclude>
+    <ClInclude Include="LogDistSampler.h">
+      <Filter>头文件\Sampler</Filter>
+    </ClInclude>
+    <ClInclude Include="UniformSphericalSampler.h">
+      <Filter>头文件\Sampler</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

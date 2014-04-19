@@ -50,8 +50,6 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 			mergeRadius = std::max(mergeRadius , 1e-7f);
 			printf("mergeRadius = %.8f\n" , mergeRadius);
 
-			mergeKernel = 1.f / (M_PI * mergeRadius * 
-				mergeRadius * (Real)partialPathNum);
 
 			vector<vec3f> singleImageColors(pixelColors.size(), vec3f(0, 0, 0));
 	
@@ -70,6 +68,9 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 			genIntermediatePaths(cmdLock , interPathList);
 			
 			printf("partialPhotonNum = %d\n" , partialSubPathList.size());
+
+			mergeKernel = 1.f / (M_PI * mergeRadius * 
+				mergeRadius * (Real)partialPhotonNum);
 
 			mergePartialPaths(cmdLock);
 
@@ -101,17 +102,18 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 					omp_unset_lock(&pixelLocks[_y*camera.width + _x]);
 				}
 			}
-			
+			/*
 			int surNum = 0 , volNum = 0;
-			for (int i = 0; i < partialPhotonNum; i++)
+			for (int i = lightPhotonNum; i < partialPhotonNum; i++)
 			{
 				IptPathState& subPath = partialSubPathList[i];
 				if (s == 0)
 				{
+					fprintf(fp , "==============\n");
 					if (subPath.ray->insideObject && !subPath.ray->contactObject)
 					{
 						volNum++;
-						fprintf(fp , "volume, dirContrib=(%.4f,%.4f,%.4f), indirContrib=(%.4f,%.4f,%.4f), throughput=(%.4f,%.4f,%.4f)\n" ,
+						fprintf(fp , "volume, dirContrib=(%.4f,%.4f,%.4f), indirContrib=(%.4f,%.4f,%.4f)\nthroughput=(%.4f,%.4f,%.4f)\n" ,
 							subPath.dirContrib[0] , subPath.dirContrib[1] , subPath.dirContrib[2] ,
 							subPath.indirContrib[0] , subPath.indirContrib[1] , subPath.indirContrib[2] ,
 							subPath.throughput[0] , subPath.throughput[1] , subPath.throughput[2]);
@@ -119,7 +121,7 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 					else
 					{
 						surNum++;
-						fprintf(fp , "surface, dirContrib=(%.4f,%.4f,%.4f), indirContrib=(%.4f,%.4f,%.4f), throughput=(%.4f,%.4f,%.4f)\n" ,
+						fprintf(fp , "surface, dirContrib=(%.4f,%.4f,%.4f), indirContrib=(%.4f,%.4f,%.4f)\nthroughput=(%.4f,%.4f,%.4f)\n" ,
 							subPath.dirContrib[0] , subPath.dirContrib[1] , subPath.dirContrib[2] ,
 							subPath.indirContrib[0] , subPath.indirContrib[1] , subPath.indirContrib[2] ,
 							subPath.throughput[0] , subPath.throughput[1] , subPath.throughput[2]);
@@ -127,7 +129,7 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 				}
 			}
 			printf("sur = %d, vol = %d\n" , surNum , volNum);
-			
+			*/
 
 #pragma omp parallel for
 			for(int p=0; p<cameraPathNum; p++)
@@ -996,7 +998,7 @@ vec3f IptTracer::colorByMergingPaths(const IptPathState& cameraState, PointKDTre
 
 			Real w = 1.f - 1.f / mergeIters;
 			//vec3f totContrib = lightState.dirContrib * w + lightState.indirContrib * (1 - w); 
-			vec3f totContrib = lightState.dirContrib + lightState.indirContrib / ((Real)mergeIters - 1.f);
+			vec3f totContrib = lightState.dirContrib + lightState.indirContrib;// / ((Real)mergeIters - 1);
 			vec3f tmp = totContrib * bsdfFactor * cameraState->throughput; 
 
 			Real lastPdf , weightFactor;
@@ -1130,8 +1132,8 @@ void IptTracer::mergePartialPaths(vector<vec3f>& contribs , const IptPathState& 
 			*/
 			tmp /= (interState->originRay->originProb * lastPdf);
 			
-			weightFactor = tracer->mergeFactor(&volMergeScale , &interState->originRay->originProb , &lastPdf) /
-				(tracer->connectFactor(lastPdf) + tracer->mergeFactor(&volMergeScale , &interState->originRay->originProb , &lastPdf));
+			weightFactor = tracer->mergeFactor(&volMergeScale , &interState->originRay->originProb , &interState->originRay->directionProb) /
+				(tracer->connectFactor(lastPdf) + tracer->mergeFactor(&volMergeScale , &interState->originRay->originProb , &interState->originRay->directionProb));
 			
 			//weightFactor = tracer->mergeFactor(&volMergeScale , NULL , &interState->originRay->directionProb) /
 			//	(tracer->connectFactor(lastPdf) + tracer->mergeFactor(&volMergeScale , NULL , &interState->originRay->directionProb));

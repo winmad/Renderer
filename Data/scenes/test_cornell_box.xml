@@ -1,0 +1,67 @@
+<Scene Name = "cb">
+	<Camera Name = "c1">
+		<width>512</width>
+		<height>512</height>
+		<sightDist>618.038635</sightDist>
+		<focus>(-0.03709525, -3.126785, 0.1683229)</focus>
+		<position>(-0.0439815, -4.12529, 0.222539)</position>
+		<up>(0.000373896, 0.0542148, 0.998529)</up>
+	</Camera>
+	<Object>
+		<filePath>objs/cbox_luminaire.obj</filePath>
+		<transform>[1, 0, 0, 0][0, 1, 0, 0][0, 0, 1, 0][0, 0, 0, 1]</transform>
+		<normalize>0</normalize>
+		<Material>
+			<type>Emissive</type>
+			<color>(25.033298956, 25.033298956, 25.033298956)</color>
+		</Material>
+	</Object>
+	<Object>
+		<filePath>objs/cbox_back.obj</filePath>
+		<transform>[1, 0, 0, 0][0, 1, 0, 0][0, 0, 1, 0][0, 0, 0, 1]</transform>
+		<Material>
+			<type>Diffuse</type>
+			<color>(0.156863, 0.172549, 0.803922)</color>
+		</Material>
+	</Object>
+	<Object>
+		<filePath>objs/cbox_ceiling.obj</filePath>
+		<transform>[1, 0, 0, 0][0, 1, 0, 0][0, 0, 1, 0][0, 0, 0, 1]</transform>
+		<Material>
+			<type>Diffuse</type>
+			<color>(0.803922, 0.803922, 0.803922)</color>
+		</Material>
+	</Object>
+	<Object>
+		<filePath>objs/cbox_floor.obj</filePath>
+		<transform>[1, 0, 0, 0][0, 1, 0, 0][0, 0, 1, 0][0, 0, 0, 1]</transform>
+		<Material>
+			<type>Diffuse</type>
+			<color>(0.803922, 0.803922, 0.803922)</color>
+			<!--type>Phong</type>
+			<GlossyComponent>
+				<coeff>90</coeff>
+				<color>(0.7, 0.7, 0.7)</color>
+			</GlossyComponent>
+			<DiffuseComponent>
+				<color>(0.1, 0.1, 0.1)</color>
+			</DiffuseComponent-->
+		</Material>
+	</Object>
+	<Object>
+		<filePath>objs/cbox_redwall.obj</filePath>
+		<transform>[1, 0, 0, 0][0, 1, 0, 0][0, 0, 1, 0][0, 0, 0, 1]</transform>
+		<Material>
+			<type>Diffuse</type>
+			<color>(0.803922, 0.152941, 0.152941)</color>
+		</Material>
+	</Object>
+	<Object>
+		<filePath>objs/cbox_greenwall.obj</filePath>
+		<transform>[1, 0, 0, 0][0, 1, 0, 0][0, 0, 1, 0][0, 0, 0, 1]</transform>
+		<Material>
+			<type>Diffuse</type>
+			<color>(0.156863, 0.803922, 0.172549)</color>
+		</Material>
+	</Object>
+</Scene>

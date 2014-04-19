@@ -35,6 +35,7 @@ Ray SceneObject::emit() const
 	ray.contactObject = (SceneObject*)this;
 	ray.contactObjectTriangleID = index;
 	ray.origin = genRandTrianglePosition(ray.contactObjectTriangleID);
+
 	//UniformSphericalSampler uniformSphericalSampler;
 	CosineSphericalSampler cosineSphericalSampler;
 
@@ -43,7 +44,11 @@ Ray SceneObject::emit() const
 	//ray.direction = uniformSphericalSampler.genSample(lf);
 	ray.direction = cosineSphericalSampler.genSample(lf);
 
+	if(ray.getContactNormal().dot(ray.direction) < 0)
+		ray.direction = -ray.direction;
+
 	ray.insideObject = scene->findInsideObject(ray, ray.contactObject);
+
 	ray.current_tid = scene->getContactTreeTid(ray);
 	ray.color = ray.getBSDF(ray);
 	if(!emissive())
@@ -54,9 +59,6 @@ Ray SceneObject::emit() const
 
 	ray.originProb = weight / totalArea;
 	ray.directionSampleType = ray.originSampleType = Ray::RANDOM;
-
-	if(ray.getContactNormal().dot(ray.direction) < 0)
-		ray.direction = -ray.direction;
 
 	if(!scene->usingGPU())
 	{

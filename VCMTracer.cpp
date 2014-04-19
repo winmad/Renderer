@@ -101,7 +101,7 @@ vector<vec3f> VCMTracer::renderPixels(const Camera& camera)
 
 				colorByMergingPaths(singleImageColors, eyePath, tree);
 
-				//colorByConnectingPaths(pixelLocks, renderer->camera, singleImageColors, eyePath, lightPath);
+				colorByConnectingPaths(pixelLocks, renderer->camera, singleImageColors, eyePath, lightPath);
 
 			}
 
@@ -354,7 +354,6 @@ float VCMTracer::connectMergeWeight(const Path& connectedPath, int connectIndex,
 
 	for(int i=0; i<connectedPath.size()-1; i++)
 	{
-		/*
 		if(connectedPath[i].directionSampleType == Ray::RANDOM && connectedPath[i+1].directionSampleType == Ray::RANDOM)
 		{
 			double p = p_forward[i] * p_backward[i+1];
@@ -362,7 +361,6 @@ float VCMTracer::connectMergeWeight(const Path& connectedPath, int connectIndex,
 				p *= renderer->camera.width * renderer->camera.height;
 			sumExpProb += pow(p, double(expTerm));
 		}
-		*/
 		if(i < connectedPath.size()-2 && connectedPath[i+1].directionSampleType == Ray::RANDOM)
 		{
 			double p = p_forward[i] * p_backward[i+1];
@@ -488,7 +486,7 @@ void VCMTracer::colorByConnectingPaths(vector<omp_lock_t> &pixelLocks, const Cam
 
 				//fprintf(fp , "w = %.8f\n" , weight);
 
-				//colors[camRay.pixelID] += color;
+				colors[camRay.pixelID] += color;
 				omp_unset_lock(&pixelLocks[camRay.pixelID]);
 			}
 			else

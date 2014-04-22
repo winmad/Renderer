@@ -65,14 +65,14 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 			countHashGrid.addPhotons(partialSubPathList , 0 , lightPhotonNum);
 			//countHashGrid.print(fp);
 
-			genIntermediatePaths(cmdLock , interPathList);
+			//genIntermediatePaths(cmdLock , interPathList);
 			
 			printf("partialPhotonNum = %d\n" , partialSubPathList.size());
 
 			mergeKernel = 1.f / (M_PI * mergeRadius * 
-				mergeRadius * (Real)partialPhotonNum);
+				mergeRadius * (Real)partialPathNum);
 
-			mergePartialPaths(cmdLock);
+			//mergePartialPaths(cmdLock);
 
 			PointKDTree<IptPathState> partialSubPaths(partialSubPathList);
 			
@@ -80,7 +80,7 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 			
 			Real w = 1.f / (mergeIterations + 1);
 #pragma omp parallel for
-			for (int i = 0; i < partialPhotonNum; i++)
+			for (int i = 0; i < lightPhotonNum; i++)
 			{
 				IptPathState& subPath = partialSubPathList[i];
 
@@ -89,12 +89,12 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 				int _x(0) , _y(0);
 				vec3f color(0.f);
 				//color = colorByConnectingCamera(camera , subPath , _x , _y);
-				
+				/*
 				if (i < lightPhotonNum)
 					color *= (1 - w);
 				else
 					color *= w;
-				
+				*/
 				if (y(color) > 0)
 				{
 					omp_set_lock(&pixelLocks[_y*camera.width + _x]);
@@ -143,8 +143,8 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 				IptPathState cameraState;
 				cameraState.isSpecularPath = 1;
 
-				cameraState.throughput = vec3f(1.f) / (eyePath[0].originProb * eyePath[0].directionProb * eyePath[1].originProb);
-				//cameraState.throughput = vec3f(1.f) / eyePath[1].originProb;
+				//cameraState.throughput = vec3f(1.f) / (eyePath[0].originProb * eyePath[0].directionProb * eyePath[1].originProb);
+				cameraState.throughput = vec3f(1.f) / eyePath[1].originProb;
 	
 				cameraState.index = eyePath.front().pixelID;
 
@@ -205,6 +205,8 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 
 						colorGlbIllu = colorByMergingPaths(cameraState , partialSubPaths , mergeIterations + 1 , eyeWeight);
 						mergeContribs.push_back(colorDirIllu + colorGlbIllu);
+
+						break;
 					}
 
 					if (eyePath[i].directionSampleType == Ray::RANDOM)
@@ -265,12 +267,12 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 			if(cmd == "exit")
 				return pixelColors;
 
-			eliminateVignetting(singleImageColors);
+			//eliminateVignetting(singleImageColors);
 
 			for(int i=0; i<pixelColors.size(); i++)
 			{
 				pixelColors[i] *= s / Real(s + 1);
-				pixelColors[i] += singleImageColors[i] / (s + 1) * camera.width * camera.height; 
+				pixelColors[i] += singleImageColors[i] / (s + 1);// * camera.width * camera.height; 
 			}
 
 			for (int i = 0; i < lightPathNum; i++)
@@ -822,7 +824,7 @@ vec3f IptTracer::colorByConnectingCamera(const Camera& camera, const IptPathStat
 	//---- still buggy, fix me ----
 	vec3f color = (totContrib * bsdfFactor * decayFactor) //* cosAtCamera * cosToCamera / distEye2;
 		 / (surfaceToImageFactor * lightPathNum);
-	color *= powf(cosAtCamera , 4.f) / pixelNum;
+	//color *= powf(cosAtCamera , 4.f) / pixelNum;
 	//-----------------------------
 
 	Ray inRay;

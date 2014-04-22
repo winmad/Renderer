@@ -7,10 +7,12 @@
 
 #include "IntersectionGPU.h"
 
+
 int _tmain(int argc, _TCHAR* argv[])
-{
+{	
 	Renderer renderer;
 	renderer.showWindow();
 	renderer.waitForCommand();
+	
 	return 0;
 }

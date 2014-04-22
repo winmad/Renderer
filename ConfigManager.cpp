@@ -193,7 +193,7 @@ void ConfigManager::load(const string &configFilePath)
 
 		SceneObject *obj = generateSceneObject(nodeObj, nodeMat);
 
-		obj->loadShape(path , true); // NEED TO BE TRUE WHEN NOT TESTING
+		obj->loadShape(path , false); // NEED TO BE TRUE WHEN NOT TESTING
 
 		renderer->scene.objects.push_back(obj);
 	}

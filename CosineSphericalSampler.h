@@ -14,13 +14,11 @@ public:
 
 	virtual vec3f genSample(const LocalFrame& lf) const
 	{
-		float pdf;
-		return RandGenerator::genHemiCosDirection(lf.n, coeff, &pdf);
+		return RandGenerator::genHemiCosDirection(lf.n, coeff);
 	}
 	virtual vec3f genSample(const LocalFrame& lf, const float& coeff) const
 	{
-		float pdf;
-		return RandGenerator::genHemiCosDirection(lf.n, coeff, &pdf);
+		return RandGenerator::genHemiCosDirection(lf.n, coeff);
 	}
 	virtual float getProbDensity(const LocalFrame& lf, const vec3f& dir) const
 	{

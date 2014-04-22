@@ -16,7 +16,6 @@ struct IptPathState
 	double accuProb;
 };
 
-
 class IptTracer : public MCRenderer
 {
 protected:

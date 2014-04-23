@@ -222,6 +222,9 @@
     <ClInclude Include="UniformSphericalSampler.h">
       <Filter>头文件\Sampler</Filter>
     </ClInclude>
+    <ClInclude Include="PathTracerTest.h">
+      <Filter>头文件\Tracer</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -322,6 +325,9 @@
     </ClCompile>
     <ClCompile Include="compare.cpp">
       <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="PathTracerTest.cpp">
+      <Filter>源文件\Tracer</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

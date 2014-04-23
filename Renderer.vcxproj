@@ -175,6 +175,7 @@
     <ClInclude Include="LogDistSampler.h" />
     <ClInclude Include="MCRenderer.h" />
     <ClInclude Include="PathTracer.h" />
+    <ClInclude Include="PathTracerTest.h" />
     <ClInclude Include="Photonmap.h" />
     <ClInclude Include="PointKDTree.h" />
     <ClInclude Include="RandGenerator.h" />
@@ -220,6 +221,7 @@
     <ClCompile Include="MCRenderer.cpp" />
     <ClCompile Include="NoSelfIntersectionCondition.cpp" />
     <ClCompile Include="PathTracer.cpp" />
+    <ClCompile Include="PathTracerTest.cpp" />
     <ClCompile Include="Photonmap.cpp" />
     <ClCompile Include="RandGenerator.cpp" />
     <ClCompile Include="Ray.cpp" />

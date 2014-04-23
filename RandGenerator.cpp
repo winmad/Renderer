@@ -149,7 +149,7 @@ vec3f RandGenerator::genConcetricDisk()
 	return res;
 }
 
-vec3f RandGenerator::genHemiCosDirection(const vec3f& normal, float expTerm, float *pdf)
+vec3f RandGenerator::genHemiCosDirection(float expTerm, float *pdf)
 {
 	vec3f disk = vec3f(genFloat() , genFloat() , 0.f);
 
@@ -157,28 +157,32 @@ vec3f RandGenerator::genHemiCosDirection(const vec3f& normal, float expTerm, flo
 	float u2 = std::pow(disk.y , 1.f / (expTerm + 1.f));
 	float u3 = std::sqrt(1.f - u2 * u2);
 
-	vec3f res(std::cos(u1) * u3 , std::sin(u1) * u3 ,
-		u2);
+	vec3f res(std::cos(u1) * u3 , u2 , std::sin(u1) * u3);
 
 	res.normalize();
 
 	if (pdf)
 		*pdf = (expTerm + 1.f) * std::pow(u2 , expTerm) * (0.5f / M_PI);
 
+	return res;
 	//printf("%.8f\n" , *pdf);
 	
 	/*
 	float phi = acos(clampf(powf(genFloat(), 1/(expTerm+1)), -1, 1));
 	float theta = genFloat()*2*M_PI;
 	vec3f dir(sin(phi)*cos(theta), cos(phi), sin(phi)*sin(theta));
-	*/
-	vec3f up = vec3f(0, 0, 1);
+	
+	vec3f up = vec3f(0, 1, 0);
 	vec3f axis = up.cross(normal);
 	axis.normalize();
+	if (axis.length() < 1e-6f)
+		return res;
+
 	float angle = acos(clampf(up.dot(normal), -1, 1));
 	vec3f dir = vec3f(rotMat(axis, angle)*vec4<float>(res, 0));
-
+	
 	return dir;
+	*/
 }
 
 /*

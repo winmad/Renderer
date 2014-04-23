@@ -80,7 +80,7 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 			
 			Real w = 1.f / (mergeIterations + 1);
 #pragma omp parallel for
-			for (int i = 0; i < lightPhotonNum; i++)
+			for (int i = 0; i < partialPhotonNum; i++)
 			{
 				IptPathState& subPath = partialSubPathList[i];
 
@@ -205,8 +205,6 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 
 						colorGlbIllu = colorByMergingPaths(cameraState , partialSubPaths , mergeIterations + 1 , eyeWeight);
 						mergeContribs.push_back(colorDirIllu + colorGlbIllu);
-
-						break;
 					}
 
 					if (eyePath[i].directionSampleType == Ray::RANDOM)
@@ -967,6 +965,7 @@ vec3f IptTracer::colorByMergingPaths(const IptPathState& cameraState, PointKDTre
 					!cameraState->ray->insideObject->canMerge ||
 					!lightState.ray->insideObject->canMerge)
 				{
+					//printf("x\n");
 					return;
 				}
 				volMergeScale = 4.0 / 3.0 * tracer->mergeRadius;
@@ -979,11 +978,13 @@ vec3f IptTracer::colorByMergingPaths(const IptPathState& cameraState, PointKDTre
 					!lightState.ray->contactObject->canMerge ||
 					!cameraState->ray->contactObject->canMerge)
 				{
+					//printf("x\n");
 					return;
 				}
 			}
 			else 
 			{
+				//printf("x\n");
 				return;
 			}
 		

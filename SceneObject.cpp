@@ -133,12 +133,36 @@ vec3f SceneObject::getWorldNormal(unsigned fi, const vec3f& position, bool flat)
 LocalFrame SceneObject::getAutoGenWorldLocalFrame(unsigned fi, const vec3f& position, bool flat) const
 {
 	LocalFrame lf;
+	lf.buildFromNormal(getWorldNormal(fi, position, flat));
+	/*
 	lf.n = getWorldNormal(fi, position, flat);
-	vec3f axis = vec3f(0, 1, 0).cross(lf.n);
-	float angle = acos(clampf(vec3f(0, 1, 0).dot(lf.n), -1, 1));
+	vec3f tmpT;
+	tmpT = (std::abs(lf.n.z) > 0.99f) ? vec3f(1,0,0) : vec3f(0,0,1);
+	lf.s = lf.n.cross(tmpT);
+	lf.s.normalize();
+	lf.t = lf.s.cross(lf.n);
+	lf.t.normalize();
+	*/
+	/*
+	vec3f axis = up.cross(lf.n);
+	float angle = acos(clampf(up.dot(lf.n), -1, 1));
+	
+	if (!(axis.length() >= 1e-6f || (axis.length() < 1e-6f && n.dot(lf.n) == 1.f)))
+	{
+		printf("error , %.8f\n" , n.dot(lf.n));
+	}
 	axis.normalize();
-	lf.s = vec3f(rotMat(axis, angle)*vec4<float>(vec3f(1,0,0), 0));
-	lf.t = vec3f(rotMat(axis, angle)*vec4<float>(vec3f(0,0,1), 0));
+	if (axis.length() < 1e-6f)
+	{
+		lf.s = vec3f(1,0,0);
+		lf.t = vec3f(0,0,1);
+	}
+	else
+	{
+		lf.s = vec3f(rotMat(axis, angle)*vec4<float>(vec3f(1,0,0), 0));
+		lf.t = vec3f(rotMat(axis, angle)*vec4<float>(vec3f(0,0,1), 0));
+	}
+	*/
 	return lf;
 }
 

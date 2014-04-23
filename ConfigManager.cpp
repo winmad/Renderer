@@ -13,6 +13,7 @@
 #include "Photonmap.h"
 #include "VCMTracer.h"
 #include "IptTracer.h"
+#include "PathTracerTest.h"
 
 ConfigManager::ConfigManager(Renderer* renderer)
 {
@@ -193,7 +194,7 @@ void ConfigManager::load(const string &configFilePath)
 
 		SceneObject *obj = generateSceneObject(nodeObj, nodeMat);
 
-		obj->loadShape(path , false); // NEED TO BE TRUE WHEN NOT TESTING
+		obj->loadShape(path , true); // NEED TO BE TRUE WHEN NOT TESTING
 
 		renderer->scene.objects.push_back(obj);
 	}
@@ -221,7 +222,10 @@ void ConfigManager::load(const string &configFilePath)
 		{
 			renderer->mcRenderer = new PathTracer(renderer);
 		}
-
+		if(typeName == "PTtest")
+		{
+			renderer->mcRenderer = new PathTracerTest(renderer);
+		}
 		if(typeName == "Photonmap" || typeName == "PM")
 		{
 			renderer->mcRenderer = new Photonmap(renderer);

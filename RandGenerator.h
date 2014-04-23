@@ -47,5 +47,5 @@ public:
 	static vec3f genSphericalDirection();
 	static vec3f genHemisphericalDirection();
 	static vec3f genConcetricDisk();
-	static vec3f genHemiCosDirection(const vec3f& normal, float expTerm = 1, float *pdf = NULL);
+	static vec3f genHemiCosDirection(float expTerm = 1, float *pdf = NULL);
 };

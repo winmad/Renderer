@@ -27,12 +27,17 @@ public:
 		sinPhi = sin(2.0 * M_PI * e2);
 		cosPhi = cos(2.0 * M_PI * e2);
 		
-		vec3f localGenDir = vec3f(sinTheta * cosPhi, sinTheta * sinPhi, cosTheta), u, v;
-		LocalFrame newLf = generateOrthoBasis(rayDir);
+		vec3f localGenDir = vec3f(sinTheta * cosPhi, cosTheta, sinTheta * sinPhi), u, v;
+		//LocalFrame newLf = generateOrthoBasis(rayDir);
+		LocalFrame newLf;
+		newLf.buildFromNormal(rayDir);
+		return newLf.toWorld(localGenDir);
+		/*
 		u = newLf.s;	v = newLf.t;
 		
 		localGenDir = u*localGenDir.x + v*localGenDir.y + rayDir*localGenDir.z;
 		return localGenDir;
+		*/
 	}
 
 	float getProbDensity(const LocalFrame& lf, const vec3f& dir) const
@@ -42,7 +47,7 @@ public:
 		
 		return 1/(4*M_PI) * (1-g*g) / (temp*sqrt(temp));
 	}
-
+	/*
 	LocalFrame generateOrthoBasis(vec3f w) const{
 		vec3f coVec = w, u, v;
 		if (fabs(w.x) <= fabs(w.y))
@@ -58,5 +63,5 @@ public:
 		lf.t = v;
 		return lf;
 	}
-
+	*/
 };

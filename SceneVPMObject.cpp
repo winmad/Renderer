@@ -108,7 +108,11 @@ Ray SceneVPMObject::scatter(const Ray& inRay, const bool russian) const
 			outRay.directionProb *= albedo * oPdfW;
 			outRay.originProb = p_medium(sampDist);
 			outRay.directionSampleType = Ray::RANDOM;
-			outRay.color *= ds * bsdf->evaluate(LocalFrame(), inRay.direction, outRay.direction);
+
+			// FIXED
+			//outRay.color *= ds * bsdf->evaluate(LocalFrame(), inRay.direction, outRay.direction);
+			outRay.color *= ds * bsdf->evaluate(lf , inRay.direction , outRay.direction);
+
 			outRay.photonType = inRay.isDirectLightPhoton ? Ray::NOUSE : Ray::INVOL;
 			outRay.isDirectLightPhoton = false;
 		}
@@ -230,7 +234,8 @@ vec3f SceneVPMObject::getBSDF(const Ray& inRay, const Ray& outRay) const
 	LocalFrame lf;
 	lf.n = inRay.direction;
 	if(outRay.contactObject == NULL)
-		return ds * bsdf->evaluate(LocalFrame(), inRay.direction, outRay.direction);
+		return ds * bsdf->evaluate(lf, inRay.direction, outRay.direction);
+		//return ds * bsdf->evaluate(LocalFrame(), inRay.direction, outRay.direction);
 	if(outRay.contactObject && outRay.contactObject != this)
 		return outRay.contactObject->getBSDF(inRay, outRay);
 	return vec3f(0, 0, 0);

@@ -914,7 +914,8 @@ vec3f IptTracer::colorByConnectingLights(const Camera& camera, const IptPathStat
 
 	//fprintf(fp , "p1=%.8f, p2=%.8f\n" , bsdfToLightPdf , pdf);
 
-	originProb = lightRay.directionProb * lightOriginPdf * cosToLight / (dist2);
+	//originProb = lightRay.directionProb * lightOriginPdf * cosToLight / (dist2);
+	originProb = pdf * lightOriginPdf * cosToLight / (dist2);
 
 	Real weightFactor = connectFactor(pdf) /
 		(connectFactor(pdf) + mergeFactor(&volMergeScale , &originProb , &INV_2_PI));

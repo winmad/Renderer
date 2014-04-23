@@ -24,7 +24,7 @@ public:
 		return false;
 	}
 
-	vec4f connectColorProb(const Path& connectedPath, int connectIndex);
+	vec3f colorByConnectingLights(const Camera& camera, const Ray& ray, const Ray& lastRay);
 
 	vector<vec3f> renderPixels(const Camera& camera);
 };

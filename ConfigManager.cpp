@@ -194,7 +194,8 @@ void ConfigManager::load(const string &configFilePath)
 
 		SceneObject *obj = generateSceneObject(nodeObj, nodeMat);
 
-		obj->loadShape(path , true); // NEED TO BE TRUE WHEN NOT TESTING
+		obj->loadShape(path , false); // NEED TO BE TRUE WHEN NOT TESTING
+		// FALSE WHEN test_cornell_box
 
 		renderer->scene.objects.push_back(obj);
 	}
@@ -258,7 +259,10 @@ void ConfigManager::load(const string &configFilePath)
 		{
 			renderer->mcRenderer = new PathTracer(renderer);
 		}
-
+		if(typeName == "PTtest")
+		{
+			renderer->mcRenderer = new PathTracerTest(renderer);
+		}
 		if(typeName == "Photonmap" || typeName == "PM")
 		{
 			renderer->mcRenderer = new Photonmap(renderer);

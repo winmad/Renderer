@@ -18,11 +18,11 @@ class SceneObject : public SimpleShape
 {
 protected:
 	Scene *scene;
-	float totalArea;
-	float weight;
 	vector<float> areaValues;
 	vector<Material*> materialList;
 public:
+	float weight;
+	float totalArea;
 	float totalVolume;
 	Texture bumpTex;
 	SceneObject* findInsideObject(const Ray& ray) const;

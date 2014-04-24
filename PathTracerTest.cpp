@@ -2,6 +2,8 @@
 #include "PathTracerTest.h"
 #include "SceneEmissiveObject.h"
 
+FILE *fp = fopen("test_pt.txt" , "w");
+
 vector<vec3f> PathTracerTest::renderPixels(const Camera& camera)
 {
 	int t_start = clock();
@@ -33,7 +35,7 @@ vector<vec3f> PathTracerTest::renderPixels(const Camera& camera)
 					if (eyePath[i].contactObject && eyePath[i].contactObject->emissive())
 					{
 						vec3f contrib = ((SceneEmissiveObject*)(eyePath[i].contactObject))->getColor();
-						float dirPdfA = 1.f / eyePath[i].contactObject->getEmissionWeight();
+						float dirPdfA = eyePath[i].contactObject->getEmissionWeight() / eyePath[i].contactObject->totalArea;
 						float mis = 1.f;
 						if (i > 1 && !lastSpecular)
 						{
@@ -41,8 +43,16 @@ vector<vec3f> PathTracerTest::renderPixels(const Camera& camera)
 							float dist = (eyePath[i].origin - eyePath[i - 1].origin).length();
 							float dirPdfW = dirPdfA * dist * dist / cosine;
 							mis = lastPdfW / (lastPdfW + dirPdfW);
+							/*
+							fprintf(fp , "==================\n");
+							fprintf(fp , "thr=(%.6f,%.6f,%.6f), contrib=(%.6f,%.6f,%.6f), pdfA=%.6f, pdfW=%.6f, lastPdfW=%.6f, cosine=%.6f, mis=%.6f\n" , 
+								throughput[0] , throughput[1] , throughput[2] , contrib[0] ,
+								contrib[1] , contrib[2] , dirPdfA , dirPdfW , lastPdfW , cosine , mis);
+							*/
 						}
 						color += throughput * contrib * mis;
+
+						
 						break;
 					}
 
@@ -59,7 +69,7 @@ vector<vec3f> PathTracerTest::renderPixels(const Camera& camera)
 						eyePath[i].directionProb;
 				}
 
-				pixelColors[p] += color;
+				pixelColors[p] += color / ((float)s + 1);
 			}
 
 			showCurrentResult(pixelColors);
@@ -104,21 +114,16 @@ vec3f PathTracerTest::colorByConnectingLights(const Camera& camera, const Ray& r
 	float bsdfToLightPdf = inRay.getDirectionSampleProbDensity(outRay);
 
 	outRay.direction = -lastRay.direction;
-	float lightOriginPdf = lightRay.getOriginSampleProbDensity(outRay);
-	float pdf = lightRay.getDirectionSampleProbDensity(outRay);
+	float lightOriginPdf = lightRay.originProb;
+	float dirPdfW = lightOriginPdf * dist2 / cosAtLight;
 
-	float mis = lightOriginPdf * pdf / (lightOriginPdf * pdf + bsdfToLightPdf);
+	float mis = dirPdfW / (dirPdfW + bsdfToLightPdf);
 
 	vec3f res = tmp * mis;
-	
 	/*
-	vec3f resx = camera.eliminateVignetting(res , cameraState.index) * pixelNum;
-	if (cameraState.ray->contactObject)//(resx[0] + resx[1] + resx[2] >= 2)
-	{
-		fprintf(fp , "=====================\n");
-		fprintf(fp , "cosAtLight = %.8f, cosToLight = %.8f, originPdf = %.8f, pdf = %.8f, weight=%.8f,\nres=(%.10f,%.10f,%.10f)\nbsdf=(%.10f,%.10f,%.10f)\n" , 
-			cosAtLight , cosToLight , originProb , pdf , weightFactor , resx[0] , resx[1] , resx[2] , bsdfFactor[0] , bsdfFactor[1] , bsdfFactor[2]);
-	}
+	fprintf(fp , "==================\n");
+	fprintf(fp , "contrib=(%.6f,%.6f,%.6f), dirPdfW=%.6f, bsdfPdfW=%.6f, cosine=%.6f, mis=%.6f\n" , 
+		lightRay.color[0] , lightRay.color[1] , lightRay.color[2] , dirPdfW , bsdfToLightPdf , cosToLight , mis);
 	*/
 	return res;
 }

@@ -534,6 +534,33 @@ void VCMTracer::colorByMergingPaths(vector<vec3f>& colors, const Path& eyePath, 
 
 		void process(const LightPathPoint& lpp)
 		{
+			Ray cameraRay = (*eyePath)[eyePathLen - 1];
+			Ray lightRay = (*lpp.path)[lpp.index];
+			if (cameraRay.insideObject && cameraRay.contactObject == NULL)
+			{
+				if (lightRay.insideObject == NULL ||
+					lightRay.contactObject != NULL ||
+					cameraRay.insideObject != lightRay.insideObject ||
+					!cameraRay.insideObject->canMerge ||
+					!lightRay.insideObject->canMerge)
+				{
+					return;
+				}
+			}
+			else if (cameraRay.contactObject)
+			{
+				if (lightRay.contactObject != cameraRay.contactObject ||
+					!lightRay.contactObject->canMerge ||
+					!cameraRay.contactObject->canMerge)
+				{
+					return;
+				}
+			}
+			else
+			{
+				return;
+			}
+
 			wholePath.assign(lpp.path->begin(), lpp.path->begin()+lpp.index);
 			for(unsigned i=0; i<eyePathLen; i++)
 			{

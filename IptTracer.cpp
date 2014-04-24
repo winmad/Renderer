@@ -899,7 +899,8 @@ vec3f IptTracer::colorByConnectingLights(const Camera& camera, const IptPathStat
 	Real bsdfToLightPdf = inRay.getDirectionSampleProbDensity(outRay);
 
 	outRay.direction = -cameraState.lastRay->direction;
-	Real lightOriginPdf = lightRay.getOriginSampleProbDensity(outRay);
+	//Real lightOriginPdf = lightRay.getOriginSampleProbDensity(outRay);
+	Real lightOriginPdf = lightRay.originProb;
 	Real pdf = lightRay.getDirectionSampleProbDensity(outRay);
 
 	Real volMergeScale = 1;

@@ -41,7 +41,7 @@ protected:
 
 	void mergePartialPaths(omp_lock_t& cmdLock);
 
-	Ray genIntermediateSamples(vector<IptPathState>& partialSubPathList , Scene& scene);
+	Ray genIntermediateSamples(vector<IptPathState>& partialSubPathList , Scene& scene , int *index = NULL);
 
 	void calcEyeProbRatios(Path& eyePath , vector<float>& ratios);
 
@@ -66,7 +66,7 @@ public:
 		alpha = 0.75f;
 		spp = -1; 
 		initialProb = 1.f;
-		mergeIterations = 5;
+		mergeIterations = 0;
 		timeInterval = lastTime = 3600;
 
 		pixelNum = renderer->camera.height * renderer->camera.width;

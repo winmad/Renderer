@@ -20,7 +20,7 @@ Ray GlossyMaterial::scatter(const SceneObject* object, const Ray& inRay, const b
 
 	LocalFrame out_lf;
 	vec3f reflDir = -normal.dot(inRay.direction)*normal*2 + inRay.direction;
-	out_lf.n = reflDir;
+	out_lf.buildFromNormal(reflDir);
 
 	outRay.direction = cosineSphericalSampler.genSample(out_lf, coeff.x);
 
@@ -48,7 +48,7 @@ float GlossyMaterial::getDirectionSampleProbDensity(const Ray& inRay, const Ray&
 	LocalFrame lf;
 	vec3f normal = outRay.getContactNormal();
 	vec3f reflDir = -normal.dot(inRay.direction)*normal*2 + inRay.direction;
-	lf.n = reflDir;
+	lf.buildFromNormal(reflDir);
 	vec3f coeff = coeffTex.getColor(outRay.contactObject->getTexCoord(outRay.contactObjectTriangleID, outRay.origin));
 	return cosineSphericalSampler.getProbDensity(lf, outRay.direction, coeff.x);
 }

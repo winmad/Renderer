@@ -88,7 +88,7 @@ Ray SceneVPMObject::scatter(const Ray& inRay, const bool russian) const
 		HGPhaseSampler hgPhaseSampler(g);
 		//IsotropicPhaseSampler sp;
 		outRay.origin = inRay.origin + inRay.direction * sampDist;
-		LocalFrame lf;		lf.n = inRay.direction;
+		LocalFrame lf;		lf.buildFromNormal(inRay.direction);
 		outRay.direction = hgPhaseSampler.genSample(lf); 
 		outRay.insideObject = (SceneObject*)this;
 		outRay.contactObject = NULL;
@@ -103,7 +103,7 @@ Ray SceneVPMObject::scatter(const Ray& inRay, const bool russian) const
 
 		if(rander < albedo || (!russian)){
 			outRay.contactObject = NULL;
-			LocalFrame lf;	lf.n = inRay.direction;
+			LocalFrame lf;	lf.buildFromNormal(inRay.direction);
 			float oPdfW = hgPhaseSampler.getProbDensity(lf, outRay.direction);//sp.getProbDensity(lf, outRay.direction);//
 			outRay.directionProb *= albedo * oPdfW;
 			outRay.originProb = p_medium(sampDist);
@@ -232,7 +232,7 @@ vec3f SceneVPMObject::getRadianceDecay(const Ray &inRay, const float &dist) cons
 vec3f SceneVPMObject::getBSDF(const Ray& inRay, const Ray& outRay) const
 {
 	LocalFrame lf;
-	lf.n = inRay.direction;
+	lf.buildFromNormal(inRay.direction);
 	if(outRay.contactObject == NULL)
 		return ds * bsdf->evaluate(lf, inRay.direction, outRay.direction);
 		//return ds * bsdf->evaluate(LocalFrame(), inRay.direction, outRay.direction);
@@ -260,7 +260,7 @@ float SceneVPMObject::getDirectionSampleProbDensity(const Ray &inRay, const Ray 
 	if(outRay.contactObject)
 		return outRay.contactObject->getDirectionSampleProbDensity(inRay, outRay);
 	HGPhaseSampler hgPhaseSampler(g);
-	LocalFrame lf;	lf.n = inRay.direction;
+	LocalFrame lf;	lf.buildFromNormal(inRay.direction);
 	float albedo = y(ds) / y(dt);
 	float oPdfW = hgPhaseSampler.getProbDensity(lf, outRay.direction);
 	return albedo*oPdfW;

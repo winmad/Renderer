@@ -336,10 +336,13 @@ LocalFrame SimpleShape::getAutoGenWorldLocalFrame(unsigned fi, const vec3f& posi
 {
 	LocalFrame lf;
 	lf.n = getWorldNormal(fi, position, flat);
+	lf.buildFromNormal(lf.n);
+	/*
 	vec3f axis = vec3f(0, 1, 0).cross(lf.n);
 	float angle = acos(clampf(vec3f(0, 1, 0).dot(lf.n), -1, 1));
 	axis.normalize();
 	lf.s = vec3f(rotMat(axis, angle)*vec4<float>(vec3f(1,0,0), 0));
 	lf.t = vec3f(rotMat(axis, angle)*vec4<float>(vec3f(0,0,1), 0));
+	*/
 	return lf;
 }

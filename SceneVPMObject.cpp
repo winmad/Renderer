@@ -64,7 +64,10 @@ Ray SceneVPMObject::scatter(const Ray& inRay, const bool russian) const
 			{
 				outRay.direction = reflDir;
 				outRay.color *= er / outRay.getCosineTerm();
-				outRay.directionProb = p;
+				if (russian)
+					outRay.directionProb = p;
+				else
+					outRay.directionProb = 1.f;
 				outRay.insideObject = inRay.insideObject;
 				outRay.directionSampleType = Ray::DEFINITE;
 				outRay.photonType = Ray::NOUSE;
@@ -105,7 +108,10 @@ Ray SceneVPMObject::scatter(const Ray& inRay, const bool russian) const
 			outRay.contactObject = NULL;
 			LocalFrame lf;	lf.buildFromNormal(inRay.direction);
 			float oPdfW = hgPhaseSampler.getProbDensity(lf, outRay.direction);//sp.getProbDensity(lf, outRay.direction);//
-			outRay.directionProb *= albedo * oPdfW;
+			if (russian)
+				outRay.directionProb *= albedo * oPdfW;
+			else
+				outRay.directionProb *= oPdfW;
 			outRay.originProb = p_medium(sampDist);
 			outRay.directionSampleType = Ray::RANDOM;
 

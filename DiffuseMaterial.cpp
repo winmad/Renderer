@@ -47,8 +47,16 @@ Ray DiffuseMaterial::scatter(const SceneObject* object, const Ray& inRay, const 
 	if(RandGenerator::genFloat() < p || (!russian))
 	{
 		outRay.color = bsdf.evaluate(lf, inRay.direction, outRay.direction, color);
-		outRay.directionProb = p*cosineSphericalSampler.getProbDensity(lf, outRay.direction);
-		outRay.photonProb = (1-p)*cosineSphericalSampler.getProbDensity(lf, outRay.direction);
+		if (russian)
+		{
+			outRay.directionProb = p*cosineSphericalSampler.getProbDensity(lf, outRay.direction);
+			outRay.photonProb = (1-p)*cosineSphericalSampler.getProbDensity(lf, outRay.direction);
+		}
+		else
+		{
+			outRay.directionProb = cosineSphericalSampler.getProbDensity(lf , outRay.direction);
+			outRay.photonProb = cosineSphericalSampler.getProbDensity(lf , outRay.direction);
+		}
 	}
 	else
 	{

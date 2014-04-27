@@ -70,9 +70,9 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 			mergeKernel = 1.f / (M_PI * mergeRadius * 
 				mergeRadius * (Real)partialPathNum);
 
-			mergePartialPaths(cmdLock);
+			//mergePartialPaths(cmdLock);
 
-			for (int i = lightPhotonNum; i < partialPhotonNum; i++)
+			for (int i = 0; i < lightPhotonNum; i++)
 				partialSubPathList[i].dirContrib = vec3f(0.f);
 
 			PointKDTree<IptPathState> partialSubPaths(partialSubPathList);
@@ -315,7 +315,7 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 
 void IptTracer::genLightPaths(omp_lock_t& cmdLock , vector<Path*>& lightPathList)
 {
-#pragma omp parallel for
+//#pragma omp parallel for
 	for(int p=0; p<lightPathNum; p++)
 	{
 		Ray lightRay = genEmissiveSurfaceSample();
@@ -445,6 +445,9 @@ Ray IptTracer::genIntermediateSamples(vector<IptPathState>& partialSubPathList ,
 	if (index && partPathMergeIndex[*index].size() > 0)
 		lightState = partialSubPathList[partPathMergeIndex[*index][0]];
 
+	//fprintf(fp , "path length = %d, dirContrib = (%.8f,%.8f,%.8f)\n" , 
+	//	0 , lightState.dirContrib[0] , lightState.dirContrib[1] , lightState.dirContrib[2]);
+
 	Ray ray;
 	ray.originSampleType = Ray::SampleType::RANDOM;
 	ray.directionSampleType = Ray::SampleType::RANDOM;
@@ -497,8 +500,13 @@ Ray IptTracer::genIntermediateSamples(vector<IptPathState>& partialSubPathList ,
 	if (y(bsdfFactor) < 1e-5)
 		continue;
 
-	//ray.origin = o;
-	//ray.color = lightState.dirContrib * bsdfFactor;
+	ray.origin = o;
+	ray.color = lightState.dirContrib * bsdfFactor;
+
+	//fprintf(fp , "bsdf = (%.8f , %.8f , %.8f) , rayColor = (%.8f , %.8f , %.8f) , contProb = %.8f\n" , 
+	//	bsdfFactor[0] , bsdfFactor[1] , bsdfFactor[2] ,
+	//	ray.color[0] , ray.color[1] , ray.color[2] ,
+	//	maxVecComp(bsdfFactor));
 
 	ray.current_tid = scene.getContactTreeTid(ray);
 	Scene::ObjSourceInformation osi;
@@ -553,9 +561,10 @@ void IptTracer::genIntermediatePaths(omp_lock_t& cmdLock , vector<Path*>& interP
 	for (int i = 0; i <= N; i++)
 		weights[i] /= sum;
 
-#pragma omp parallel for
+//#pragma omp parallel for
 	for(int p=0; p<interPathNum; p++)
 	{
+		//fprintf(fp , "=================\n");
 		Ray interRay = genIntermediateSamples(lightSubPathList ,
 			renderer->scene);
 
@@ -577,8 +586,11 @@ void IptTracer::genIntermediatePaths(omp_lock_t& cmdLock , vector<Path*>& interP
 
 		//printf("%.8f %.8f\n" , interPath[0].getCosineTerm() / M_PI , interPath[0].directionProb);
 
-		//interState.dirContrib = interPath[0].color * interPath[0].getCosineTerm() /
-		//	(interPath[1].originProb * interPath[0].directionProb);
+		interState.dirContrib = interPath[0].color * interPath[0].getCosineTerm() /
+			(interPath[1].originProb * interPath[0].directionProb);
+		//fprintf(fp , "color = (%.8f,%.8f,%.8f) , cosine = %.8f , pdf = %.8f\n" , 
+		//	interPath[0].color[0] , interPath[0].color[1] , interPath[0].color[2] ,
+		//	interPath[0].getCosineTerm() , interPath[0].directionProb);
 
 		for(unsigned i=1; i<interPath.size(); i++)
 		{
@@ -600,6 +612,9 @@ void IptTracer::genIntermediatePaths(omp_lock_t& cmdLock , vector<Path*>& interP
 				(interPath[i].origin != interPath[i - 1].origin))
 				//(interPath[i].insideObject && !interPath[i].contactObject)) // only volume
 			{
+				//fprintf(fp , "path length = %d, dirContrib = (%.8f,%.8f,%.8f)\n" , 
+				//	i , interState.dirContrib[0] , interState.dirContrib[1] , interState.dirContrib[2]);
+
 				omp_set_lock(&cmdLock);
 				partialSubPathList.push_back(interState);
 				partPathMergeIndex[lightPathNum + p].push_back(partialSubPathList.size() - 1);
@@ -615,7 +630,7 @@ void IptTracer::genIntermediatePaths(omp_lock_t& cmdLock , vector<Path*>& interP
 				(interPath[i + 1].originProb * interPath[i].directionProb));
 
 			interState.throughput *= scatterFactor;
-			//interState.dirContrib *= scatterFactor;
+			interState.dirContrib *= scatterFactor;
 
 			if (interPath[i].directionSampleType != Ray::DEFINITE)
 			{

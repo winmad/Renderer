@@ -56,9 +56,12 @@ vector<vec3f> PathTracerTest::renderPixels(const Camera& camera)
 						break;
 					}
 
-					vec3f contrib = colorByConnectingLights(camera , eyePath[i] , eyePath[i - 1]);
-					color += throughput * contrib;
-
+					if (eyePath[i].directionSampleType == Ray::RANDOM)
+					{
+						vec3f contrib = colorByConnectingLights(camera , eyePath[i] , eyePath[i - 1]);
+						color += throughput * contrib;
+					}
+					
 					if (i + 1 >= eyePath.size() || eyePath[i].origin == eyePath[i + 1].origin)
 						break;
 

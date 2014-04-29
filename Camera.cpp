@@ -34,7 +34,9 @@ Ray Camera::generateRay(unsigned pixelID) const
 
 	ray.insideObject = scene->findInsideObject(ray);
 	float dist = sqrt(xc*xc+yc*yc+sightDist*sightDist);
+
 	ray.directionProb = powf(dist, 3) / sightDist;
+
 	ray.directionSampleType = Ray::RANDOM;
 	ray.originSampleType = Ray::DEFINITE;
 	ray.pixelID = pixelID;

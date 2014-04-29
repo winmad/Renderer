@@ -9,6 +9,7 @@ struct IptPathState
 {
 	vec3f throughput;
 	vec3f dirContrib , indirContrib;
+	vec3f contribs[6];
 	Ray *ray , *lastRay , *originRay;
 	bool isSpecularPath;
 	vec3f pos;
@@ -66,7 +67,7 @@ public:
 		alpha = 0.75f;
 		spp = -1; 
 		initialProb = 1.f;
-		mergeIterations = 0;
+		mergeIterations = 1;
 		timeInterval = lastTime = 3600;
 
 		pixelNum = renderer->camera.height * renderer->camera.width;

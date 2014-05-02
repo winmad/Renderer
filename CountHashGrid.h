@@ -3,6 +3,7 @@
 #include <vector>
 #include <cmath>
 #include "nvVector.h"
+#include "UniformSphericalSampler.h"
 using namespace nv;
 
 typedef unsigned int uint;
@@ -42,6 +43,8 @@ public:
 		cellArea = mCellSize * mCellSize;
 		cellVolume = mCellSize * mCellSize * mCellSize;
 		printf("cell size = %.8f\n" , mCellSize);
+		
+		totVolume = diag[0] * diag[1] * diag[2];
 
 		weights.clear();
 		weights.resize(sizeNum * sizeNum * sizeNum);
@@ -60,8 +63,10 @@ public:
 
 		for(int i=st; i<ed; i++)
 		{
+			if (aParticles[i].ray->insideObject == NULL)
+				continue;
 			const vec3f &pos = aParticles[i].pos;
-			vec3f totContrib = aParticles[i].dirContrib + aParticles[i].indirContrib;
+			vec3f totContrib = aParticles[i].dirContrib;
 			int cellIndex = GetCellIndex(pos);
 			if (cellIndex == -1)
 			{
@@ -76,6 +81,18 @@ public:
 
 		for (int i = 0; i < weights.size(); i++)
 			weights[i] /= sumContribs;
+
+		effectiveIndex.clear();
+		effectiveWeights.clear();
+		for (int i = 0; i < weights.size(); i++)
+		{
+			if (weights[i] < 1e-7f)
+				continue;
+			effectiveIndex.push_back(i);
+			effectiveWeights.push_back(weights[i]);
+			int N = effectiveWeights.size();
+			effectiveWeights[N - 1] += effectiveWeights[N - 2];
+		}
 	}
 
 	template<typename tQuery>
@@ -169,11 +186,82 @@ public:
 
 		return GetCellIndex(coordI);
 	}
+	
+	vec3f cellIndexToPosition(const int &index)
+	{
+		int x = index / (sizeNum * sizeNum);
+		int y = index / sizeNum % sizeNum;
+		int z = index % sizeNum;
+
+		vec3f corner = mBBoxMin + vec3f(mCellSize , 0 , 0) * x + 
+			vec3f(0 , mCellSize , 0) * y + vec3f(0 , 0 , mCellSize) * z;
+
+		vec3f res = corner + vec3f(mCellSize , 0 , 0) * RandGenerator::genFloat() +
+			vec3f(0 , mCellSize , 0) * RandGenerator::genFloat() + vec3f(0 , 0 , mCellSize) * RandGenerator::genFloat();
+
+		return res;
+	}
+
+	vec3f getRandomPosition(float &pdf)
+	{
+		float rnd = RandGenerator::genFloat();
+		unsigned index = (lower_bound(effectiveWeights.begin(), effectiveWeights.end(), rnd)-effectiveWeights.begin());
+		if(index >= effectiveWeights.size() - 1)
+		{
+			index = effectiveWeights.size() - 1;
+			pdf = 1.f - effectiveWeights[index];
+		}
+		else
+		{
+			pdf = effectiveWeights[index + 1] - effectiveWeights[index];
+		}
+		return cellIndexToPosition(effectiveIndex[index]);
+	}
+
+	Ray volumeEmit(Scene *scene)
+	{
+		Ray ray;
+		ray.contactObject = NULL;
+		ray.contactObjectTriangleID = -1;
+		ray.origin = getRandomPosition(ray.originProb);
+
+		UniformSphericalSampler uniformSphericalSampler;
+
+		LocalFrame lf;
+
+		ray.direction = uniformSphericalSampler.genSample(lf);
+
+		ray.insideObject = scene->findInsideObject(ray, ray.contactObject);
+
+		ray.current_tid = scene->getContactTreeTid(ray);
+		ray.color = vec3f(1, 1, 1);
+
+		ray.directionProb = uniformSphericalSampler.getProbDensity(lf , ray.direction);
+		
+		ray.directionSampleType = ray.originSampleType = Ray::RANDOM;
+
+		if(!scene->usingGPU())
+		{
+			Scene::ObjSourceInformation osi;
+			NoSelfIntersectionCondition condition(scene, ray);
+			float dist = scene->intersect(ray, osi, &condition);
+			if(dist > 0)
+			{
+				ray.intersectDist = dist;
+				ray.intersectObject = scene->objects[osi.objID];
+				ray.intersectObjectTriangleID = osi.triangleID;
+			}
+		}
+		return ray;
+	}
 
 public:
 	vec3f mBBoxMin;
 	vec3f mBBoxMax;
 	std::vector<double> weights;
+
+	std::vector<double> effectiveWeights;
+	std::vector<int> effectiveIndex;
 
 	float mCellSize;
 	float mInvCellSize;
@@ -181,6 +269,7 @@ public:
 	double sumContribs;
 	double cellArea;
 	double cellVolume;
+	double totVolume;
 	int sizeNum;
 };
 

@@ -35,12 +35,15 @@ vec3f SimpleShape::genRandTrianglePosition(unsigned ti) const
 	vec3f b2 = vps[2] - vps[0];
 	float u1 = RandGenerator::genFloat();
 	float u2 = RandGenerator::genFloat();
-	if(u1 + u2 > 1)
+	float su1 = sqrtf(u1);
+	float u = 1.f - su1;
+	float v = u2 * su1;
+	if(u + v > 1)
 	{
-		u1 = 1 - u1;
-		u2 = 1 - u2;
+		u = 1 - u;
+		v = 1 - v;
 	}
-	return vps[0]+b1*u1+b2*u2;
+	return vps[0]+b1*u+b2*v;
 }
 
 void SimpleShape::loadShape(const string &fileName, bool normalize, vector<SimpleShape*>* ss)

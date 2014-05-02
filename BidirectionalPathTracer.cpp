@@ -283,7 +283,7 @@ void BidirectionalPathTracer::colorByConnectingPaths(vector<omp_lock_t> &pixelLo
 		{
 			int eyePathLen = wholePathLen - lightPathLen;
 
-			//if(!(eyePathLen == 1 && lightPathLen == 2)) continue;
+			if(!(wholePathLen == 4)) continue;
 
 			for(int li=0; li < lightPathLen; li++)
 				wholePath[li] = lightPath[li];
@@ -344,7 +344,7 @@ void BidirectionalPathTracer::colorByConnectingPaths(vector<omp_lock_t> &pixelLo
 			if(eyePathLen > 1)
 			{
 				omp_set_lock(&pixelLocks[camRay.pixelID]);
-				colors[camRay.pixelID] += color;
+				colors[camRay.pixelID] += color / weight;
 				omp_unset_lock(&pixelLocks[camRay.pixelID]);
 			}
 			else

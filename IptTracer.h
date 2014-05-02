@@ -9,7 +9,7 @@ struct IptPathState
 {
 	vec3f throughput;
 	vec3f dirContrib , indirContrib;
-	vec3f contribs[6];
+	//vec3f contribs[4];
 	Ray *ray , *lastRay , *originRay;
 	bool isSpecularPath;
 	vec3f pos;
@@ -61,6 +61,8 @@ public:
 	Real totArea , totVol;
 	Real initialProb;
 	unsigned timeInterval , lastTime;
+	bool useWeight;
+
 	IptTracer(Renderer* renderer) : MCRenderer(renderer)
 	{ 
 		maxDepth = 20;
@@ -75,6 +77,8 @@ public:
 		lightPathNum = pixelNum;
 		interPathNum = pixelNum;
 		partialPathNum = pixelNum;
+
+		useWeight = true;
 	}
 	void setRadius(const Real& r) { mergeRadius = r; }
 	void setInitProb(const Real& r) { initialProb = r; }
@@ -84,10 +88,13 @@ public:
 	{
 		CountQuery query(pos);
 		hashGrid.count(query);
+		return query.count / hashGrid.totVolume;
+		/*
 		if (isVol)
 			return query.count / hashGrid.cellVolume;
 		else
 			return query.count / hashGrid.cellArea;
+		*/
 	}
 	
 	Real connectFactor(Real pdf)

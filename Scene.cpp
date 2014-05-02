@@ -35,21 +35,21 @@ void Scene::SurfaceSampler::preprocess()
 		targetObjects[i]->normalizeEmissionWeight(totalWeight);
 }
 
-Ray Scene::SurfaceSampler::genSample() const
+Ray Scene::SurfaceSampler::genSample(bool isUniform) const
 {
 	float rnd = RandGenerator::genFloat()*totalWeight;
 	unsigned index = (lower_bound(weightValues.begin(), weightValues.end(), rnd)-weightValues.begin());
 	if(index >= weightValues.size())
 		index = weightValues.size()-1;
-	return targetObjects[index]->emit();
+	return targetObjects[index]->emit(isUniform);
 }
 
-Ray Scene::genEmissionSample() const
+Ray Scene::genEmissionSample(bool isUniform) const
 {
 	return emissiveSurfaceSampler->genSample();
 }
 
-Ray Scene::genOtherSample() const
+Ray Scene::genOtherSample(bool isUniform) const
 {
 	return otherSurfaceSampler->genSample();
 }
@@ -109,6 +109,7 @@ void Scene::preprocessOtherSampler()
 	}
 	otherSurfaceSampler->preprocess();
 }
+
 vec3f Scene::getDiagonal()
 {
 	return tree.getDiagonal();

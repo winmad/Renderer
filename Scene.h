@@ -37,7 +37,7 @@ private:
 		float totalArea;
 
 		void preprocess();
-		Ray genSample() const;
+		Ray genSample(bool isUniform = false) const;
 		float getDirectionProbDensity(const Ray& ray) const;
 		float getOriginProbDensity(const Ray& ray) const;
 	};
@@ -60,8 +60,8 @@ public:
 	void preprocessAllSamplers();
 	void preprocessEmissionSampler();
 	void preprocessOtherSampler();
-	Ray genEmissionSample() const;
-	Ray genOtherSample() const;
+	Ray genEmissionSample(bool isUniform = false) const;
+	Ray genOtherSample(bool isUniform = false) const;
 	float intersect(const Ray& ray, ObjSourceInformation& objSource, const KDTree::Condition* condition = NULL);
 	void fillIntersectObject(vector<Ray>& rays);
 	SceneObject* findInsideObject(const Ray& ray, const SceneObject* currentObject = NULL);

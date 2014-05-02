@@ -47,7 +47,7 @@ public:
 	virtual float getRefrCoeff() const{ return 1; }
 	virtual void preprocessEmissionSampler();
 	void normalizeEmissionWeight(float totalWeight){ weight /= totalWeight; }
-	virtual Ray emit() const;
+	virtual Ray emit(bool isUniform = false) const;
 	virtual float getEmissionWeight() const { return weight; }
 	virtual float getDirectionSampleProbDensity(const Ray& inRay, const Ray& outRay) const;
 	virtual float getOriginSampleProbDensity(const Ray& inRay, const Ray& outRay) const;

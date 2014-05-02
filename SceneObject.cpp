@@ -18,7 +18,7 @@ void SceneObject::preprocessEmissionSampler()
 	weight = totalArea;
 }
 
-Ray SceneObject::emit() const
+Ray SceneObject::emit(bool isUniform) const
 {
 	Ray ray;
 	float rnd = RandGenerator::genFloat()*totalArea;
@@ -36,13 +36,15 @@ Ray SceneObject::emit() const
 	ray.contactObjectTriangleID = index;
 	ray.origin = genRandTrianglePosition(ray.contactObjectTriangleID);
 
-	//UniformSphericalSampler uniformSphericalSampler;
+	UniformSphericalSampler uniformSphericalSampler;
 	CosineSphericalSampler cosineSphericalSampler;
 
 	LocalFrame lf = ray.contactObject->getAutoGenWorldLocalFrame(ray.contactObjectTriangleID, ray.origin);
 
-	//ray.direction = uniformSphericalSampler.genSample(lf);
-	ray.direction = cosineSphericalSampler.genSample(lf);
+	if (isUniform)
+		ray.direction = uniformSphericalSampler.genSample(lf);
+	else
+		ray.direction = cosineSphericalSampler.genSample(lf);
 
 	if(ray.getContactNormal().dot(ray.direction) < 0)
 		ray.direction = -ray.direction;
@@ -54,8 +56,10 @@ Ray SceneObject::emit() const
 	if(!emissive())
 		ray.color = vec3f(1, 1, 1);
 
-	//ray.directionProb = uniformSphericalSampler.getProbDensity(lf , ray.direction);
-	ray.directionProb = cosineSphericalSampler.getProbDensity(lf, ray.direction);
+	if (isUniform)
+		ray.directionProb = uniformSphericalSampler.getProbDensity(lf , ray.direction);
+	else
+		ray.directionProb = cosineSphericalSampler.getProbDensity(lf, ray.direction);
 
 	ray.originProb = weight / totalArea;
 	ray.directionSampleType = ray.originSampleType = Ray::RANDOM;

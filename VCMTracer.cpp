@@ -566,7 +566,9 @@ void VCMTracer::colorByMergingPaths(vector<vec3f>& colors, const Path& eyePath, 
 			{
 				wholePath.push_back((*eyePath)[eyePathLen-i-1]);
 			}
-			tracer->connectRays(wholePath, lpp.index-1, true);
+			if (!tracer->connectRays(wholePath, lpp.index-1, true))
+				return;
+
 			vec4<float> color_prob = tracer->connectColorProb(wholePath, lpp.index-1, true);
 			if(vec3f(color_prob).length()==0 || color_prob.w==0)
 				return;

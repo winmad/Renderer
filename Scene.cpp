@@ -78,7 +78,8 @@ void Scene::preprocessAllSamplers()
 		if(objects[i]->emissive())
 			emissiveSurfaceSampler->targetObjects.push_back(objects[i]);
 		else
-			otherSurfaceSampler->targetObjects.push_back(objects[i]);
+			if (objects[i]->canMerge)
+				otherSurfaceSampler->targetObjects.push_back(objects[i]);
 	}
 	emissiveSurfaceSampler->preprocess();
 	otherSurfaceSampler->preprocess();

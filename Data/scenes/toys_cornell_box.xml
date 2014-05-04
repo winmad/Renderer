@@ -36,14 +36,17 @@
 		<filePath>objs/tank.obj</filePath>
 		<transform>[0, 0, 0.5, -0.4][0, 0.5, 0, -0.85][0.5, 0, 0, -0.1][0, 0, 0, 1]</transform>
 		<Material>
-			<type>Phong</type>
+			<!--type>Phong</type>
 			<GlossyComponent>
 				<coeff>10</coeff>
 				<color>(0.5, 0.5, 0.5)</color>
 			</GlossyComponent>
 			<DiffuseComponent>
 				<color>(0.5, 0.5, 0.5)</color>
-			</DiffuseComponent>
+			</DiffuseComponent-->
+			
+			<type>Diffuse</type>
+			<color>(0.5, 0.5, 0.5)</color>
 		</Material>
 	</Object>
 	<Object>

@@ -27,15 +27,29 @@ Ray GlossyMaterial::scatter(const SceneObject* object, const Ray& inRay, const b
 	outRay.color = bsdf.evaluate(lf, inRay.direction, outRay.direction, color, coeff.x);
 	outRay.directionProb = cosineSphericalSampler.getProbDensity(out_lf, outRay.direction, coeff.x);
 
+	float p = *std::max_element<float*>(&color.x, (&color.x)+3);
+
+	outRay.originSampleType = Ray::DEFINITE;
+	outRay.directionSampleType = Ray::RANDOM;
+
 	if(outRay.color.length() == 0)
 	{
 		outRay.direction = vec3f(0, 0, 0);
 		outRay.color = vec3f(0, 0, 0);
 		outRay.directionProb = 1;
+		return outRay;
 	}
 
-	outRay.originSampleType = Ray::DEFINITE;
-	outRay.directionSampleType = Ray::RANDOM;
+	if (RandGenerator::genFloat() < p)
+	{
+		outRay.directionProb *= p;
+	}
+	else
+	{
+		outRay.direction = vec3f(0, 0, 0);
+		outRay.color = vec3f(0, 0, 0);
+		outRay.directionProb = 1 - p;
+	}
 
 	// scatter--end
 	return outRay;

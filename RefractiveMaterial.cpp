@@ -80,9 +80,7 @@ Ray RefractiveMaterial::scatter(const SceneObject* object, const Ray& inRay, con
 		float epr = powf(abs(next_n*cos_theta-current_n*cos_phi)/(next_n*cos_theta+current_n*cos_phi),2);
 		float er = (esr+epr)/2;
 
-		//float p = min2(er, 0.8);
-		//p = max2(p, 0.2);
-		float p = clampf(er , 0.f , 1.f);
+		float p = clampf(er , 0.2f , 0.8f);
 		
 		if(RandGenerator::genFloat() < p)
 		{

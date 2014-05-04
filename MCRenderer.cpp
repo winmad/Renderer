@@ -53,6 +53,9 @@ bool MCRenderer::connectRays(Path& path, int connectIndex, bool merged)
 	if(!merged && (lightRay.directionSampleType == Ray::DEFINITE || eyeRay.directionSampleType == Ray::DEFINITE))
 		return false;
 
+	if (merged && eyeRay.directionSampleType == Ray::DEFINITE)
+		return false;
+
 	const Ray& prevLightRay = path[max2(connectIndex - 1, 0)];
 	const Ray& prevEyeRay = path[min2((connectIndex + 2), path.size()-1)];
 	lightRay.direction = eyeRay.origin - lightRay.origin;

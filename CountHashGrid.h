@@ -90,8 +90,6 @@ public:
 				continue;
 			effectiveIndex.push_back(i);
 			effectiveWeights.push_back(weights[i]);
-			int N = effectiveWeights.size();
-			effectiveWeights[N - 1] += effectiveWeights[N - 2];
 		}
 	}
 
@@ -224,6 +222,9 @@ public:
 		ray.contactObject = NULL;
 		ray.contactObjectTriangleID = -1;
 		ray.origin = getRandomPosition(ray.originProb);
+
+		// not sure
+		ray.originProb *= mInvCellSize * mInvCellSize * mInvCellSize;
 
 		UniformSphericalSampler uniformSphericalSampler;
 

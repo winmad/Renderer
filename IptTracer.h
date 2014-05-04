@@ -9,12 +9,12 @@ struct IptPathState
 {
 	vec3f throughput;
 	vec3f dirContrib , indirContrib;
-	//vec3f contribs[4];
+	//vec3f contribs[4]; 
 	Ray *ray , *lastRay , *originRay;
 	bool isSpecularPath;
 	vec3f pos;
 	int index;
-	double accuProb;
+	//double accuProb;
 };
 
 class IptTracer : public MCRenderer
@@ -66,10 +66,10 @@ public:
 	IptTracer(Renderer* renderer) : MCRenderer(renderer)
 	{ 
 		maxDepth = 20;
-		alpha = 0.75f;
+		alpha = 2.f / 3.f;
 		spp = -1; 
 		initialProb = 1.f;
-		mergeIterations = 1;
+		mergeIterations = 5;
 		timeInterval = lastTime = 3600;
 
 		pixelNum = renderer->camera.height * renderer->camera.width;
@@ -83,19 +83,14 @@ public:
 	void setRadius(const Real& r) { mergeRadius = r; }
 	void setInitProb(const Real& r) { initialProb = r; }
 	virtual vector<vec3f> renderPixels(const Camera& camera);
-	
+	/*
 	Real getOriginProb(CountHashGrid& hashGrid , vec3f& pos , const bool isVol)
 	{
 		CountQuery query(pos);
 		hashGrid.count(query);
 		return query.count / hashGrid.totVolume;
-		/*
-		if (isVol)
-			return query.count / hashGrid.cellVolume;
-		else
-			return query.count / hashGrid.cellArea;
-		*/
 	}
+	*/
 	
 	Real connectFactor(Real pdf)
 	{

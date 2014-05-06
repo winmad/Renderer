@@ -90,7 +90,13 @@ public:
 				continue;
 			effectiveIndex.push_back(i);
 			effectiveWeights.push_back(weights[i]);
+			//effectiveWeights.push_back(1.f);
 		}
+
+		//for (int i = 0; i < effectiveWeights.size(); i++)
+		//	effectiveWeights[i] /= (Real)effectiveWeights.size();
+		for (int i = 1; i < effectiveWeights.size(); i++)
+			effectiveWeights[i] += effectiveWeights[i - 1];
 	}
 
 	template<typename tQuery>
@@ -144,11 +150,9 @@ public:
 	void print(FILE* fp)
 	{
 		fprintf(fp , "============ one iter, sum = %.8f ============\n" , sumContribs);
-		for (int i = 0; i < weights.size(); i++)
+		for (int i = 0; i < effectiveWeights.size(); i++)
 		{
-			if (weights[i] <= 0)
-				continue;
-			fprintf(fp , "i = %d, weight = %.8f\n" , i , weights[i]);
+			fprintf(fp , "index = %d, accuWeight = %.8f\n" , effectiveIndex[i] , effectiveWeights[i]);
 		}
 	}
 
@@ -204,20 +208,22 @@ public:
 	{
 		float rnd = RandGenerator::genFloat();
 		unsigned index = (lower_bound(effectiveWeights.begin(), effectiveWeights.end(), rnd)-effectiveWeights.begin());
-		if(index >= effectiveWeights.size() - 1)
+		if(index == 0)
 		{
-			index = effectiveWeights.size() - 1;
-			pdf = 1.f - effectiveWeights[index];
+			pdf = effectiveWeights[index];
 		}
 		else
 		{
-			pdf = effectiveWeights[index + 1] - effectiveWeights[index];
+			pdf = effectiveWeights[index] - effectiveWeights[index - 1];
 		}
-		return cellIndexToPosition(effectiveIndex[index]);
+		vec3f res = cellIndexToPosition(effectiveIndex[index]);
+		return res;
 	}
 
 	Ray volumeEmit(Scene *scene)
 	{
+		for (;;)
+		{
 		Ray ray;
 		ray.contactObject = NULL;
 		ray.contactObjectTriangleID = -1;
@@ -225,6 +231,8 @@ public:
 
 		// not sure
 		ray.originProb *= mInvCellSize * mInvCellSize * mInvCellSize;
+		//printf("%.8f , %.8f\n" , ray.originProb , 1.f / scene->getTotalVolume());
+		//ray.originProb = 1.f / scene->getTotalVolume();
 
 		UniformSphericalSampler uniformSphericalSampler;
 
@@ -233,6 +241,10 @@ public:
 		ray.direction = uniformSphericalSampler.genSample(lf);
 
 		ray.insideObject = scene->findInsideObject(ray, ray.contactObject);
+		if (ray.insideObject == NULL)
+		{
+			continue;
+		}
 
 		ray.current_tid = scene->getContactTreeTid(ray);
 		ray.color = vec3f(1, 1, 1);
@@ -254,6 +266,7 @@ public:
 			}
 		}
 		return ray;
+		}
 	}
 
 public:

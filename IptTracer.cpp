@@ -16,10 +16,6 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 	preprocessEmissionSampler();
 	preprocessOtherSampler();
 
-	totArea = renderer->scene.getTotalArea();
-	totVol = renderer->scene.getTotalVolume();
-	printf("scene: totArea = %.8f, totVol = %.8f\n" , totArea , totVol);
-
 	for(int i=0; i<pixelLocks.size(); i++)
 	{
 		omp_init_lock(&pixelLocks[i]);
@@ -32,6 +28,10 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 
 	countHashGrid.init(renderer->scene);
 
+	totArea = renderer->scene.getTotalArea();
+	totVol = renderer->scene.getTotalVolume();
+	printf("scene: totArea = %.8f, totVol = %.8f\n" , totArea , totVol);
+
 	for(unsigned s=0; s<spp; s++)
 	{
 		if (!renderer->scene.usingGPU())
@@ -40,12 +40,12 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 
 			partialSubPathList.clear();
 
-			//if (totVol > 0)
-			//	mergeRadius = r0 * (pow(s+1, (alpha-1)/3.f));
-			//else
-			//	mergeRadius = r0 * (pow(s+1, (alpha-1)/2.f));
+			if (totVol > 0)
+				mergeRadius = r0 * (pow(s+1, (alpha-1)/3.f));
+			else
+				mergeRadius = r0 * (pow(s+1, (alpha-1)/2.f));
 
-			mergeRadius = r0 * (powf((Real)s+1.f, (alpha-1)/2.f));
+			//mergeRadius = r0 * (powf((Real)s+1.f, (alpha-1)/2.f));
 
 			mergeRadius = std::max(mergeRadius , 1e-7f);
 			printf("mergeRadius = %.8f\n" , mergeRadius);
@@ -201,13 +201,13 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 
 						colorGlbIllu = colorByMergingPaths(cameraState , partialSubPaths , mergeIterations , eyeWeight);
 						mergeContribs.push_back(colorDirIllu + colorGlbIllu);
-						//break;
 					}
 
 					if (eyePath[i].directionSampleType == Ray::RANDOM)
 					{
 						cameraState.isSpecularPath = 0;
 						nonSpecLength++;
+						//break;
 					}
 
 					if (i >= eyePath.size() - 1)
@@ -426,7 +426,7 @@ Ray IptTracer::genIntermediateSamples(vector<IptPathState>& partialSubPathList ,
 {
 	if (totVol > 1e-7f)
 	{
-		float volProb = 0.7f , surProb = 1 - volProb;
+		float volProb = 0.6f , surProb = 1 - volProb;
 		if (RandGenerator::genFloat() < volProb)
 		{
 			Ray ray = countHashGrid.volumeEmit(&scene);
@@ -1253,12 +1253,16 @@ void IptTracer::mergePartialPaths(vector<vec3f>& contribs , const IptPathState& 
 			Real cosTerm = 1.f;
 			if (lightState.ray->contactObject)
 				cosTerm = lightState.ray->getContactNormal().dot(outRay.direction);
+			if (cosTerm < 1e-7f)
+				return;
 
 			vec3f tmp = totContrib * bsdfFactor * interState->throughput * cosTerm;
 
 			Real lastPdf , weightFactor;
 			//Real lastPdf2 = lightState.lastRay->getDirectionSampleProbDensity(outRay);
 			lastPdf = inRay.getDirectionSampleProbDensity(*interState->originRay);
+			if (lastPdf < 1e-7f)
+				return;
 
 			/*
 			fprintf(fp , "================\n");
@@ -1281,7 +1285,7 @@ void IptTracer::mergePartialPaths(vector<vec3f>& contribs , const IptPathState& 
 			color += res;
 			/*
 			vec3f resx = tmp * weightFactor;	
-			if (_isnan(resx[0] + resx[1] + resx[2]))
+			if ((resx[0] + resx[1] + resx[2]) > 1.f)
 			{
 				fprintf(fp , "----------------\n");
 				fprintf(fp , "res = (%.8f,%.8f,%.8f), totContrib = (%.8f,%.8f,%.8f), \nbsdf = (%.8f,%.8f,%.8f), \ninterThr = (%.8f,%.8f,%.8f), weightFactor = %.8f, cosine = %.8f\nPc = %.8f, Pm = %.8f, originProb = %.8f\n" ,

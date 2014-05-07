@@ -191,7 +191,10 @@ float BidirectionalPathTracer::connectWeight(const Path& connectedPath, int conn
 {
 	double sumExpProb = 0;
 
-	p_forward.front() = connectedPath.front().getOriginSampleProbDensity(connectedPath.front());
+	//p_forward.front() = connectedPath.front().getOriginSampleProbDensity(connectedPath.front());
+	p_forward.front() = connectedPath.front().originProb;
+	//printf("%.8f , %.8f\n" , connectedPath.front().originProb , 
+	//	connectedPath.front().getOriginSampleProbDensity(connectedPath.front()));
 
 	for(int i=0; i<connectedPath.size()-1; i++)
 	{
@@ -215,7 +218,8 @@ float BidirectionalPathTracer::connectWeight(const Path& connectedPath, int conn
 
 	}
 
-	p_backward[connectedPath.size()-1] = connectedPath.back().getOriginSampleProbDensity(connectedPath.back());
+	//p_backward[connectedPath.size()-1] = connectedPath.back().getOriginSampleProbDensity(connectedPath.back());
+	p_backward.back() = connectedPath.back().originProb;
 
 	for(int i = connectedPath.size()-1; i>0; i--)
 	{
@@ -266,8 +270,6 @@ void BidirectionalPathTracer::colorByConnectingPaths(vector<omp_lock_t> &pixelLo
 	unsigned maxLightPathLen = lightPath.size();
 	unsigned maxWholePathLen = maxEyePathLen + maxLightPathLen;
 
-
-
 	for(int wholePathLen=2; wholePathLen<=maxWholePathLen; wholePathLen++)
 	{
 
@@ -279,11 +281,11 @@ void BidirectionalPathTracer::colorByConnectingPaths(vector<omp_lock_t> &pixelLo
 		int lplStart = (wholePathLen - int(maxEyePathLen)) > 0 ? (wholePathLen - maxEyePathLen) : 0;
 		int lplEnd = wholePathLen - 1 < maxLightPathLen ? wholePathLen - 1 : maxLightPathLen;
 
+		//if(!(wholePathLen == 3)) continue;
+
 		for(int lightPathLen = lplStart; lightPathLen <= lplEnd; lightPathLen++)
 		{
 			int eyePathLen = wholePathLen - lightPathLen;
-
-			//if(!(wholePathLen == 4)) continue;
 
 			for(int li=0; li < lightPathLen; li++)
 				wholePath[li] = lightPath[li];

@@ -102,7 +102,6 @@ vector<vec3f> VCMTracer::renderPixels(const Camera& camera)
 				colorByMergingPaths(singleImageColors, eyePath, tree);
 
 				colorByConnectingPaths(pixelLocks, renderer->camera, singleImageColors, eyePath, lightPath);
-
 			}
 
 			if(cmd == "exit")
@@ -114,6 +113,7 @@ vector<vec3f> VCMTracer::renderPixels(const Camera& camera)
 			{
 				pixelColors[i] *= s / float(s + 1);
 				pixelColors[i] += singleImageColors[i] / (s + 1)*camera.width*camera.height;
+				//pixelColors[i] += singleImageColors[i] / (s + 1)*camera.sightDist*camera.sightDist;
 				delete lightPathList[i];
 			}
 			printf("Iter: %d  IterTime: %ds  TotalTime: %ds\n", s+1, (clock()-t)/1000, (clock()-t_start)/1000);
@@ -306,7 +306,8 @@ float VCMTracer::connectMergeWeight(const Path& connectedPath, int connectIndex,
 	vector<double> p_backward(connectedPath.size(), 1);
 	vector<double> dist(connectedPath.size(), 0);
 
-	p_forward.front() = connectedPath.front().getOriginSampleProbDensity(connectedPath.front());
+	//p_forward.front() = connectedPath.front().getOriginSampleProbDensity(connectedPath.front());
+	p_forward.front() = connectedPath.front().originProb;
 
 	for(int i=0; i<connectedPath.size()-1; i++)
 	{
@@ -329,7 +330,8 @@ float VCMTracer::connectMergeWeight(const Path& connectedPath, int connectIndex,
 		}
 	}
 
-	p_backward.back() = connectedPath.back().getOriginSampleProbDensity(connectedPath.back());
+	//p_backward.back() = connectedPath.back().getOriginSampleProbDensity(connectedPath.back());
+	p_backward.back() = connectedPath.back().originProb;
 
 	for(int i = connectedPath.size()-1; i>0; i--)
 	{

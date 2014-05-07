@@ -22,7 +22,7 @@ Ray SceneVPMObject::scatter(const Ray& inRay, const bool russian) const
 		
 		vec3f reflDir = -normal.dot(inRay.direction)*normal*2 + inRay.direction;
 		reflDir.normalize();
-		float theta = acos(clampf(inRay.direction.dot(normal), -1, 1));
+		float theta = acos(inRay.direction.dot(normal));
 		
 		SceneObject* currentInsideObject = inRay.insideObject;
 		SceneObject* outSideObject = (SceneObject*)this;
@@ -64,10 +64,7 @@ Ray SceneVPMObject::scatter(const Ray& inRay, const bool russian) const
 			{
 				outRay.direction = reflDir;
 				outRay.color *= er / outRay.getCosineTerm();
-				if (russian)
-					outRay.directionProb = p;
-				else
-					outRay.directionProb = 1.f;
+				outRay.directionProb = p;
 				outRay.insideObject = inRay.insideObject;
 				outRay.directionSampleType = Ray::DEFINITE;
 				outRay.photonType = Ray::NOUSE;
@@ -90,35 +87,32 @@ Ray SceneVPMObject::scatter(const Ray& inRay, const bool russian) const
 	if(be_in_vol && !out_of_vol){
 		HGPhaseSampler hgPhaseSampler(g);
 		//IsotropicPhaseSampler sp;
-		outRay.origin = inRay.origin + inRay.direction * sampDist;
 		LocalFrame lf;		lf.buildFromNormal(inRay.direction);
-		outRay.direction = hgPhaseSampler.genSample(lf); 
-		outRay.insideObject = (SceneObject*)this;
-		outRay.contactObject = NULL;
-		//outRay.contactObjectTriangleID = inRay.intersectObjectTriangleID;
-		outRay.contactObjectTriangleID = -1;
 
-		outRay.directionProb = 1;
-		outRay.color = vec3f(1, 1, 1);
+		outRay.origin = inRay.origin + inRay.direction * sampDist;
+		outRay.direction = hgPhaseSampler.genSample(lf); 
+		outRay.color = bsdf->evaluate(LocalFrame(), inRay.direction, outRay.direction);
+		outRay.insideObject = (SceneObject*)this;
+		//outRay.contactObject = NULL;
+		outRay.contactObjectTriangleID = inRay.intersectObjectTriangleID;
+		//outRay.contactObjectTriangleID = -1;
+
+		//outRay.directionProb = 1;
+		//outRay.color = vec3f(1, 1, 1);
 		float albedo = y(ds) / y(dt);
 		float rander = RandGenerator::genFloat();
-		outRay.originSampleType = Ray::RANDOM;
+		//outRay.originSampleType = Ray::RANDOM;
 
 		if(rander < albedo || (!russian)){
 			outRay.contactObject = NULL;
-			LocalFrame lf;	lf.buildFromNormal(inRay.direction);
 			float oPdfW = hgPhaseSampler.getProbDensity(lf, outRay.direction);//sp.getProbDensity(lf, outRay.direction);//
 			if (russian)
-				outRay.directionProb *= albedo * oPdfW;
+				outRay.directionProb = albedo * oPdfW;
 			else
-				outRay.directionProb *= oPdfW;
+				outRay.directionProb = oPdfW;
 			outRay.originProb = p_medium(sampDist);
 			outRay.directionSampleType = Ray::RANDOM;
-
-			// FIXED
-			//outRay.color *= ds * bsdf->evaluate(LocalFrame(), inRay.direction, outRay.direction);
-			outRay.color *= ds * bsdf->evaluate(lf , inRay.direction , outRay.direction);
-
+			outRay.color *= ds;
 			outRay.photonType = inRay.isDirectLightPhoton ? Ray::NOUSE : Ray::INVOL;
 			outRay.isDirectLightPhoton = false;
 		}
@@ -155,7 +149,7 @@ Ray SceneVPMObject::scatter(const Ray& inRay, const bool russian) const
 			vec3f normal = lf.n;
 			vec3f reflDir = -normal.dot(inRay.direction)*normal*2 + inRay.direction;
 			reflDir.normalize();
-			float theta = acos(clampf(inRay.direction.dot(normal), -1, 1));
+			float theta = acos(inRay.direction.dot(normal));
 			
 			SceneObject* currentInsideObject = (SceneObject*)this;
 			SceneObject* outSideObject = scene->findInsideObject(outRay, (SceneObject*)this);
@@ -237,18 +231,14 @@ vec3f SceneVPMObject::getRadianceDecay(const Ray &inRay, const float &dist) cons
  
 vec3f SceneVPMObject::getBSDF(const Ray& inRay, const Ray& outRay) const
 {
-	LocalFrame lf;
-	lf.buildFromNormal(inRay.direction);
 	if(outRay.contactObject == NULL)
-		return ds * bsdf->evaluate(lf, inRay.direction, outRay.direction);
-		//return ds * bsdf->evaluate(LocalFrame(), inRay.direction, outRay.direction);
+		return ds * bsdf->evaluate(LocalFrame(), inRay.direction, outRay.direction);
 	if(outRay.contactObject && outRay.contactObject != this)
 		return outRay.contactObject->getBSDF(inRay, outRay);
 	return vec3f(0, 0, 0);
 }
 
 float SceneVPMObject::getOriginSampleProbDensity(const Ray &inRay, const Ray &outRay) const{
-	
 	float dist = max((inRay.origin - outRay.origin).length(), EPSILON);
 
 	if(outRay.contactObject)
@@ -260,9 +250,7 @@ float SceneVPMObject::getOriginSampleProbDensity(const Ray &inRay, const Ray &ou
 
 float SceneVPMObject::getDirectionSampleProbDensity(const Ray &inRay, const Ray &outRay) const{
 	if(outRay.directionSampleType == Ray::DEFINITE)
-	{
 		return 0;
-	}
 	if(outRay.contactObject)
 		return outRay.contactObject->getDirectionSampleProbDensity(inRay, outRay);
 	HGPhaseSampler hgPhaseSampler(g);

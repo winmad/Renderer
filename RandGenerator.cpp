@@ -91,7 +91,7 @@ vec3f RandGenerator::genSphericalDirection()
 	float phi = 2 * M_PI * genFloat();
 	float x = r * cos(phi);
 	float y = r * sin(phi);
-	return vec3f(x , y , z);
+	return vec3f(x , z , y);
 }
 
 vec3f RandGenerator::genHemisphericalDirection()
@@ -101,7 +101,7 @@ vec3f RandGenerator::genHemisphericalDirection()
 	float phi = 2 * M_PI * genFloat();
 	float x = r * cos(phi);
 	float y = r * sin(phi);
-	return vec3f(x , y , z);
+	return vec3f(x , z , y);
 }
 
 vec3f RandGenerator::genConcetricDisk()

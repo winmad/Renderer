@@ -57,7 +57,7 @@ Ray SceneObject::emit(bool isUniform) const
 		ray.color = vec3f(1, 1, 1);
 
 	if (isUniform)
-		ray.directionProb = uniformSphericalSampler.getProbDensity(lf , ray.direction);
+		ray.directionProb = uniformSphericalSampler.getProbDensity(lf , ray.direction) * 2.f;
 	else
 		ray.directionProb = cosineSphericalSampler.getProbDensity(lf, ray.direction);
 

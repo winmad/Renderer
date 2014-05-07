@@ -106,6 +106,8 @@ public:
 			s *= *initProb;
 		if (dirProb)
 			s *= *dirProb;
+		if (*volScale > 1.f)
+			s *= 0.5f;
 		Real res = M_PI * mergeRadius * mergeRadius * partialPathNum * s;
 		return res;
 	}

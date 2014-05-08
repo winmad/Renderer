@@ -248,6 +248,8 @@ void ConfigManager::load(const string &configFilePath)
 			((IptTracer*)renderer->mcRenderer)->setRadius(atof(nodeConfig->first_node("radius")->value()));
 			((IptTracer*)renderer->mcRenderer)->setInitProb(atof(nodeConfig->first_node("initProb")->value()));
 		}
+		if (nodeConfig->first_node("maxDepth"))
+			renderer->mcRenderer->setMaxDepth(atoi(nodeConfig->first_node("maxDepth")->value()));
 	}
 
 	xml_node<>* nodeRenderer = nodeConfig->first_node("Renderer");
@@ -296,6 +298,8 @@ void ConfigManager::load(const string &configFilePath)
 			if(strcmp(nodeRenderer->first_node("useGPU")->value(), "no") == 0)
 				renderer->scene.setGPU(false);
 		}
+		if (nodeRenderer->first_node("maxDepth"))
+			renderer->mcRenderer->setMaxDepth(atoi(nodeConfig->first_node("maxDepth")->value()));
 	}
 
 	if(nodeConfig->first_node("savePath"))

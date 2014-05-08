@@ -39,7 +39,6 @@ public:
 	unsigned timeInterval , lastTime;
 	VCMTracer(Renderer* renderer) : MCRenderer(renderer)
 	{ 
-		maxDepth = 20;
 		alpha = 0.6667;
 		spp = -1;
 		usePT = false;

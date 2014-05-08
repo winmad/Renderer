@@ -107,6 +107,9 @@ vec3f SceneObject::getWorldNormal(unsigned fi, const vec3f& position, bool flat)
 	vec3f original_normal = SimpleShape::getWorldNormal(fi, position, flat);
 	if(bumpTex.size() <= 1 || fi >= faceVertexTexCoordIndexList.size())
 		return original_normal;
+
+	printf("use not original normal\n");
+
 	vec3f vps[3], vts[3], vns[3];
 	for(unsigned i=0; i<3; i++)
 	{
@@ -156,12 +159,12 @@ LocalFrame SceneObject::getAutoGenWorldLocalFrame(unsigned fi, const vec3f& posi
 		printf("error , %.8f\n" , n.dot(lf.n));
 	}
 	axis.normalize();
-	if (axis.length() < 1e-6f)
-	{
-		lf.s = vec3f(1,0,0);
-		lf.t = vec3f(0,0,1);
-	}
-	else
+	//if (axis.length() < 1e-6f)
+	//{
+	//	lf.s = vec3f(1,0,0);
+	//	lf.t = vec3f(0,0,1);
+	//}
+	//else
 	{
 		lf.s = vec3f(rotMat(axis, angle)*vec4<float>(vec3f(1,0,0), 0));
 		lf.t = vec3f(rotMat(axis, angle)*vec4<float>(vec3f(0,0,1), 0));

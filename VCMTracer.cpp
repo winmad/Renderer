@@ -65,11 +65,13 @@ vector<vec3f> VCMTracer::renderPixels(const Camera& camera)
 					vec3f decayFactor = lightPath[i - 1].getRadianceDecay(dist);
 					dirContrib *= decayFactor;
 					
-					if(lightPath[i].directionSampleType == Ray::RANDOM && s == 0 &&
-						lightPath[i].insideObject && !lightPath[i].contactObject)
+					if(s == 0)
+						//&& lightPath[i].insideObject && !lightPath[i].contactObject)
 					{
-						fprintf(fp , "path length = %d, dirContrib = (%.8f,%.8f,%.8f)\n" , 
-							i , dirContrib[0] , dirContrib[1] , dirContrib[2]);
+						fprintf(fp , "path length = %d, dirContrib = (%.8f,%.8f,%.8f)\nbsdf = (%.8f,%.8f,%.8f), dirPdf = %.8f , oPdf = %.8f\n" , 
+							i , dirContrib[0] , dirContrib[1] , dirContrib[2] , 
+							lightPath[i].color.x , lightPath[i].color.y , lightPath[i].color.z , 
+							lightPath[i].directionProb , lightPath[i].originProb);
 					}
 					
 					if (i + 1 < lightPath.size())
@@ -101,7 +103,7 @@ vector<vec3f> VCMTracer::renderPixels(const Camera& camera)
 
 				colorByMergingPaths(singleImageColors, eyePath, tree);
 
-				colorByConnectingPaths(pixelLocks, renderer->camera, singleImageColors, eyePath, lightPath);
+				//colorByConnectingPaths(pixelLocks, renderer->camera, singleImageColors, eyePath, lightPath);
 			}
 
 			if(cmd == "exit")
@@ -219,8 +221,6 @@ vec4<float> VCMTracer::connectColorProb(const Path& connectedPath, int connectIn
 	vec3f color(1, 1, 1);
 	float prob = 1;
 
-	float connectDist;
-
 	for(int i=0; i<connectedPath.size(); i++)
 	{
 		color *= connectedPath[i].color;
@@ -241,7 +241,6 @@ vec4<float> VCMTracer::connectColorProb(const Path& connectedPath, int connectIn
 		if(i==connectIndex && i<connectedPath.size()-1)
 		{
 			color *= connectedPath[i].getCosineTerm() * connectedPath[i+1].getCosineTerm() / (dist*dist);
-			connectDist = dist;
 		}
 
 		if(i!=connectIndex && i!=connectIndex+1)
@@ -252,6 +251,7 @@ vec4<float> VCMTracer::connectColorProb(const Path& connectedPath, int connectIn
 		{
 			prob *= M_PI * mergeRadius * mergeRadius;
 			prob *= link(connectedPath, connectIndex, i+1, i).getCosineTerm();
+			prob /= dist * dist;
 			Ray prevRay = link(connectedPath, connectIndex, i, i+1);
 			Ray nextRay = link(connectedPath, connectIndex, i+1, i+2);
 			prob *= prevRay.getOriginSampleProbDensity(nextRay);
@@ -259,9 +259,8 @@ vec4<float> VCMTracer::connectColorProb(const Path& connectedPath, int connectIn
 			{
 				prob *= 4.0/3.0 * mergeRadius;
 			}
-			prob /= dist * dist;
 		}
-
+		/*
 		if(i > 0 && i <= connectIndex) // correct sample density difference in interpolating normal.
 		{
 			if (fabs(connectedPath[i-1].direction.dot(connectedPath[i].getContactNormal())) != 0 &&
@@ -270,16 +269,8 @@ vec4<float> VCMTracer::connectColorProb(const Path& connectedPath, int connectIn
 				color *= fabs(connectedPath[i-1].direction.dot(connectedPath[i].getContactNormal())) /
 					fabs(connectedPath[i-1].direction.dot(connectedPath[i].getContactNormal(true)));
 			}
-			/*
-			if (fabs(connectedPath[i-1].direction.dot(connectedPath[i].getContactNormal())) == 0 ||
-				fabs(connectedPath[i-1].direction.dot(connectedPath[i].getContactNormal(true))) == 0)
-			{
-				fprintf(fp , "cos = %.8f , cos' = %.8f\n" , fabs(connectedPath[i-1].direction.dot(connectedPath[i].getContactNormal())) ,
-					fabs(connectedPath[i-1].direction.dot(connectedPath[i].getContactNormal(true))));
-				printf("error\n");
-			}
-			*/
 		}
+		*/
 	}
 
 	return vec4<float>(color, prob);
@@ -387,11 +378,10 @@ float VCMTracer::connectMergeWeight(const Path& connectedPath, int connectIndex,
 				p *= 4.0/3.0 * mergeRadius;
 			}
 
-			if(merged && connectIndex == i)
-				selfProb = p;
-
 			p *= renderer->camera.width * renderer->camera.height;
 			sumExpProb += pow(p, double(expTerm));
+			if(merged && connectIndex == i)
+				selfProb = p;
 		}
 	}
 
@@ -536,6 +526,7 @@ void VCMTracer::colorByMergingPaths(vector<vec3f>& colors, const Path& eyePath, 
 
 		void process(const LightPathPoint& lpp)
 		{
+			/*
 			Ray cameraRay = (*eyePath)[eyePathLen - 1];
 			Ray lightRay = (*lpp.path)[lpp.index];
 			if (cameraRay.insideObject && cameraRay.contactObject == NULL)
@@ -562,7 +553,7 @@ void VCMTracer::colorByMergingPaths(vector<vec3f>& colors, const Path& eyePath, 
 			{
 				return;
 			}
-
+			*/
 			wholePath.assign(lpp.path->begin(), lpp.path->begin()+lpp.index);
 			for(unsigned i=0; i<eyePathLen; i++)
 			{
@@ -575,7 +566,7 @@ void VCMTracer::colorByMergingPaths(vector<vec3f>& colors, const Path& eyePath, 
 			if(vec3f(color_prob).length()==0 || color_prob.w==0)
 				return;
 			float weight = tracer->connectMergeWeight(wholePath, lpp.index-1, true);
-			vec3f res = vec3f(color_prob) / color_prob.w * weight;
+			vec3f res = vec3f(color_prob) / color_prob.w;// * weight;
 
 			color += res;
 			
@@ -603,7 +594,7 @@ void VCMTracer::colorByMergingPaths(vector<vec3f>& colors, const Path& eyePath, 
 		//if (query.cnt > 0)
 		//	fprintf(fp , "===================\n");
 
-		colors[eyePath.front().pixelID] += query.color;
+		colors[eyePath.front().pixelID] += query.color / (float)(renderer->camera.height * renderer->camera.width);
 	}
 }
 

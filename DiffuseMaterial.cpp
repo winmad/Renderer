@@ -11,6 +11,7 @@ Ray DiffuseMaterial::scatter(const SceneObject* object, const Ray& inRay, const 
 	{
 		outRay.direction = vec3f(0.f);
 		outRay.directionSampleType = Ray::DEFINITE;
+		printf("error in diffuse scatter\n");
 		return outRay;
 	}
 	//=================

@@ -5,7 +5,7 @@ Ray SceneVPMObject::scatter(const Ray& inRay, const bool russian) const
 {
 	Ray outRay;
 	outRay.directionSampleType = Ray::RANDOM;
-	HomoMediaDistSampler logDistSampler(y(dt));
+	HomoMediaDistSampler logDistSampler(dt);
 	float sampDist = logDistSampler.sampleDist();
 
 	bool go_in_vol  = (inRay.intersectObject == this) && (inRay.insideObject != this);
@@ -57,7 +57,7 @@ Ray SceneVPMObject::scatter(const Ray& inRay, const bool russian) const
 			float cos_phi = abs(cos(phi));
 			float esr = powf(abs(current_n*cos_theta-next_n*cos_phi)/(current_n*cos_theta+next_n*cos_phi),2);
 			float epr = powf(abs(next_n*cos_theta-current_n*cos_phi)/(next_n*cos_theta+current_n*cos_phi),2);
-			float er = (esr+epr)/2;
+			float er = (esr+epr)*0.5f;
 			float p = er;
 
 			if(RandGenerator::genFloat() < p)
@@ -123,8 +123,8 @@ Ray SceneVPMObject::scatter(const Ray& inRay, const bool russian) const
 			outRay.directionProb = 1; 
 			outRay.originProb = p_medium(sampDist);
 			
-			outRay.insideObject = (SceneObject*)this; // FIXED
-			
+			//outRay.insideObject = (SceneObject*)this; // FIXED
+			outRay.insideObject = NULL;
 			outRay.contactObject = NULL;
 			outRay.directionSampleType = Ray::RANDOM;
 			outRay.photonType = inRay.isDirectLightPhoton ? Ray::NOUSE : Ray::INVOL;
@@ -180,7 +180,7 @@ Ray SceneVPMObject::scatter(const Ray& inRay, const bool russian) const
 				float cos_phi = abs(cos(phi));
 				float esr = powf(abs(current_n*cos_theta-next_n*cos_phi)/(current_n*cos_theta+next_n*cos_phi),2);
 				float epr = powf(abs(next_n*cos_theta-current_n*cos_phi)/(next_n*cos_theta+current_n*cos_phi),2);
-				float er = (esr+epr)/2;
+				float er = (esr+epr)/2.f;
 				float p = er;
 
 				if(RandGenerator::genFloat() < p)
@@ -188,7 +188,7 @@ Ray SceneVPMObject::scatter(const Ray& inRay, const bool russian) const
 					outRay.direction = reflDir;
 					outRay.color *= er / outRay.getCosineTerm();
 					outRay.directionProb = p;
-					outRay.originProb =  P_surface(inRay.intersectDist);
+					outRay.originProb = P_surface(inRay.intersectDist);
 					outRay.insideObject = inRay.insideObject;
 					outRay.directionSampleType = Ray::DEFINITE;
 					outRay.photonType = Ray::NOUSE;
@@ -245,7 +245,6 @@ float SceneVPMObject::getOriginSampleProbDensity(const Ray &inRay, const Ray &ou
 		return P_surface(dist);
 	else
 		return p_medium(dist);
-	return 1;
 }
 
 float SceneVPMObject::getDirectionSampleProbDensity(const Ray &inRay, const Ray &outRay) const{

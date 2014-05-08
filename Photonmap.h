@@ -28,7 +28,6 @@ private:
 public:
 	Photonmap(Renderer* renderer) : MCRenderer(renderer)
 	{
-		maxDepth = 20;
 		mRadiusAlpha = 0.75;
  
 		photonsWant = renderer->camera.height * renderer->camera.width;

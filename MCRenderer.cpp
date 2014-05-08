@@ -157,6 +157,7 @@ void MCRenderer::samplePath(Path& path, Ray& prevRay, unsigned depth, bool first
 	termRay.direction = vec3f(0, 0, 0);
 	termRay.color = vec3f(0, 0, 0);
 	termRay.directionProb = 1;
+	termRay.directionSampleType = Ray::DEFINITE;
 	termRay.insideObject = termRay.contactObject = termRay.intersectObject = NULL;
 
 	path.push_back(prevRay);
@@ -177,14 +178,13 @@ void MCRenderer::samplePath(Path& path, Ray& prevRay, unsigned depth, bool first
 		return;
 	}
 
-
 	if(nextRay.direction.length() < 0.5)
 	{
 		path.push_back(nextRay);
 		return;
 	}
 	
-	if(depth+1 >= maxDepth)
+	if(depth+1 > maxDepth)
 	{
 		path.push_back(termRay);
 		return;

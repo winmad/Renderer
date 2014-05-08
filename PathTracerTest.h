@@ -11,7 +11,6 @@ private:
 public:
 	PathTracerTest(Renderer* renderer) : MCRenderer(renderer)
 	{
-		maxDepth = 20;
 		spp = -1;
 		useConnection = true;
 	}

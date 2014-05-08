@@ -26,7 +26,6 @@ public:
 
 	BidirectionalPathTracer(Renderer* renderer) : MCRenderer(renderer)
 	{ 
-		maxDepth = 20;
 		spp = -1;
 		usePT = false;
 		lastTime = timeInterval = 3600;

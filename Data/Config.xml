@@ -7,7 +7,7 @@
 	<Renderer>
 		<type>BPT</type>
 		<radius>0.003</radius>
-		<initProb>0.1</initProb>
+		<maxDepth>23</maxDepth>
 	</Renderer>
 	<savePath>results/2balls_cornell_box_ipt_5_7.pfm</savePath>
 </Config>

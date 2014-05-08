@@ -65,7 +65,6 @@ public:
 
 	IptTracer(Renderer* renderer) : MCRenderer(renderer)
 	{ 
-		maxDepth = 20;
 		alpha = 2.f / 3.f;
 		spp = -1; 
 		initialProb = 1.f;

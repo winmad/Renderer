@@ -78,7 +78,6 @@ public:
 		ds = sigma_s;
 		da = sigma_a;
 		dt = ds + da;
-		return ;
 	}
 	void setInRate(float ior){
 		IOR = ior;

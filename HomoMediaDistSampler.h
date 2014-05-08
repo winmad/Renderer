@@ -4,13 +4,13 @@
 class HomoMediaDistSampler : public DistanceSampler
 {
 public:
-	float sigma_t;
-	HomoMediaDistSampler(float sigma_t) : sigma_t(sigma_t){}
+	vec3f sigma_t;
+	HomoMediaDistSampler(vec3f _sigma_t) : sigma_t(_sigma_t){}
 	float sampleDist() const { 
-		return -log(1.0 - RandGenerator::genFloat()) / sigma_t;
+		return -log(1.0 - RandGenerator::genFloat()) / y(sigma_t);
 	}
 	float getProbDensity(const float& dist) const { 
-		return sigma_t * exp(-sigma_t * dist);
+		return y(sigma_t) * exp(-y(sigma_t) * dist);
 	}
 
 };

@@ -80,11 +80,17 @@ protected:
 
 public:
 
+	void setMaxDepth(const int _maxDepth)
+	{
+		maxDepth = std::max((unsigned)_maxDepth , maxDepth);
+	}
+
 	void setSavePath(const string& savePath);
 
 	MCRenderer(Renderer *renderer)
 	{
 		this->renderer = renderer; 
+		maxDepth = 20;
 		pathPixelID = -1;
 		useMerge = false;
 	}

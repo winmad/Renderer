@@ -40,11 +40,17 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 
 			partialSubPathList.clear();
 
+			float shrinkRatio;
 			if (totVol > 0)
-				mergeRadius = r0 * (pow(s+1, (alpha-1)/3.f));
+				shrinkRatio = powf(((float)s + alpha) / ((float)s + 1.f) , 1.f / 3.f);
 			else
-				mergeRadius = r0 * (pow(s+1, (alpha-1)/2.f));
+				shrinkRatio = powf(((float)s + alpha) / ((float)s + 1.f) , 1.f / 2.f);
+			mergeRadius *= shrinkRatio;
 
+			//if (totVol > 0)
+			//	mergeRadius = r0 * (pow(s+1, (alpha-1)/3.f));
+			//else
+			//	mergeRadius = r0 * (pow(s+1, (alpha-1)/2.f));
 			//mergeRadius = r0 * (powf((Real)s+1.f, (alpha-1)/2.f));
 
 			mergeRadius = std::max(mergeRadius , 1e-7f);

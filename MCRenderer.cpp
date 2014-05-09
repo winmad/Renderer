@@ -335,9 +335,9 @@ void MCRenderer::showCurrentResult(const vector<vec3f>& pixelColors , unsigned* 
 	for(int p=0; p<3*image->width*image->height; p++)
 		((float*)image->imageData)[p] = powf(((float*)image->imageData)[p], 1/2.2);
 
-	cvShowImage("Renderer", image);
+	//cvShowImage("Renderer", image);
 	
-	response(image);
+	//response(image);
 	cvReleaseImage(&image);
 
 	switch(showEvent)

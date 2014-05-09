@@ -1,6 +1,8 @@
 #include "StdAfx.h"
 #include "BidirectionalPathTracer.h"
 
+static FILE* fp = fopen("debug_bpt.txt" , "w");
+
 vector<vec3f> BidirectionalPathTracer::renderPixels(const Camera& camera)
 {
 	unsigned t_start = clock();
@@ -130,11 +132,10 @@ vec4f BidirectionalPathTracer::connectColorProb(const Path& connectedPath, int c
 	vec3f color(1, 1, 1);
 	float prob = 1;
 
+	//fprintf(fp , "=====================\n");
 
 	for(int i=0; i<connectedPath.size(); i++)
 	{
-		color *= connectedPath[i].color;
-
 		float dist;
 
 		if(i <= connectIndex)
@@ -168,6 +169,14 @@ vec4f BidirectionalPathTracer::connectColorProb(const Path& connectedPath, int c
 		}
 		*/
 		prob *= connectedPath[i].directionProb * connectedPath[i].originProb;
+
+		color *= connectedPath[i].color;
+		/*
+		fprintf(fp , "len=%d, bsdf=(%.8f,%.8f,%.8f), decay=(%.8f,%.8f,%.8f)\ndirPdf=%.8f, oPdf=%.8f, cosine=%.8f\n" ,
+			i , connectedPath[i].color.x , connectedPath[i].color.y , connectedPath[i].color.z ,
+			connectedPath[i].getRadianceDecay(dist).x , connectedPath[i].getRadianceDecay(dist).y , connectedPath[i].getRadianceDecay(dist).z ,
+			connectedPath[i].directionProb , connectedPath[i].originProb , connectedPath[i].getCosineTerm());
+		*/
 	}
 	return vec4f(color, prob);
 }
@@ -262,6 +271,7 @@ float BidirectionalPathTracer::connectWeight(const Path& connectedPath, int conn
 	double res = pow(selfProb, double(expTerm)) / sumExpProb;
 
 	// alternative
+	/*
 	Camera &camera = renderer->camera;
 	unsigned width = camera.width, height = camera.height;
 
@@ -342,7 +352,8 @@ float BidirectionalPathTracer::connectWeight(const Path& connectedPath, int conn
 	double res2 = MAX(weight, 0);
 	if (abs(res - res2) > 1e-6f)
 		printf("error weight\n");
-	return res2;
+	*/
+	return res;
 }
 
 void BidirectionalPathTracer::colorByConnectingPaths(vector<omp_lock_t> &pixelLocks, const Camera& camera, vector<vec3f>& colors, const Path& eyePath, const Path& lightPath, vector<unsigned>* visibilityList)
@@ -362,11 +373,13 @@ void BidirectionalPathTracer::colorByConnectingPaths(vector<omp_lock_t> &pixelLo
 		int lplStart = (wholePathLen - int(maxEyePathLen)) > 0 ? (wholePathLen - maxEyePathLen) : 0;
 		int lplEnd = wholePathLen - 1 < maxLightPathLen ? wholePathLen - 1 : maxLightPathLen;
 
-		//if(!(wholePathLen == 3)) continue;
+		//if(!(wholePathLen == 5)) continue;
 
 		for(int lightPathLen = lplStart; lightPathLen <= lplEnd; lightPathLen++)
 		{
 			int eyePathLen = wholePathLen - lightPathLen;
+
+			//if (!(lightPathLen == 4 && eyePathLen == 1)) continue;
 
 			for(int li=0; li < lightPathLen; li++)
 				wholePath[li] = lightPath[li];

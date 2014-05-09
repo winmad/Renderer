@@ -16,6 +16,7 @@ public:
 	float IOR;
 	Ray scatter(const Ray& inRay, const bool russian = true) const;
 	bool isVolumeric() { return true; }
+	bool hasCosineTerm(){ return false; }
  protected:
 	float y(vec3f c) const {
         const float YWeight[3] = { 0.212671f, 0.715160f, 0.072169f };

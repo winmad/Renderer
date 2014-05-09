@@ -26,8 +26,10 @@ vector<vec3f> VCMTracer::renderPixels(const Camera& camera)
 	{
 		if(!renderer->scene.usingGPU())
 		{
+			float shrinkRatio = powf(((float)s + alpha) / ((float)s + 1.f) , 1.f / 3.f);
+			mergeRadius *= shrinkRatio;
 
-			mergeRadius = r0 * sqrt(powf(s+1, alpha-1));
+			//mergeRadius = r0 * sqrt(powf(s+1, alpha-1));
 
 			vector<vec3f> singleImageColors(pixelColors.size(), vec3f(0, 0, 0));
 
@@ -103,7 +105,7 @@ vector<vec3f> VCMTracer::renderPixels(const Camera& camera)
 
 				colorByMergingPaths(singleImageColors, eyePath, tree);
 
-				//colorByConnectingPaths(pixelLocks, renderer->camera, singleImageColors, eyePath, lightPath);
+				colorByConnectingPaths(pixelLocks, renderer->camera, singleImageColors, eyePath, lightPath);
 			}
 
 			if(cmd == "exit")
@@ -129,8 +131,10 @@ vector<vec3f> VCMTracer::renderPixels(const Camera& camera)
 		}
 		else
 		{
-			/*
-			mergeRadius = r0 * sqrt(powf(s+1, alpha-1));
+			float shrinkRatio = powf(((float)s + alpha) / ((float)s + 1.f) , 1.f / 3.f);
+			mergeRadius *= shrinkRatio;
+
+			//mergeRadius = r0 * sqrt(powf(s+1, alpha-1));
 
 			vector<vec3f> singleImageColors(pixelColors.size(), vec3f(0, 0, 0));
 
@@ -202,7 +206,6 @@ vector<vec3f> VCMTracer::renderPixels(const Camera& camera)
 			}
 			printf("Iter: %d  IterTime: %ds  TotalTime: %ds\n", s+1, (clock()-t)/1000, (clock()-t_start)/1000);
 			showCurrentResult(pixelColors);
-			*/
 		}
 	}
 	return pixelColors;
@@ -326,7 +329,7 @@ float VCMTracer::connectMergeWeight(const Path& connectedPath, int connectIndex,
 
 	for(int i = connectedPath.size()-1; i>0; i--)
 	{
-		p_backward[i-1] = p_backward[i] * link(connectedPath, connectIndex, i-1, i).getCosineTerm() * connectedPath[i].originProb;
+		p_backward[i-1] = p_backward[i] * link(connectedPath, connectIndex, i-1, i).getCosineTerm();
 		p_backward[i-1] /= dist[i-1]*dist[i-1];
 		if(connectedPath[i].directionSampleType == Ray::RANDOM)
 		{
@@ -391,7 +394,125 @@ float VCMTracer::connectMergeWeight(const Path& connectedPath, int connectIndex,
 	{
 		return 0;
 	}
-	return pow(selfProb, double(expTerm)) / sumExpProb;
+	double res = pow(selfProb, double(expTerm)) / sumExpProb;
+
+	// alternative
+	/*
+	Camera &camera = renderer->camera;
+	unsigned width = camera.width, height = camera.height;
+
+	std::vector<double> directPathProb(connectedPath.size());
+	std::vector<double> reversePathProb(connectedPath.size());
+	double allTechPathProb = 0;
+
+	// connectedPath:	 Eye---------------------Light
+	//           say,     V4    V3    V2    V1    V0  (direction: <-)  
+	std::vector<float> distRecord;
+	directPathProb.front() = connectedPath.front().originProb;//connectedPath.front().evalOriginProbability(connectedPath.front());//connectedPath.front().originProb;//
+	//printf("%.8f , %.8f\n" , connectedPath.front().originProb , 
+	//	connectedPath.front().evalOriginProbability(connectedPath.front()));
+
+	for(int i = 1; i < connectedPath.size(); i++){
+		float dist = MAX((connectedPath[i].origin - connectedPath[i-1].origin).length(), EPSILON);
+		distRecord.push_back(dist);
+		Ray linkRay = link(connectedPath, connectIndex, i, i-1);
+		float cosThere = linkRay.getCosineTerm();
+		directPathProb[i] = directPathProb[i-1] * cosThere / (dist * dist);
+		if(connectedPath[i-1].directionSampleType == Ray::DEFINITE)
+			continue;
+		float linkOriProb = link(connectedPath, connectIndex, i-1, i).getOriginSampleProbDensity(
+			link(connectedPath, connectIndex, i, i+1)), linkDirProb;
+		if(i > 1){
+			linkDirProb = link(connectedPath, connectIndex, i-2, i-1).getDirectionSampleProbDensity(
+				link(connectedPath, connectIndex, i-1, i));
+		}
+		else{
+			Ray ray = link(connectedPath, connectIndex, i-1, i);
+			linkDirProb = ray.getDirectionSampleProbDensity(ray);
+		}
+		directPathProb[i] *= linkDirProb * linkOriProb;
+	}
+
+	// connectedPath:	 Eye---------------------Light
+	//           say,     V4    V3    V2    V1    V0  (direction: ->)  
+	reversePathProb.back() = connectedPath.back().originProb;//evalOriginProbability(connectedPath.back());//.originProb;
+	//printf("%.8f , %.8f\n" , connectedPath.back().originProb , 
+	//	connectedPath.back().evalOriginProbability(connectedPath.back()));
+
+	for(int i = connectedPath.size()-2; i >= 0; i--){
+		float dist = distRecord[i];
+		Ray linkRay = link(connectedPath, connectIndex, i, i+1);
+		float cosThere = linkRay.getCosineTerm();
+		reversePathProb[i] = reversePathProb[i+1] * cosThere / (dist * dist);
+		if(connectedPath[i+1].directionSampleType == Ray::DEFINITE)
+			continue;
+		float linkOriProb = link(connectedPath, connectIndex, i+1, i).getOriginSampleProbDensity(
+			link(connectedPath, connectIndex, i, i-1)), linkDirProb;
+		if(i < connectedPath.size()-2){
+			linkDirProb = link(connectedPath, connectIndex, i+2, i-1).getDirectionSampleProbDensity(
+				link(connectedPath, connectIndex, i+1, i));
+		}
+		else{
+			Ray ray = link(connectedPath, connectIndex, i+1, i);
+			linkDirProb = ray.getDirectionSampleProbDensity(ray);
+		}
+		reversePathProb[i] *= linkDirProb * linkOriProb;
+	}
+
+	// calculate VCM mis weight.
+	const int nVC = 1, nVM = width * height;
+	double myTechProb = connectIndex == -1 ? reversePathProb.front() : directPathProb[connectIndex] * reversePathProb[connectIndex+1];
+	for(int i = 0; i < connectedPath.size()-1; i++){
+		// VC 
+		if(connectedPath[i].directionSampleType == Ray::RANDOM && connectedPath[i+1].directionSampleType == Ray::RANDOM){
+			double p = directPathProb[i] * reversePathProb[i+1];
+			if(i == connectedPath.size()-2)
+				p *= width * height;
+			allTechPathProb += pow(p, double(expTerm)) * pow(nVC, double(expTerm));
+		}
+		// VM
+		if(i < connectedPath.size()-2 && !connectedPath[i+1].directionSampleType == Ray::DEFINITE){
+			double p = directPathProb[i] * reversePathProb[i+1];
+			if(!connectedPath[i].directionSampleType == Ray::DEFINITE){
+				if(i > 0){
+					p *= link(connectedPath, connectIndex, i-1, i).getDirectionSampleProbDensity(
+						link(connectedPath, connectIndex, i, i+1));
+				}
+				else{
+					Ray ray = link(connectedPath, connectIndex, i, i+1);
+					p *= ray.getDirectionSampleProbDensity(ray);
+				}
+			}
+			p *= link(connectedPath, connectIndex, i, i+1).getOriginSampleProbDensity(
+				link(connectedPath, connectIndex, i+1, i+2));
+			float cosThere = link(connectedPath, connectIndex, i+1, i).getCosineTerm();
+			p *= cosThere / (distRecord[i] * distRecord[i]);
+			p *= M_PI * mergeRadius * mergeRadius;
+			if(connectedPath[i+1].insideObject && !connectedPath[i+1].contactObject)
+				p *= 4.0/3 * mergeRadius;
+			if(merged && i == connectIndex)
+				myTechProb = p;
+
+			allTechPathProb += pow(p, double(expTerm)) * pow(nVM, double(expTerm));
+		}
+	}
+
+	if(mustUsePT(connectedPath))
+		allTechPathProb += pow(reversePathProb.front(), double(expTerm));
+
+	myTechProb *= (merged ? nVM : nVC);
+
+	if(!(pow(myTechProb, double(expTerm)) / allTechPathProb >= 0))
+		return 0;
+
+	double res2 = pow(myTechProb, double(expTerm)) / allTechPathProb;
+
+	if (abs(res - res2) > 1e-6f)
+	{
+		printf("error mis: %.8f,%.8f\n" , res , res2);
+	}
+	*/
+	return res;
 }
 
 void VCMTracer::colorByConnectingPaths(vector<omp_lock_t> &pixelLocks, const Camera& camera, vector<vec3f>& colors, const Path& eyePath, const Path& lightPath, vector<unsigned>* visibilityList)
@@ -566,7 +687,7 @@ void VCMTracer::colorByMergingPaths(vector<vec3f>& colors, const Path& eyePath, 
 			if(vec3f(color_prob).length()==0 || color_prob.w==0)
 				return;
 			float weight = tracer->connectMergeWeight(wholePath, lpp.index-1, true);
-			vec3f res = vec3f(color_prob) / color_prob.w;// * weight;
+			vec3f res = vec3f(color_prob) / color_prob.w * weight;
 
 			color += res;
 			

@@ -53,6 +53,7 @@ void Renderer::waitForCommand()
 {
 	int key = cvWaitKey(10);
 	loadConfig("Data/Config.xml");
+	cvDestroyAllWindows();
 	render();
 	/*
 	while(key != 'q')

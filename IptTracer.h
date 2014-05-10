@@ -77,19 +77,19 @@ public:
 		interPathNum = pixelNum;
 		partialPathNum = pixelNum;
 
-		useWeight = true;
+		useWeight = false;
 	}
 	void setRadius(const Real& r) { mergeRadius = r; }
 	void setInitProb(const Real& r) { initialProb = r; }
 	virtual vector<vec3f> renderPixels(const Camera& camera);
-	/*
+	
 	Real getOriginProb(CountHashGrid& hashGrid , vec3f& pos , const bool isVol)
 	{
 		CountQuery query(pos);
 		hashGrid.count(query);
-		return query.count / hashGrid.totVolume;
+		return query.count * (hashGrid.mInvCellSize * hashGrid.mInvCellSize * hashGrid.mInvCellSize);
 	}
-	*/
+	
 	
 	Real connectFactor(Real pdf)
 	{

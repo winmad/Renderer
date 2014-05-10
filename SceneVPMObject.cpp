@@ -123,8 +123,8 @@ Ray SceneVPMObject::scatter(const Ray& inRay, const bool russian) const
 			outRay.directionProb = 1; 
 			outRay.originProb = p_medium(sampDist);
 			
-			//outRay.insideObject = (SceneObject*)this; // FIXED
-			outRay.insideObject = NULL;
+			outRay.insideObject = (SceneObject*)this; // FIXED
+			//outRay.insideObject = NULL;
 			outRay.contactObject = NULL;
 			outRay.directionSampleType = Ray::RANDOM;
 			outRay.photonType = inRay.isDirectLightPhoton ? Ray::NOUSE : Ray::INVOL;

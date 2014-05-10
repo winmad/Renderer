@@ -546,6 +546,10 @@ void VCMTracer::colorByConnectingPaths(vector<omp_lock_t> &pixelLocks, const Cam
 			Ray& lightRay = wholePath[lightConnectID];
 			Ray& eyeRay = wholePath[eyeConnectID];
 
+			// only totally specular path
+			//if (!mustUsePT(wholePath))
+			//	continue;
+
 			if(lightPathLen==0 && (!wholePath.front().contactObject || !wholePath.front().contactObject->emissive()))
 				continue;
 

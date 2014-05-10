@@ -127,7 +127,8 @@ public:
 		const int pyo = py + (fractCoord.y < 0.5f ? -1 : +1);
 		const int pzo = pz + (fractCoord.z < 0.5f ? -1 : +1);
 
-		for(int j=0; j<7; j++)
+		int N = 1;
+		for(int j=0; j<N; j++)
 		{
 			int cellIndex;
 			switch(j)
@@ -143,7 +144,7 @@ public:
 			}
 			if (cellIndex == -1)
 				continue;
-			aQuery.count += weights[cellIndex] / 8;
+			aQuery.count += weights[cellIndex] / (float)N;
 		}
 	}
 
@@ -231,8 +232,9 @@ public:
 
 		// not sure
 		ray.originProb *= mInvCellSize * mInvCellSize * mInvCellSize;
-		//printf("%.8f , %.8f\n" , ray.originProb , 1.f / scene->getTotalVolume());
 		//ray.originProb = 1.f / scene->getTotalVolume();
+
+		//printf("%.8f , %.8f\n" , ray.originProb , 1.f / scene->getTotalVolume());
 
 		UniformSphericalSampler uniformSphericalSampler;
 

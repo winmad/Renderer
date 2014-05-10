@@ -132,6 +132,13 @@ void ConfigManager::load(const string &configFilePath)
 
 	xml_node<> *nodeConfig = findNode(configFilePath, "Config", "");
 	
+	if (nodeConfig->first_node("useGPU"))
+	{
+		int flag = atoi(nodeConfig->first_node("useGPU")->value());
+		if (flag == 1)
+			renderer->scene.setGPU(true);
+	}
+
 	xml_node<> *nodeSceneConfig = nodeConfig->first_node("Scene");
 
 	path_name = getPathAndName(nodeSceneConfig);
@@ -299,7 +306,7 @@ void ConfigManager::load(const string &configFilePath)
 				renderer->scene.setGPU(false);
 		}
 		if (nodeRenderer->first_node("maxDepth"))
-			renderer->mcRenderer->setMaxDepth(atoi(nodeConfig->first_node("maxDepth")->value()));
+			renderer->mcRenderer->setMaxDepth(atoi(nodeRenderer->first_node("maxDepth")->value()));
 	}
 
 	if(nodeConfig->first_node("savePath"))

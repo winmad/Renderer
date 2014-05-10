@@ -320,14 +320,14 @@
     <ClCompile Include="xmlHelper.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="KDTree.cpp">
-      <Filter>源文件\Acceleration</Filter>
-    </ClCompile>
     <ClCompile Include="compare.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="PathTracerTest.cpp">
       <Filter>源文件\Tracer</Filter>
+    </ClCompile>
+    <ClCompile Include="KDTree.cpp">
+      <Filter>源文件\Acceleration</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

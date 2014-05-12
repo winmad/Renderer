@@ -164,6 +164,7 @@
     <ClInclude Include="IsotropicPhaseSampler.h" />
     <ClInclude Include="macros.h" />
     <ClInclude Include="Material.h" />
+    <ClInclude Include="NewBidirectionalPathTracer.h" />
     <ClInclude Include="NoSelfIntersectionCondition.h" />
     <ClInclude Include="ConfigManager.h" />
     <ClInclude Include="CosineSphericalSampler.h" />
@@ -219,6 +220,7 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Material.cpp" />
     <ClCompile Include="MCRenderer.cpp" />
+    <ClCompile Include="NewBidirectionalPathTracer.cpp" />
     <ClCompile Include="NoSelfIntersectionCondition.cpp" />
     <ClCompile Include="PathTracer.cpp" />
     <ClCompile Include="PathTracerTest.cpp" />

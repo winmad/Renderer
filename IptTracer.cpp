@@ -206,7 +206,7 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 					{
 						cameraState.isSpecularPath = 0;
 						nonSpecLength++;
-						break; // PPM, eye path length is 1
+						//break; // PPM, eye path length is 1
 					}
 
 					if (i >= eyePath.size() - 1)

@@ -78,8 +78,6 @@ vector<vec3f> PathTracer::renderPixels(const Camera& camera)
 
 				vec3f color = vec3f(0, 0, 0);
 
-				
-
 				if(!useConnection || mustUsePT(pathList[p]) || 
 					pathList[p].size()==2 && pathList[p].back().contactObject && pathList[p].back().contactObject->emissive())
 				{

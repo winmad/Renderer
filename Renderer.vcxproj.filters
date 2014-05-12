@@ -225,6 +225,9 @@
     <ClInclude Include="PathTracerTest.h">
       <Filter>头文件\Tracer</Filter>
     </ClInclude>
+    <ClInclude Include="NewBidirectionalPathTracer.h">
+      <Filter>头文件\Tracer</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -328,6 +331,9 @@
     </ClCompile>
     <ClCompile Include="KDTree.cpp">
       <Filter>源文件\Acceleration</Filter>
+    </ClCompile>
+    <ClCompile Include="NewBidirectionalPathTracer.cpp">
+      <Filter>源文件\Tracer</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

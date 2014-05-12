@@ -6,8 +6,6 @@
 class BidirectionalPathTracer : public MCRenderer
 {
 protected:
-	
-
 	unsigned spp;
 
 	bool usePT;

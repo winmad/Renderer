@@ -42,3 +42,8 @@ inline float y(const vec3f& v)
 {
 	return 0.212671f * v[0] + 0.715160f * v[1] + 0.072169f * v[2];
 }
+
+inline float intensity(const vec3f& v)
+{
+	return 0.212671f * v[0] + 0.715160f * v[1] + 0.072169f * v[2];
+}

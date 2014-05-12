@@ -104,6 +104,8 @@ vec3f PathTracerTest::colorByConnectingLights(const Camera& camera, const Ray& r
 		return vec3f(0.f);
 
 	float cosAtLight = min(max(0.f , lightRay.getContactNormal().dot(lightRay.direction)) , 1.f);
+	if (cosAtLight < 1e-6f)
+		return vec3f(0.f);
 
 	float cosToLight = 1;
 	if (ray.contactObject)

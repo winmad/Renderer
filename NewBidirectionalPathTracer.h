@@ -27,6 +27,9 @@ protected:
 	void genLightSample(Path& lightPath , BidirPathState& lightState);
 
 	vec3f colorByConnectingCamera(const Camera& camera, const BidirPathState& lightState , const Ray& ray , const Ray& lastRay , int& _x , int& _y);
+
+	void genCameraSample(const Camera& camera , Path& cameraPath , BidirPathState& cameraState);
+
 public:
 	int controlLength;
 	int lightPathNum , cameraPathNum , pixelNum;

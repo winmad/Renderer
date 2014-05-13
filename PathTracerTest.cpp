@@ -25,7 +25,9 @@ vector<vec3f> PathTracerTest::renderPixels(const Camera& camera)
 
 				pixelColors[p] *= s/float(s+1);
 
-				vec3f throughput = vec3f(1.f) / eyePath[0].directionProb;
+				vec3f throughput = vec3f(1.f);
+				throughput /= eyePath[0].directionProb;
+
 				vec3f color = vec3f(0.f);
 				bool lastSpecular = 1;
 				float lastPdfW = 1.f;
@@ -41,7 +43,7 @@ vector<vec3f> PathTracerTest::renderPixels(const Camera& camera)
 						{
 							float cosine = eyePath[i].getContactNormal().dot(-eyePath[i - 1].direction);
 							float dist = (eyePath[i].origin - eyePath[i - 1].origin).length();
-							float dirPdfW = dirPdfA * dist * dist / cosine;
+							float dirPdfW = dirPdfA * dist * dist / abs(cosine);
 							mis = lastPdfW / (lastPdfW + dirPdfW);
 							/*
 							fprintf(fp , "==================\n");
@@ -70,6 +72,9 @@ vector<vec3f> PathTracerTest::renderPixels(const Camera& camera)
 
 					throughput *= eyePath[i].color * eyePath[i].getCosineTerm() / 
 						eyePath[i].directionProb;
+					float dist = std::max((eyePath[i].origin - eyePath[i - 1].origin).length() , 1e-5f);
+					vec3f decayFactor = eyePath[i - 1].getRadianceDecay(dist);
+					throughput *= decayFactor;
 				}
 				color = camera.eliminateVignetting(color , p) * camera.width * camera.height;
 				pixelColors[p] += color / ((float)s + 1);
@@ -113,16 +118,15 @@ vec3f PathTracerTest::colorByConnectingLights(const Camera& camera, const Ray& r
 		cosToLight = min(max(0.f , abs(ray.getContactNormal().dot(-lightRay.direction))) , 1.f);
 	}
 
-	vec3f tmp = lightRay.color * cosAtLight * bsdfFactor * cosToLight
-		/ (lightRay.originProb * dist2);
-
 	float bsdfToLightPdf = inRay.getDirectionSampleProbDensity(outRay);
-
 	outRay.direction = -lastRay.direction;
 	float lightOriginPdf = lightRay.originProb;
 	float dirPdfW = lightOriginPdf * dist2 / cosAtLight;
 
 	float mis = dirPdfW / (dirPdfW + bsdfToLightPdf);
+
+	vec3f tmp = lightRay.color * cosAtLight * bsdfFactor * cosToLight
+		/ (lightRay.originProb * dist2);
 
 	vec3f res = tmp * mis;
 	/*

@@ -172,9 +172,10 @@ vec4f BidirectionalPathTracer::connectColorProb(const Path& connectedPath, int c
 
 		color *= connectedPath[i].color;
 		/*
-		fprintf(fp , "len=%d, bsdf=(%.8f,%.8f,%.8f), decay=(%.8f,%.8f,%.8f)\ndirPdf=%.8f, oPdf=%.8f, cosine=%.8f\n" ,
+		fprintf(fp , "len=%d, bsdf=(%.8f,%.8f,%.8f), decay=(%.8f,%.8f,%.8f)\npos=(%.8f,%.8f,%.8f), dirPdf=%.8f, oPdf=%.8f, cosine=%.8f\n" ,
 			i , connectedPath[i].color.x , connectedPath[i].color.y , connectedPath[i].color.z ,
 			connectedPath[i].getRadianceDecay(dist).x , connectedPath[i].getRadianceDecay(dist).y , connectedPath[i].getRadianceDecay(dist).z ,
+			connectedPath[i].origin.x , connectedPath[i].origin.y , connectedPath[i].origin.z ,
 			connectedPath[i].directionProb , connectedPath[i].originProb , connectedPath[i].getCosineTerm());
 		*/
 	}
@@ -379,8 +380,6 @@ void BidirectionalPathTracer::colorByConnectingPaths(vector<omp_lock_t> &pixelLo
 		{
 			int eyePathLen = wholePathLen - lightPathLen;
 
-			//if (!(lightPathLen == 4 && eyePathLen == 1)) continue;
-
 			for(int li=0; li < lightPathLen; li++)
 				wholePath[li] = lightPath[li];
 
@@ -422,7 +421,18 @@ void BidirectionalPathTracer::colorByConnectingPaths(vector<omp_lock_t> &pixelLo
 						continue;
 				}
 			}
-
+			/*
+			if (eyePathLen == 1)
+			{
+				float cosToCamera = 1.f;
+				if (lightRay.contactObject && lightRay.contactObject->hasCosineTerm())
+					cosToCamera = abs(lightRay.getContactNormal().dot(eyeRay.origin - lightRay.origin));
+				float dist = (eyeRay.origin - lightRay.origin).length();
+				float imageToSolidAngleFactor = eyePath[0].directionProb;
+				float imageToSurfaceFactor = imageToSolidAngleFactor;
+				eyeRay.color /= (colors.size() / imageToSurfaceFactor);
+			}
+			*/
 			vec4f color_prob = connectColorProb(wholePath, lightConnectID);
 			
 			if(!(color_prob.w > 0))

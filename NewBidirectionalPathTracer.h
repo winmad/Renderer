@@ -30,6 +30,8 @@ protected:
 
 	void genCameraSample(const Camera& camera , Path& cameraPath , BidirPathState& cameraState);
 
+	vec3f colorByHittingLight();
+
 public:
 	int controlLength;
 	int lightPathNum , cameraPathNum , pixelNum;

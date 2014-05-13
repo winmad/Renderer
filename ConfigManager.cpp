@@ -298,13 +298,6 @@ void ConfigManager::load(const string &configFilePath)
 			if (nodeRenderer->first_node("initProb"))
 				((IptTracer*)renderer->mcRenderer)->setInitProb(atof(nodeRenderer->first_node("initProb")->value()));
 		}
-		if(nodeRenderer->first_node("useGPU"))
-		{
-			if(strcmp(nodeRenderer->first_node("useGPU")->value(), "yes") == 0)
-				renderer->scene.setGPU(true);
-			if(strcmp(nodeRenderer->first_node("useGPU")->value(), "no") == 0)
-				renderer->scene.setGPU(false);
-		}
 		if (nodeRenderer->first_node("maxDepth"))
 			renderer->mcRenderer->setMaxDepth(atoi(nodeRenderer->first_node("maxDepth")->value()));
 	}

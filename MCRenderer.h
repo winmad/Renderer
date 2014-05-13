@@ -82,7 +82,12 @@ public:
 
 	void setMaxDepth(const int _maxDepth)
 	{
-		maxDepth = std::max((unsigned)_maxDepth , maxDepth);
+		maxDepth = (unsigned)_maxDepth;
+	}
+
+	int getMaxDepth()
+	{
+		return maxDepth;
 	}
 
 	void setSavePath(const string& savePath);

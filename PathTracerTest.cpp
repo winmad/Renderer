@@ -26,7 +26,7 @@ vector<vec3f> PathTracerTest::renderPixels(const Camera& camera)
 				pixelColors[p] *= s/float(s+1);
 
 				vec3f throughput = vec3f(1.f);
-				throughput /= eyePath[0].directionProb;
+				//throughput /= eyePath[0].directionProb;
 
 				vec3f color = vec3f(0.f);
 				bool lastSpecular = 1;
@@ -76,7 +76,7 @@ vector<vec3f> PathTracerTest::renderPixels(const Camera& camera)
 					vec3f decayFactor = eyePath[i - 1].getRadianceDecay(dist);
 					throughput *= decayFactor;
 				}
-				color = camera.eliminateVignetting(color , p) * camera.width * camera.height;
+				//color = camera.eliminateVignetting(color , p) * camera.width * camera.height;
 				pixelColors[p] += color / ((float)s + 1);
 			}
 

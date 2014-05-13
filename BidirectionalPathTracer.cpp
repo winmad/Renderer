@@ -122,6 +122,7 @@ vector<vec3f> BidirectionalPathTracer::renderPixels(const Camera& camera)
 bool BidirectionalPathTracer::mustUsePT(const Path& connectedPath)
 {
 	for(unsigned i=0; i<connectedPath.size()-1; i++)
+		// changed
 		if(connectedPath[i].directionSampleType == connectedPath[i+1].directionSampleType && connectedPath[i].directionSampleType == Ray::RANDOM)
 			return false;
 	return true;
@@ -250,6 +251,12 @@ float BidirectionalPathTracer::connectWeight(const Path& connectedPath, int conn
 
 	for(int i=0; i<connectedPath.size()-1; i++)
 	{
+		//bool flag = true;
+		//for (int j = i + 1; j < connectedPath.size() - 1; j++)
+		//	if (connectedPath[i].directionSampleType == Ray::RANDOM)
+		//		flag = false;
+		//if (flag)
+		//	break;
 		if(connectedPath[i].directionSampleType == Ray::RANDOM && connectedPath[i+1].directionSampleType == Ray::RANDOM)
 		{
 			double p = p_forward[i] * p_backward[i+1];
@@ -260,7 +267,9 @@ float BidirectionalPathTracer::connectWeight(const Path& connectedPath, int conn
 	}
 
 	if(usePT || mustUsePT(connectedPath))
+	{
 		sumExpProb += pow(double(p_backward.front()), double(expTerm));
+	}
 
 	double selfProb = connectIndex == -1 ? p_backward.front() : p_forward[connectIndex] * p_backward[connectIndex+1];
 
@@ -270,6 +279,9 @@ float BidirectionalPathTracer::connectWeight(const Path& connectedPath, int conn
 	}
 
 	double res = pow(selfProb, double(expTerm)) / sumExpProb;
+
+	//if ((sumExpProb < 1e-6))
+	//	return 1.f;
 
 	// alternative
 	/*
@@ -374,7 +386,7 @@ void BidirectionalPathTracer::colorByConnectingPaths(vector<omp_lock_t> &pixelLo
 		int lplStart = (wholePathLen - int(maxEyePathLen)) > 0 ? (wholePathLen - maxEyePathLen) : 0;
 		int lplEnd = wholePathLen - 1 < maxLightPathLen ? wholePathLen - 1 : maxLightPathLen;
 
-		//if(!(wholePathLen == 5)) continue;
+		//if(!(wholePathLen == 3)) continue;
 
 		for(int lightPathLen = lplStart; lightPathLen <= lplEnd; lightPathLen++)
 		{
@@ -461,7 +473,8 @@ void BidirectionalPathTracer::colorByConnectingPaths(vector<omp_lock_t> &pixelLo
 				if(x >= 0 && x < camera.width && y >= 0 && y < camera.height)
 				{
 					omp_set_lock(&pixelLocks[y*camera.width + x]);
-					colors[y*camera.width + x] += color;
+					colors[y*camera.width + x] += color // eyePath[0].getCosineTerm() 
+						/ eyePath[1].getContactNormal().dot(-eyePath[0].direction);
 					omp_unset_lock(&pixelLocks[y*camera.width + x]);
 				}
 			}

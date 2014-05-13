@@ -25,7 +25,7 @@ vector<vec3f> PathTracerTest::renderPixels(const Camera& camera)
 
 				pixelColors[p] *= s/float(s+1);
 
-				vec3f throughput = vec3f(1.f);
+				vec3f throughput = vec3f(1.f) / eyePath[0].directionProb;
 				vec3f color = vec3f(0.f);
 				bool lastSpecular = 1;
 				float lastPdfW = 1.f;
@@ -71,7 +71,7 @@ vector<vec3f> PathTracerTest::renderPixels(const Camera& camera)
 					throughput *= eyePath[i].color * eyePath[i].getCosineTerm() / 
 						eyePath[i].directionProb;
 				}
-
+				color = camera.eliminateVignetting(color , p) * camera.width * camera.height;
 				pixelColors[p] += color / ((float)s + 1);
 			}
 
@@ -103,14 +103,14 @@ vec3f PathTracerTest::colorByConnectingLights(const Camera& camera, const Ray& r
 	if (y(bsdfFactor) < 1e-7f)
 		return vec3f(0.f);
 
-	float cosAtLight = min(max(0.f , lightRay.getContactNormal().dot(lightRay.direction)) , 1.f);
+	float cosAtLight = min(max(0.f , abs(lightRay.getContactNormal().dot(lightRay.direction))) , 1.f);
 	if (cosAtLight < 1e-6f)
 		return vec3f(0.f);
 
 	float cosToLight = 1;
 	if (ray.contactObject)
 	{
-		cosToLight = min(max(0.f , ray.getContactNormal().dot(-lightRay.direction)) , 1.f);
+		cosToLight = min(max(0.f , abs(ray.getContactNormal().dot(-lightRay.direction))) , 1.f);
 	}
 
 	vec3f tmp = lightRay.color * cosAtLight * bsdfFactor * cosToLight

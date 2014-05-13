@@ -462,7 +462,7 @@ void BidirectionalPathTracer::colorByConnectingPaths(vector<omp_lock_t> &pixelLo
 			if(eyePathLen > 1)
 			{
 				omp_set_lock(&pixelLocks[camRay.pixelID]);
-				colors[camRay.pixelID] += color;
+				//colors[camRay.pixelID] += color;
 				omp_unset_lock(&pixelLocks[camRay.pixelID]);
 			}
 			else

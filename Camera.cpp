@@ -35,7 +35,8 @@ Ray Camera::generateRay(unsigned pixelID) const
 	ray.insideObject = scene->findInsideObject(ray);
 	float dist = sqrt(xc*xc+yc*yc+sightDist*sightDist);
 
-	ray.directionProb = powf(dist, 3) / sightDist;
+	//ray.directionProb = powf(dist, 3) / sightDist;
+	ray.directionProb = 1.f;
 
 	ray.directionSampleType = Ray::RANDOM;
 	ray.originSampleType = Ray::DEFINITE;
@@ -69,7 +70,8 @@ vec3f Camera::eliminateVignetting(const vec3f& color, unsigned pixelID) const
 
 	vec3f dir = front*sightDist + right * (x + 0.5 - (width/2.0)) + orthoUp * ((height/2.0) - 0.5 - y);
 	dir.normalize();
-	return color / powf(dir.dot(front), 4);
+	//return color / powf(dir.dot(front), 4);
+	return color / abs(dir.dot(front));
 }
 
 
@@ -80,7 +82,8 @@ float Camera::getDirectionSampleProbDensity(const Ray& inRay, const Ray& outRay)
 	float xc = x + 0.5 - (width/2.0);
 	float yc = (height/2.0) - 0.5 - y;
 	float dist = sqrt(xc*xc+yc*yc+sightDist*sightDist);
-	return powf(dist, 3) / sightDist;
+	//return powf(dist, 3) / sightDist;
+	return 1.f;
 }
 
 vec3f Camera::getWorldNormal(unsigned fi, const vec3f& position, bool flat) const

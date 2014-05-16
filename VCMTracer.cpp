@@ -116,8 +116,7 @@ vector<vec3f> VCMTracer::renderPixels(const Camera& camera)
 			for(int i=0; i<pixelColors.size(); i++)
 			{
 				pixelColors[i] *= s / float(s + 1);
-				pixelColors[i] += singleImageColors[i] / (s + 1)*camera.width*camera.height;
-				//pixelColors[i] += singleImageColors[i] / (s + 1)*camera.sightDist*camera.sightDist;
+				pixelColors[i] += singleImageColors[i] / (s + 1);//*camera.width*camera.height;
 				delete lightPathList[i];
 			}
 			printf("Iter: %d  IterTime: %ds  TotalTime: %ds\n", s+1, (clock()-t)/1000, (clock()-t_start)/1000);
@@ -202,10 +201,17 @@ vector<vec3f> VCMTracer::renderPixels(const Camera& camera)
 			for(int i=0; i<pixelColors.size(); i++)
 			{
 				pixelColors[i] *= s / float(s + 1);
-				pixelColors[i] += singleImageColors[i] / (s + 1)*camera.width*camera.height;
+				pixelColors[i] += singleImageColors[i] / (s + 1);//*camera.width*camera.height;
 			}
 			printf("Iter: %d  IterTime: %ds  TotalTime: %ds\n", s+1, (clock()-t)/1000, (clock()-t_start)/1000);
-			showCurrentResult(pixelColors);
+
+			if (clock() / 1000 >= lastTime)
+			{
+				showCurrentResult(pixelColors , &lastTime);
+				lastTime += timeInterval;
+			}
+			else
+				showCurrentResult(pixelColors);
 		}
 	}
 	return pixelColors;
@@ -353,8 +359,10 @@ float VCMTracer::connectMergeWeight(const Path& connectedPath, int connectIndex,
 		if(connectedPath[i].directionSampleType == Ray::RANDOM && connectedPath[i+1].directionSampleType == Ray::RANDOM)
 		{
 			double p = p_forward[i] * p_backward[i+1];
+			/*
 			if(i == connectedPath.size() - 2)
 				p *= renderer->camera.width * renderer->camera.height;
+			*/
 			sumExpProb += pow(p, double(expTerm));
 		}
 		if(i < connectedPath.size()-2 && connectedPath[i+1].directionSampleType == Ray::RANDOM)
@@ -595,6 +603,20 @@ void VCMTracer::colorByConnectingPaths(vector<omp_lock_t> &pixelLocks, const Cam
 			if(!(color.length() > 0))
 				continue;
 
+			if (eyePathLen == 1)
+			{
+				vec3f forward = camera.focus - camera.position;
+				forward.normalize();
+				vec3f dir = lightRay.origin - eyeRay.origin;
+				dir.normalize();
+				float cosAtCamera = abs(forward.dot(dir));
+				float imageToSolidAngleFactor = camera.sightDist * camera.sightDist /
+					(cosAtCamera * cosAtCamera * cosAtCamera);
+				float imageToSurfaceFactor = imageToSolidAngleFactor / cosAtCamera;
+				color *= (imageToSurfaceFactor / colors.size());	
+				color *= cosAtCamera;
+			}
+
 			Ray &camRay = wholePath[wholePath.size()-1];
 
 			if(eyePathLen > 1)// && eyePath[1].directionSampleType == Ray::DEFINITE)
@@ -608,17 +630,6 @@ void VCMTracer::colorByConnectingPaths(vector<omp_lock_t> &pixelLocks, const Cam
 			}
 			else
 			{
-				/*
-				if (eyePathLen <= 1)
-				{
-					fprintf(fp , "===========\n");
-					for (int i = 0; i < wholePath.size(); i++)
-					{
-						fprintf(fp , "c=(%.8f,%.8f,%.8f), p=%.8f\n" , wholePath[i].color[0] , wholePath[i].color[1] ,
-							wholePath[i].color[2] , wholePath[i].directionProb);
-					}
-				}
-				*/
 				vec2<float> pCoord = camera.transToPixel(wholePath[wholePath.size()-2].origin);
 				int x = pCoord.x;
 				int y = pCoord.y;
@@ -636,10 +647,10 @@ void VCMTracer::colorByConnectingPaths(vector<omp_lock_t> &pixelLocks, const Cam
 
 void VCMTracer::colorByMergingPaths(vector<vec3f>& colors, const Path& eyePath, PointKDTree<LightPathPoint>& tree)
 {
-
 	struct Query
 	{
 		vec3f color;
+
 		VCMTracer *tracer;
 		const Path* eyePath;
 		unsigned eyePathLen;

@@ -51,11 +51,21 @@ vector<vec3f> NewBidirectionalPathTracer::renderPixels(const Camera& camera)
 
 				genLightSample(lightPath , lightState);
 
+				//fprintf(fp , "==================\n");
 				for (s = 1; s < lightPath.size(); s++)
 				{
+					lightState.pos = lightPath[s].origin;
+					lightState.dir = lightPath[s].direction;
 					float dist = (lightPath[s].origin - lightPath[s - 1].origin).length();
 					if (abs(dist) < 1e-6f)
 						break;
+					vec3f decayFactor = lightPath[s - 1].getRadianceDecay(dist);
+					lightState.throughput *= decayFactor;
+
+					//fprintf(fp , "thr=(%.8f,%.8f,%.8f) , cos=%.8f, pdf=%.8f\n" , 
+					//	lightState.throughput.x , lightState.throughput.y , lightState.throughput.z ,
+					//	lightPath[s].getCosineTerm() , lightPath[s].directionProb);
+
 					if (lightState.pathLength > 1 || lightState.isFiniteLight)
 						lightState.dVCM *= mis(dist * dist);
 					float cosWi = lightPath[s].getContactNormal().dot(-lightPath[s].direction);
@@ -70,7 +80,7 @@ vector<vec3f> NewBidirectionalPathTracer::renderPixels(const Camera& camera)
 						int _x(0) , _y(0);
 						vec3f color(0.f);
 						color = colorByConnectingCamera(camera , lightState , lightPath[s] , lightPath[s - 1] , _x , _y);
-
+				
 						if (y(color) > 0)
 						{
 							omp_set_lock(&pixelLocks[_y*camera.width + _x]);
@@ -82,8 +92,6 @@ vector<vec3f> NewBidirectionalPathTracer::renderPixels(const Camera& camera)
 					if (s + 1 >= lightPath.size())
 						break;
 					
-					lightState.pos = lightPath[s].origin;
-					lightState.dir = lightPath[s].direction;
 					float bsdfDirPdf = lightPath[s].directionProb;
 					Ray inRay = lightPath[s + 1];
 					inRay.direction = -lightPath[s].direction;
@@ -93,10 +101,30 @@ vector<vec3f> NewBidirectionalPathTracer::renderPixels(const Camera& camera)
 					
 					lightState.throughput = (lightState.throughput * lightPath[s].color) *
 						(lightPath[s].getCosineTerm() / lightPath[s].directionProb);
+
+					if (lightPath[s].directionSampleType == Ray::DEFINITE)
+					{
+						lightState.dVCM = 0.f;
+						if (abs(bsdfRevPdf - lightPath[s].directionProb) > 1e-6f) 
+						{
+							printf("error: dir = %.8f, rev = %.8f\n" , lightPath[s].directionProb , 
+								bsdfRevPdf);
+							bsdfRevPdf = lightPath[s].directionProb;
+						}
+						lightState.dVC *= mis(lightPath[s].getCosineTerm());
+						lightState.specularPath &= 1;
+					}
+					else
+					{
+						lightState.dVC = mis(lightPath[s].getCosineTerm() / lightPath[s].directionProb) *
+							(lightState.dVC * mis(bsdfRevPdf) + lightState.dVCM);
+						lightState.dVCM = mis(1.f / lightPath[s].directionProb);
+						lightState.specularPath &= 0;
+					}
 				}
 				lightStateIndex[p] = (int)lightStates.size();
 			}
-
+			cameraPathNum = 0;
 			for (int p=0; p<cameraPathNum; p++)
 			{
 				Path cameraPath;
@@ -130,12 +158,12 @@ vector<vec3f> NewBidirectionalPathTracer::renderPixels(const Camera& camera)
 			if(cmd == "exit")
 				return pixelColors;
 
-			eliminateVignetting(singleImageColors);
+			//eliminateVignetting(singleImageColors);
 
 			for(int i=0; i<pixelColors.size(); i++)
 			{
 				pixelColors[i] *= s / float(s + 1);
-				pixelColors[i] += singleImageColors[i] / (s + 1)*camera.width*camera.height;
+				pixelColors[i] += singleImageColors[i] / (s + 1);//*camera.width*camera.height;
 			}
 
 			printf("Iter: %d  IterTime: %ds  TotalTime: %ds\n", s+1, (clock()-t)/1000, (clock()-t_start)/1000);
@@ -192,6 +220,9 @@ vec3f NewBidirectionalPathTracer::colorByConnectingCamera(const Camera& camera, 
 
 	float cosToCamera;
 	cosToCamera = std::abs(ray.getContactNormal().dot(dirToCamera));
+	if (cosToCamera < 1e-6f)
+		return vec3f(0.f);
+	//printf("cosToCamera = %.8f\n" , cosToCamera);
 
 	Ray outRay = ray;
 	outRay.direction = dirToCamera;
@@ -201,6 +232,7 @@ vec3f NewBidirectionalPathTracer::colorByConnectingCamera(const Camera& camera, 
 		return vec3f(0.f);
 
 	float cosAtCamera = forward.dot(-dirToCamera);
+	//printf("cosAtCamera = %.8f\n" , cosAtCamera);
 
 	float imagePointToCameraDist = camera.sightDist / cosAtCamera;
 	float imageToSolidAngleFactor = imagePointToCameraDist *
@@ -216,7 +248,7 @@ vec3f NewBidirectionalPathTracer::colorByConnectingCamera(const Camera& camera, 
 	//---- still buggy, fix me ----
 	vec3f color = (totContrib * bsdfFactor) //* cosAtCamera * cosToCamera / distEye2;
 		 / (surfaceToImageFactor * lightPathNum);
-	color *= powf(cosAtCamera , 4.f) / pixelNum;
+	//color *= powf(cosAtCamera , 4.f) / pixelNum;
 	//-----------------------------
 
 	outRay.direction = -lastRay.direction;
@@ -224,16 +256,16 @@ vec3f NewBidirectionalPathTracer::colorByConnectingCamera(const Camera& camera, 
 	inRay.origin = camera.position;
 	inRay.direction = -dirToCamera;
 
+	float bsdfRevPdf = inRay.getDirectionSampleProbDensity(outRay);
+
 	if (!testVisibility(inRay , outRay))
 		return vec3f(0.f);
-
-	float bsdfRevPdf = inRay.getDirectionSampleProbDensity(outRay);
 
 	float wLight = mis(cameraPdfArea / lightPathNum) * (lightState.dVCM +
 		mis(bsdfRevPdf) * lightState.dVC);
 	float weight = 1.f / (wLight + 1.f);
 
-	color *= weight;
+	//color *= weight;
 	/*
 	if (lightState.isSpecularPath && bsdfFactor[2] > bsdfFactor[1] && bsdfFactor[2] > bsdfFactor[0])
 	{
@@ -263,10 +295,12 @@ void NewBidirectionalPathTracer::genCameraSample(const Camera& camera , Path& ca
 	cameraState.specularPath = 1;
 	cameraState.specularVertexNum = 0;
 	// Different!
-	cameraState.throughput = vec3f(1.f) / cameraPath[0].directionProb;
+	cameraState.throughput = vec3f(1.f);
 	// =========
 
-	float cosAtCamera = cameraPath[0].direction.dot(camera.focus - camera.position);
+	vec3f forward = camera.focus - camera.position;
+	forward.normalize();
+	float cosAtCamera = cameraPath[0].direction.dot(forward);
 	float imagePointToCameraDist = camera.sightDist / cosAtCamera;
 	float imageToSolidAngle = imagePointToCameraDist * imagePointToCameraDist / cosAtCamera;
 

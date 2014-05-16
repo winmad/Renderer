@@ -50,27 +50,6 @@ vector<vec3f> BidirectionalPathTracer::renderPixels(const Camera& camera)
 
 				colorByConnectingPaths(pixelLocks, renderer->camera, singleImageColors, eyePath, lightPath);
 			}
-
-			if(cmd == "exit")
-				return pixelColors;
-
-			eliminateVignetting(singleImageColors);
-
-			for(int i=0; i<pixelColors.size(); i++)
-			{
-				pixelColors[i] *= s / float(s + 1);
-				pixelColors[i] += singleImageColors[i] / (s + 1)*camera.width*camera.height;
-			}
-
-			printf("Iter: %d  IterTime: %ds  TotalTime: %ds\n", s+1, (clock()-t)/1000, (clock()-t_start)/1000);
-
-			if (clock() / 1000 >= lastTime)
-			{
-				showCurrentResult(pixelColors , &lastTime);
-				lastTime += timeInterval;
-			}
-			else
-				showCurrentResult(pixelColors);
 		}
 		else
 		{
@@ -98,23 +77,28 @@ vector<vec3f> BidirectionalPathTracer::renderPixels(const Camera& camera)
 				colorByConnectingPaths(pixelLocks, renderer->camera, singleImageColors, eyePath, lightPath, &visibilityList[p]);
 
 			}
-
-			if(cmd == "exit")
-				return pixelColors;
-
-			eliminateVignetting(singleImageColors);
-
-			for(int i=0; i<pixelColors.size(); i++)
-			{
-				pixelColors[i] *= s / float(s + 1);
-				pixelColors[i] += singleImageColors[i] / (s + 1)*camera.width*camera.height;
-			}
-
-			printf("Iter: %d  IterTime: %ds  TotalTime: %ds\n", s+1, (clock()-t)/1000, (clock()-t_start)/1000);
-
-			showCurrentResult(pixelColors);
 		}
 
+		if(cmd == "exit")
+			return pixelColors;
+
+		eliminateVignetting(singleImageColors);
+
+		for(int i=0; i<pixelColors.size(); i++)
+		{
+			pixelColors[i] *= s / float(s + 1);
+			pixelColors[i] += singleImageColors[i] / (s + 1);//*camera.width*camera.height;
+		}
+
+		printf("Iter: %d  IterTime: %ds  TotalTime: %ds\n", s+1, (clock()-t)/1000, (clock()-t_start)/1000);
+
+		if (clock() / 1000 >= lastTime)
+		{
+			showCurrentResult(pixelColors , &lastTime);
+			lastTime += timeInterval;
+		}
+		else
+			showCurrentResult(pixelColors);
 	}
 	return pixelColors;
 }
@@ -149,7 +133,6 @@ vec4f BidirectionalPathTracer::connectColorProb(const Path& connectedPath, int c
 			dist = max2((connectedPath[i-1].origin - connectedPath[i].origin).length(), EPSILON);
 			color *= connectedPath[i].getRadianceDecay(dist);
 		}
-
 
 		if(i==connectIndex && i<connectedPath.size()-1)
 		{
@@ -249,19 +232,32 @@ float BidirectionalPathTracer::connectWeight(const Path& connectedPath, int conn
 		}
 	}
 
+	//double selfProb;
+	//if (connectIndex == -1)
+	//	selfProb = p_backward.front();
+
 	for(int i=0; i<connectedPath.size()-1; i++)
 	{
-		//bool flag = true;
-		//for (int j = i + 1; j < connectedPath.size() - 1; j++)
-		//	if (connectedPath[i].directionSampleType == Ray::RANDOM)
-		//		flag = false;
-		//if (flag)
-		//	break;
 		if(connectedPath[i].directionSampleType == Ray::RANDOM && connectedPath[i+1].directionSampleType == Ray::RANDOM)
 		{
 			double p = p_forward[i] * p_backward[i+1];
 			if(i == connectedPath.size() - 2)
-				p *= renderer->camera.width * renderer->camera.height;
+			{
+				/*
+				int eyeIndex = connectedPath.size() - 1;
+				double cosAtCamera = link(connectedPath , connectIndex , eyeIndex , eyeIndex - 1).getCosineTerm();
+				double imagePointToCameraDist = renderer->camera.sightDist / cosAtCamera;
+				double imageToSolidAngleFactor = imagePointToCameraDist * imagePointToCameraDist / cosAtCamera;
+				double cosToCamera = link(connectedPath , connectIndex , eyeIndex - 1 , eyeIndex).getCosineTerm();
+				double dist = (connectedPath[eyeIndex - 1].origin - connectedPath[eyeIndex].origin).length();
+				double imageToSurfaceFactor = imageToSolidAngleFactor * cosToCamera / (dist * dist);
+
+				//p *= (renderer->camera.width * renderer->camera.height) / imageToSurfaceFactor;
+				p *= imageToSurfaceFactor;
+				*/
+			}
+			//if (i == connectIndex)
+			//	selfProb = p;
 			sumExpProb += pow(p, double(expTerm));
 		}
 	}
@@ -392,6 +388,8 @@ void BidirectionalPathTracer::colorByConnectingPaths(vector<omp_lock_t> &pixelLo
 		{
 			int eyePathLen = wholePathLen - lightPathLen;
 
+			//if (!eyePathLen == 1) continue;
+
 			for(int li=0; li < lightPathLen; li++)
 				wholePath[li] = lightPath[li];
 
@@ -433,18 +431,7 @@ void BidirectionalPathTracer::colorByConnectingPaths(vector<omp_lock_t> &pixelLo
 						continue;
 				}
 			}
-			/*
-			if (eyePathLen == 1)
-			{
-				float cosToCamera = 1.f;
-				if (lightRay.contactObject && lightRay.contactObject->hasCosineTerm())
-					cosToCamera = abs(lightRay.getContactNormal().dot(eyeRay.origin - lightRay.origin));
-				float dist = (eyeRay.origin - lightRay.origin).length();
-				float imageToSolidAngleFactor = eyePath[0].directionProb;
-				float imageToSurfaceFactor = imageToSolidAngleFactor;
-				eyeRay.color /= (colors.size() / imageToSurfaceFactor);
-			}
-			*/
+		
 			vec4f color_prob = connectColorProb(wholePath, lightConnectID);
 			
 			if(!(color_prob.w > 0))
@@ -456,13 +443,27 @@ void BidirectionalPathTracer::colorByConnectingPaths(vector<omp_lock_t> &pixelLo
 			float weight = connectWeight(wholePath, lightConnectID, p_forward, p_backward, distList);
 
 			vec3f color = vec3f(color_prob) / color_prob.w * weight;
-
+			
+			if (eyePathLen == 1)
+			{
+				vec3f forward = camera.focus - camera.position;
+				forward.normalize();
+				vec3f dir = lightRay.origin - eyeRay.origin;
+				dir.normalize();
+				float cosAtCamera = abs(forward.dot(dir));
+				float imageToSolidAngleFactor = camera.sightDist * camera.sightDist /
+					(cosAtCamera * cosAtCamera * cosAtCamera);
+				float imageToSurfaceFactor = imageToSolidAngleFactor / cosAtCamera;
+				color *= (imageToSurfaceFactor / colors.size());	
+				color *= cosAtCamera;
+			}
+			
 			Ray &camRay = wholePath[wholePath.size()-1];
 
 			if(eyePathLen > 1)
 			{
 				omp_set_lock(&pixelLocks[camRay.pixelID]);
-				//colors[camRay.pixelID] += color;
+				colors[camRay.pixelID] += color;
 				omp_unset_lock(&pixelLocks[camRay.pixelID]);
 			}
 			else
@@ -473,8 +474,7 @@ void BidirectionalPathTracer::colorByConnectingPaths(vector<omp_lock_t> &pixelLo
 				if(x >= 0 && x < camera.width && y >= 0 && y < camera.height)
 				{
 					omp_set_lock(&pixelLocks[y*camera.width + x]);
-					colors[y*camera.width + x] += color // eyePath[0].getCosineTerm() 
-						/ eyePath[1].getContactNormal().dot(-eyePath[0].direction);
+					colors[y*camera.width + x] += color;
 					omp_unset_lock(&pixelLocks[y*camera.width + x]);
 				}
 			}

@@ -22,6 +22,9 @@ vector<vec3f> PathTracer::renderPixels(const Camera& camera)
 
 				pixelColors[p] *= s/float(s+1);
 
+				if (!(eyePath.back().contactObject && eyePath.back().contactObject->emissive()))
+					continue;
+
 				vec3f color = vec3f(1, 1, 1);
 				for(unsigned i=0; i<eyePath.size(); i++)
 				{
@@ -36,7 +39,8 @@ vector<vec3f> PathTracer::renderPixels(const Camera& camera)
 					}
 				}
 
-				pixelColors[p] += renderer->camera.eliminateVignetting(color, p)/(s+1)*camera.width*camera.height;
+				pixelColors[p] += renderer->camera.eliminateVignetting(color, p)/(s+1);//*camera.width*camera.height;
+				//pixelColors[p] += color * eyePath[0].directionProb / (s+1);
 			}
 
 			showCurrentResult(pixelColors);
@@ -78,8 +82,11 @@ vector<vec3f> PathTracer::renderPixels(const Camera& camera)
 
 				vec3f color = vec3f(0, 0, 0);
 
-				if(!useConnection || mustUsePT(pathList[p]) || 
-					pathList[p].size()==2 && pathList[p].back().contactObject && pathList[p].back().contactObject->emissive())
+				//pathList[p][0].directionProb = 1.f;
+
+				//if(!useConnection || mustUsePT(pathList[p]) || 
+				//	pathList[p].size()==2 && pathList[p].back().contactObject && pathList[p].back().contactObject->emissive())
+				if (pathList[p].back().contactObject && pathList[p].back().contactObject->emissive())
 				{
 					vec3f c(1, 1, 1);
 					for(unsigned i=0; i<pathList[p].size(); i++)
@@ -96,6 +103,7 @@ vector<vec3f> PathTracer::renderPixels(const Camera& camera)
 					}
 					color += c;
 				}
+				/*
 				else
 				{
 					Ray &lightRay = lightPathList[p][0];
@@ -118,8 +126,9 @@ vector<vec3f> PathTracer::renderPixels(const Camera& camera)
 							color += vec3f(color_prob) / color_prob.w;// / camera.width / camera.height;
 					}
 				}
-
-				pixelColors[p] += renderer->camera.eliminateVignetting(color, p)/(s+1)*camera.width*camera.height;
+				*/
+				pixelColors[p] += renderer->camera.eliminateVignetting(color, p)/(s+1);//*camera.width*camera.height;
+				//pixelColors[p] += color / (s+1);
 			}
 
 			showCurrentResult(pixelColors);

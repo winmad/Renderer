@@ -7,8 +7,7 @@
 
 struct IptPathState
 {
-	vec3f throughput;
-	vec3f dirContrib , indirContrib;
+	vec3f throughput , indirContrib;
 	//vec3f contribs[4]; 
 	Ray *ray , *lastRay , *originRay;
 	bool isSpecularPath;
@@ -36,6 +35,8 @@ protected:
 
 	CountHashGrid countHashGrid;
 
+	void movePaths(omp_lock_t& cmdLock , vector<Path>& , vector<Path*>&);
+
 	void genLightPaths(omp_lock_t& cmdLock , vector<Path*>&);
 
 	void genIntermediatePaths(omp_lock_t& cmdLock , vector<Path*>&);
@@ -61,14 +62,13 @@ public:
 	Real totArea , totVol;
 	Real initialProb;
 	unsigned timeInterval , lastTime;
-	bool useWeight;
+	bool useWeight , usePPM;
 
 	IptTracer(Renderer* renderer) : MCRenderer(renderer)
 	{ 
 		alpha = 2.f / 3.f;
 		spp = -1; 
 		initialProb = 1.f;
-		mergeIterations = 5;
 		timeInterval = lastTime = 3600;
 
 		pixelNum = renderer->camera.height * renderer->camera.width;
@@ -77,7 +77,17 @@ public:
 		interPathNum = pixelNum;
 		partialPathNum = pixelNum;
 
-		useWeight = false;
+		usePPM = false;
+		if (usePPM)
+		{
+			mergeIterations = 0;
+			useWeight = false;
+		}
+		else
+		{
+			mergeIterations = 5;
+			useWeight = true;
+		}
 	}
 	void setRadius(const Real& r) { mergeRadius = r; }
 	void setInitProb(const Real& r) { initialProb = r; }

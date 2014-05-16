@@ -14,6 +14,7 @@
 #include "VCMTracer.h"
 #include "IptTracer.h"
 #include "PathTracerTest.h"
+#include "NewBidirectionalPathTracer.h"
 
 ConfigManager::ConfigManager(Renderer* renderer)
 {
@@ -244,6 +245,10 @@ void ConfigManager::load(const string &configFilePath)
 		{
 			renderer->mcRenderer = new BidirectionalPathTracer(renderer);
 		}
+		if (typeName == "newBPT")
+		{
+			renderer->mcRenderer = new NewBidirectionalPathTracer(renderer);
+		}
 		if(typeName == "VCMTracer" || typeName == "VCM")
 		{
 			renderer->mcRenderer = new VCMTracer(renderer);
@@ -283,6 +288,10 @@ void ConfigManager::load(const string &configFilePath)
 		if(typeName == "BidirectionalPathTracer" || typeName == "BPT")
 		{
 			renderer->mcRenderer = new BidirectionalPathTracer(renderer);
+		}
+		if (typeName == "newBPT")
+		{
+			renderer->mcRenderer = new NewBidirectionalPathTracer(renderer);
 		}
 		if(typeName == "VCMTracer" || typeName == "VCM")
 		{

@@ -43,7 +43,8 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 			shrinkRatio = powf(((float)s + alpha) / ((float)s + 1.f) , 1.f / 3.f);
 		else
 			shrinkRatio = powf(((float)s + alpha) / ((float)s + 1.f) , 1.f / 2.f);
-		mergeRadius *= shrinkRatio;
+		if (s > 0)
+			mergeRadius *= shrinkRatio;
 
 		mergeRadius = std::max(mergeRadius , 1e-7f);
 		printf("mergeRadius = %.8f\n" , mergeRadius);
@@ -352,6 +353,7 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 
 				mergeContribs.clear();
 				weights.clear();
+				weights.push_back(1.f);
 
 				for(unsigned i = 1; i < eyePath.size(); i++)
 				//for (unsigned i = 1; i < 3; i++)
@@ -408,7 +410,8 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 						cameraState.isSpecularPath = 0;
 						nonSpecLength++;
 
-						if (usePPM)
+						//if (usePPM)
+						if (nonSpecLength == 1)
 							break; // PPM, eye path length is 1
 					}
 

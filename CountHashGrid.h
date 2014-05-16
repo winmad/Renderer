@@ -66,7 +66,7 @@ public:
 			if (aParticles[i].ray->insideObject == NULL)
 				continue;
 			const vec3f &pos = aParticles[i].pos;
-			vec3f totContrib = aParticles[i].dirContrib;
+			vec3f totContrib = aParticles[i].throughput;
 			int cellIndex = GetCellIndex(pos);
 			if (cellIndex == -1)
 			{

@@ -57,7 +57,7 @@ public:
 	SceneVPMObject(Scene* scene) : SceneObject(scene)
 	{
 		canMerge = true;
-		stepSize = 0.0002;
+		stepSize = 0.0005;
 	}
 	~SceneVPMObject()
 	{

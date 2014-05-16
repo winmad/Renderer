@@ -183,10 +183,7 @@ float BidirectionalPathTracer::connectWeight(const Path& connectedPath, int conn
 {
 	double sumExpProb = 0;
 
-	//p_forward.front() = connectedPath.front().getOriginSampleProbDensity(connectedPath.front());
 	p_forward.front() = connectedPath.front().originProb;
-	//printf("%.8f , %.8f\n" , connectedPath.front().originProb , 
-	//	connectedPath.front().getOriginSampleProbDensity(connectedPath.front()));
 
 	for(int i=0; i<connectedPath.size()-1; i++)
 	{
@@ -210,7 +207,6 @@ float BidirectionalPathTracer::connectWeight(const Path& connectedPath, int conn
 
 	}
 
-	//p_backward[connectedPath.size()-1] = connectedPath.back().getOriginSampleProbDensity(connectedPath.back());
 	p_backward.back() = connectedPath.back().originProb;
 
 	for(int i = connectedPath.size()-1; i>0; i--)
@@ -232,32 +228,12 @@ float BidirectionalPathTracer::connectWeight(const Path& connectedPath, int conn
 		}
 	}
 
-	//double selfProb;
-	//if (connectIndex == -1)
-	//	selfProb = p_backward.front();
-
 	for(int i=0; i<connectedPath.size()-1; i++)
 	{
 		if(connectedPath[i].directionSampleType == Ray::RANDOM && connectedPath[i+1].directionSampleType == Ray::RANDOM)
 		{
 			double p = p_forward[i] * p_backward[i+1];
-			if(i == connectedPath.size() - 2)
-			{
-				/*
-				int eyeIndex = connectedPath.size() - 1;
-				double cosAtCamera = link(connectedPath , connectIndex , eyeIndex , eyeIndex - 1).getCosineTerm();
-				double imagePointToCameraDist = renderer->camera.sightDist / cosAtCamera;
-				double imageToSolidAngleFactor = imagePointToCameraDist * imagePointToCameraDist / cosAtCamera;
-				double cosToCamera = link(connectedPath , connectIndex , eyeIndex - 1 , eyeIndex).getCosineTerm();
-				double dist = (connectedPath[eyeIndex - 1].origin - connectedPath[eyeIndex].origin).length();
-				double imageToSurfaceFactor = imageToSolidAngleFactor * cosToCamera / (dist * dist);
 
-				//p *= (renderer->camera.width * renderer->camera.height) / imageToSurfaceFactor;
-				p *= imageToSurfaceFactor;
-				*/
-			}
-			//if (i == connectIndex)
-			//	selfProb = p;
 			sumExpProb += pow(p, double(expTerm));
 		}
 	}
@@ -276,92 +252,6 @@ float BidirectionalPathTracer::connectWeight(const Path& connectedPath, int conn
 
 	double res = pow(selfProb, double(expTerm)) / sumExpProb;
 
-	//if ((sumExpProb < 1e-6))
-	//	return 1.f;
-
-	// alternative
-	/*
-	Camera &camera = renderer->camera;
-	unsigned width = camera.width, height = camera.height;
-
-	std::vector<double> directPathProb(connectedPath.size());
-	std::vector<double> reversePathProb(connectedPath.size());
-	double allTechPathProb = 0;
-
-	// connectedPath:	 Eye---------------------Light
-	//           say,     V4    V3    V2    V1    V0  (direction: <-)  
-	std::vector<float> distRecord;
-	directPathProb.front() = connectedPath.front().originProb;//connectedPath.front().evalOriginProbability(connectedPath.front());//connectedPath.front().originProb;//
-	//printf("%.8f , %.8f\n" , connectedPath.front().originProb , 
-	//	connectedPath.front().evalOriginProbability(connectedPath.front()));
-
-	for(int i = 1; i < connectedPath.size(); i++){
-		float dist = MAX((connectedPath[i].origin - connectedPath[i-1].origin).length(), EPSILON);
-		distRecord.push_back(dist);
-		Ray linkRay = link(connectedPath, connectIndex, i, i-1);
-		float cosThere = linkRay.getCosineTerm();
-		directPathProb[i] = directPathProb[i-1] * cosThere / (dist * dist);
-		if(connectedPath[i-1].directionSampleType == Ray::DEFINITE)
-			continue;
-		float linkOriProb = link(connectedPath, connectIndex, i-1, i).getOriginSampleProbDensity(
-			link(connectedPath, connectIndex, i, i+1)), linkDirProb;
-		if(i > 1){
-			linkDirProb = link(connectedPath, connectIndex, i-2, i-1).getDirectionSampleProbDensity(
-				link(connectedPath, connectIndex, i-1, i));
-		}
-		else{
-			Ray ray = link(connectedPath, connectIndex, i-1, i);
-			linkDirProb = ray.getDirectionSampleProbDensity(ray);
-		}
-		directPathProb[i] *= linkDirProb * linkOriProb;
-	}
-
-	// connectedPath:	 Eye---------------------Light
-	//           say,     V4    V3    V2    V1    V0  (direction: ->)  
-	reversePathProb.back() = connectedPath.back().originProb;//evalOriginProbability(connectedPath.back());//.originProb;
-	//printf("%.8f , %.8f\n" , connectedPath.back().originProb , 
-	//	connectedPath.back().evalOriginProbability(connectedPath.back()));
-
-	for(int i = connectedPath.size()-2; i >= 0; i--){
-		float dist = distRecord[i];
-		Ray linkRay = link(connectedPath, connectIndex, i, i+1);
-		float cosThere = linkRay.getCosineTerm();
-		reversePathProb[i] = reversePathProb[i+1] * cosThere / (dist * dist);
-		if(connectedPath[i+1].directionSampleType == Ray::DEFINITE)
-			continue;
-		float linkOriProb = link(connectedPath, connectIndex, i+1, i).getOriginSampleProbDensity(
-			link(connectedPath, connectIndex, i, i-1)), linkDirProb;
-		if(i < connectedPath.size()-2){
-			linkDirProb = link(connectedPath, connectIndex, i+2, i-1).getDirectionSampleProbDensity(
-				link(connectedPath, connectIndex, i+1, i));
-		}
-		else{
-			Ray ray = link(connectedPath, connectIndex, i+1, i);
-			linkDirProb = ray.getDirectionSampleProbDensity(ray);
-		}
-		reversePathProb[i] *= linkDirProb * linkOriProb;
-	}
-
-	for(int i = 0; i < connectedPath.size()-1; i++){
-		if(connectedPath[i].directionSampleType==Ray::RANDOM && connectedPath[i+1].directionSampleType==Ray::RANDOM){
-			double p = directPathProb[i] * reversePathProb[i+1];
-			if(i == connectedPath.size()-2)
-				p *= width * height;
-			allTechPathProb += pow(p, double(expTerm));
-		}
-	}
-
-	if(mustUsePT(connectedPath))
-		allTechPathProb += pow(reversePathProb.front(), double(expTerm));
-
-	selfProb = connectIndex == -1 ? reversePathProb.front() : directPathProb[connectIndex] * reversePathProb[connectIndex+1];
-
-	double weight = pow(selfProb, double(expTerm)) / allTechPathProb;
-
-	double res2 = MAX(weight, 0);
-	if (abs(res - res2) > 1e-6f)
-		printf("error weight\n");
-	*/
 	return res;
 }
 

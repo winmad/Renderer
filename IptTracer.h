@@ -45,7 +45,9 @@ protected:
 
 	Ray genIntermediateSamples(vector<IptPathState>& partialSubPathList , Scene& scene , int *index = NULL);
 
-	void calcEyeProbRatios(Path& eyePath , vector<float>& ratios);
+	Ray link(const Path& path, int i, int j);
+
+	void calcEyePathProbs(Path& eyePath , vector<double>& probDir , vector<double>& probRev);
 
 	void mergePartialPaths(vector<vec3f>& contribs , const IptPathState& lightState , const int mergeIters);
 
@@ -73,9 +75,9 @@ public:
 
 		pixelNum = renderer->camera.height * renderer->camera.width;
 		cameraPathNum = pixelNum;
-		lightPathNum = pixelNum;
-		interPathNum = pixelNum;
-		partialPathNum = pixelNum;
+		lightPathNum = pixelNum * 2;
+		interPathNum = pixelNum * 2;
+		partialPathNum = pixelNum * 2;
 
 		usePPM = false;
 		if (usePPM)
@@ -120,19 +122,5 @@ public:
 		Real res = M_PI * mergeRadius * mergeRadius * partialPathNum * s;
 		return res;
 	}
-
-	Real calcEyePathWeight(Path& eyePath , vector<float>& ratios , int t)
-	{
-		Real sum = 1.f , tmp = 1.f;
-		if (t - 1 >= ratios.size())
-			return 1.f;
-		for (int i = t - 1; i >= 0; i--)
-		{
-			tmp *= ratios[i];
-			if (eyePath[i].directionSampleType == Ray::RANDOM)
-				sum += tmp;
-		}
-		return 1.f / sum;
-	};
 };
 

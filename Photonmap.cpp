@@ -3,379 +3,354 @@
 #include "NoSelfIntersectionCondition.h"
 #include <omp.h>
 #include "macros.h"
-//#define ENABLE_PPM
+#include "RandGenerator.h"
+#define MERGE_LEN 10
+#define PPM
 
-vector<vec3f> Photonmap::renderPixels(const Camera& camera)
-{
-	/** 
-	 * prepare eye rays
-	 */
-	//vector<vec3f> eyeRayDirections = camera.generateRays();
-	//vector<vec3f> pixelColors(eyeRayDirections.size(), vec3f(0, 0, 0));
-	//vector<Ray>   eyeRays(eyeRayDirections.size());
-	vector<vec3f> pixelColors(camera.width * camera.height, vec3f(0, 0, 0));
-	
-	preprocessEmissionSampler();
- 
-
-
-//#pragma omp parallel for
-//	for(int i=0; i<eyeRayDirections.size(); i++)
-//	{
-//		Ray &eyeRay = eyeRays[i];
-//		eyeRay.color = vec3f(1, 1, 1);
-//		eyeRay.origin = camera.position;
-//		eyeRay.direction = eyeRayDirections[i];
-//		eyeRay.contactObject = NULL;
-//		IntersectInfo info = intersect(eyeRay.origin, eyeRay.direction);
-//		eyeRay.intersectObject = info.intersectObject;
-//		eyeRay.intersectObjectTriangleID = info.triangleID;
-//		eyeRay.intersectDist = info.dist;
-//		eyeRay.insideObject = findInsideObject(eyeRay.origin, eyeRay.direction);
-//		eyeRay.directionSampleType = Ray::DEFINITE;
-//	}
- 	/** 
-	 * for each spp, generate an eye ray then merge photons
-	 */
-	spp = INT_MAX;
-	std::cout << "Spp = " << spp << std::endl;
-
-
-	omp_lock_t cmdLock;
-	omp_init_lock(&cmdLock);
-	for(int s=0; s<spp; s++)
-	{
-		mLightVertices.clear();
-		mLightVertices.reserve(photonsWant);
+vector<vec3f> PhotonMap::renderPixels(const Camera& camera){
+	uint width = camera.width, height = camera.height;
+	std::vector<vec3f> pixelColors(width * height, vec3f(0,0,0));
 		
-		mVolLightVertices.clear();
-		mVolLightVertices.reserve(photonsWant);
-		/**
-		* Shook photons for surface and volume
-		*/
-		shootPhotons();
-		/**
-		* Build global photon map & volume photon map
-		*/
+	omp_init_lock(&surfaceHashGridLock);
+	omp_init_lock(&volumeHashGridLock);
+	omp_init_lock(&debugPrintLock);
 
-		mHashgrid.Reserve(mLightVertices.size());
-		mHashgrid.Build(mLightVertices, mBaseRadius, photonsWant);
+	//std::vector<int> pixelMaps(pixelColors.size(), 0);
 
-		mVolHashgrid.Reserve(mVolLightVertices.size());
-		mVolHashgrid.Build(mVolLightVertices, mBaseRadius,photonsWant);
- 
+	preprocessEmissionSampler();
+		
+	mRadius = mBaseRadius;
 
-		std::cout << "sur hashgrid " << mLightVertices.size() << std::endl;
-		std::cout << "vol hashgrid " << mVolLightVertices.size() << std::endl;
+	clock_t startTime = clock();
 
-		vector<vec3f> singleImageColors(pixelColors.size(), vec3f(0, 0, 0));
+	for(uint s = 0; s < spp; s++){
+		std::cout << "iteration : " << s << std::endl;
+		
+		std::vector<vec3f> oneIterColors(pixelColors.size(), vec3f(0,0,0));
+#ifdef PPM
+		if (renderer->scene.getTotalVolume() > 1e-6f)
+		{
+			rayMarching = true;
+			mRadius = MAX(mBaseRadius * powf(powf(s + 1 , mAlpha - 1) , 1.f / 3.f) , EPSILON);
+		}
+		else
+		{
+			rayMarching = false;
+			mRadius = MAX(mBaseRadius * sqrt(powf(s+1, mAlpha-1)), EPSILON);
+		}
+#endif
+		std::vector<Path*> pixelLightPaths(pixelColors.size(), NULL);
+		std::vector<LightPoint> surfaceLightVertices(0);
+		std::vector<LightPoint> volumeLightVertices(0);
+
+		surfaceHashGrid.Reserve(pixelColors.size());
+		volumeHashGrid.Reserve(pixelColors.size());
 
 #pragma omp parallel for
-		for(int p=0; p<pixelColors.size(); p++)
-		{
-			pixelColors[p] *= s/float(s+1);
-
-			Path eyePath;
-
-			Ray eyeRaysP = camera.generateRay(p);
-			eyeRaysP.directionSampleType = Ray::DEFINITE;
-			eyeRaysP.originProb = eyeRaysP.directionProb = 1;
-			eyeRaysP.color = vec3f(1,1,1);
-			sampleMergePath(eyePath, eyeRaysP/*eyeRays[p]*/, 0);
-			
-			vec3f color = vec3f(0,0,0), volColor = vec3f(0,0,0);
-			
-			bool merge = false;
-			int  mergeIndex = -1;
-			vec3f eyeColor = vec3f(1,1,1);
-			float eyeProb = 1.0;
-			for(int i = 0; i < eyePath.size(); i++){
-				if((eyePath[i].directionSampleType == Ray::RANDOM) || eyePath[i].photonType == Ray::HITVOL){
-					merge = true;
-					if(eyePath[i].photonType == Ray::HITVOL){
-						eyeColor *= (eyePath[i].color * eyePath[i].getCosineTerm());
-						eyeProb *= eyePath[i].directionProb * eyePath[i].originProb;
-					}
-					mergeIndex = i;
+		// step1: sample light paths and build range search struct independently for surface and volume
+		for(int p = 0; p < pixelColors.size(); p++){
+			Ray lightRay = genEmissiveSurfaceSample();
+			pixelLightPaths[p] = new Path;
+			Path &lightPath = *pixelLightPaths[p];
+			samplePath(lightPath, lightRay);
+			for(int i = 1; i < lightPath.size(); i++){
+				// light is not reflective
+				if(lightPath[i].contactObject && lightPath[i].contactObject->emissive())
 					break;
+				// only store particles non-specular
+				if(lightPath[i].directionSampleType == Ray::DEFINITE)
+					continue;
+				LightPoint lightPoint;
+				lightPoint.position = lightPath[i].origin;
+				lightPoint.indexInThePath = i;
+				lightPoint.pathThePointIn = &lightPath;
+				lightPoint.photonType = lightPath[i].photonType;
+				if(lightPoint.photonType == Ray::OUTVOL){
+					omp_set_lock(&surfaceHashGridLock);
+					surfaceLightVertices.push_back(lightPoint);
+					omp_unset_lock(&surfaceHashGridLock);
 				}
-				eyeColor *= eyePath[i].color;
-				eyeColor *= eyePath[i].getCosineTerm();
-				if(i != eyePath.size() - 1){
-					float dist = max2((eyePath[i].origin - eyePath[i+1].origin).length(), EPSILON);
-					eyeColor *= eyePath[i].getRadianceDecay(dist);
+				if(lightPoint.photonType == Ray::INVOL){
+					omp_set_lock(&volumeHashGridLock);
+					volumeLightVertices.push_back(lightPoint);
+					omp_unset_lock(&volumeHashGridLock);
 				}
-				eyeProb *= eyePath[i].directionProb * eyePath[i].originProb;
 			}
-			if(!merge)	continue;
-		 
-
-			Ray keyDiffRay = eyePath[mergeIndex];
+		}
+		std::cout<< "vol vertices= " << volumeLightVertices.size() << " sur vertices= " << surfaceLightVertices.size() << std::endl;
 			
-			bool hitVolume = keyDiffRay.photonType == Ray::HITVOL;
-			if(!hitVolume){
-				keyDiffRay.direction = -eyePath[mergeIndex-1].direction;
-				RangeQuery query(keyDiffRay.contactObject, keyDiffRay, keyDiffRay.origin, false);
+		surfaceHashGrid.Build(surfaceLightVertices, mRadius);
+		volumeHashGrid.Build(volumeLightVertices, mRadius);
 
-				omp_set_lock(&cmdLock);
-				mHashgrid.Process(mLightVertices, query, color, false);
-				omp_unset_lock(&cmdLock);
+		std::cout<< "finish building hashgrid" << std::endl;
 
-				color *= eyeColor / eyeProb;
-			}
-			else{
-				volColor = volMerge(keyDiffRay.insideObject, keyDiffRay);
-				volColor *= eyeColor / eyeProb;
-			}
-			//pixelColors[p] += color/(s+1) + volColor/(s+1);
-			singleImageColors[p] = color/(s+1) + volColor/(s+1);
+		// step2: calculate pixel colors by progressive photon mapping
+#pragma omp parallel for
+		for(int p = 0; p < pixelColors.size(); p++){
+			Path eyePath;
+			if (rayMarching)
+				sampleMergePath(eyePath, camera.generateRay(p), 0);
+			else
+				samplePath(eyePath, camera.generateRay(p));
+
+			/*if(eyePath[1].contactObj && eyePath[1].contactObj->anisotropic()){
+				pixelMaps[p] = 1;
+			}*/
+			throughputByDensityEstimation(oneIterColors[p], eyePath, surfaceLightVertices, volumeLightVertices);
 		}
+		/*std::ofstream fout(engine->renderer->name + engine->scene.name+"pixelMap.txt");
+		for(int p = 0; p < pixelMaps.size(); p++)
+			fout << pixelMaps[p] << ' ' ;
+		fout << std::endl;
+		fout.close();*/
 
+		std::cout << "calculation done" << std::endl;
 
-		for(int i=0; i<pixelColors.size(); i++)
+		for(uint i = 0; i < pixelColors.size(); i++){
+			pixelColors[i] *= s / float(s+1);
+			pixelColors[i] += camera.eliminateVignetting(oneIterColors[i], i) / (s + 1);
+			delete pixelLightPaths[i];
+		}
+		float time = (float)(clock() - startTime) / 1000;
+
+		if (time > recordTime)
 		{
-			pixelColors[i] *= s / float(s + 1);
-			pixelColors[i] += singleImageColors[i];
+			showCurrentResult(pixelColors , &recordTime);
+			recordTime += timeInterval;
 		}
-
-
 		showCurrentResult(pixelColors);
-		showPath.clear();
 	}
-	
-	cvWaitKey(0);
 	return pixelColors;
-
-}
- 
-vec3f Photonmap::volMerge(SceneObject *mObj, Ray &keyDiffRay)
-{
-	
-	omp_lock_t cmdLock;
-	omp_init_lock(&cmdLock);
-
-	
-	SceneVPMObject *obj = static_cast<SceneVPMObject*>(mObj);
-	float stepSize = obj->stepSize;
-	float albedo = obj->getAlbedo();
-
-
-	NoSelfIntersectionCondition cond(&renderer->scene, keyDiffRay);
-	IntersectInfo eyeInfo = intersect(keyDiffRay.origin, keyDiffRay.direction, &cond);
-	float volDist = eyeInfo.dist;
-	int N = int(volDist / stepSize);
-	if(N == 0){
-		vec3f backGroundColor = vec3f(0,0,0);
-		Ray conditionRay = keyDiffRay;
-		conditionRay.origin += conditionRay.direction * volDist;
-		
-		NoSelfIntersectionCondition cond2(&renderer->scene, conditionRay);
-
-		IntersectInfo backGndInfo = intersect(conditionRay.origin, conditionRay.direction, &cond2);
-		if(backGndInfo.intersectObject){
-			Ray backGroundMergeRay = keyDiffRay;
-			backGroundMergeRay.insideObject = NULL;
-			backGroundMergeRay.contactObject = backGndInfo.intersectObject;
-			backGroundMergeRay.contactObjectTriangleID = backGndInfo.triangleID;
-			backGroundMergeRay.origin += keyDiffRay.direction * (backGndInfo.dist);
-			backGroundMergeRay.direction = -keyDiffRay.direction;
-			RangeQuery query(backGndInfo.intersectObject, backGroundMergeRay, backGroundMergeRay.origin, false);
-			omp_set_lock(&cmdLock);
-			mHashgrid.Process(mLightVertices, query, backGroundColor, false);
-			omp_unset_lock(&cmdLock);
-			backGroundColor *= obj->getRadianceDecay(backGroundMergeRay, volDist);
-		}
-		return backGroundColor;
-	}
-
-	float step = volDist / N;
-	vec3f totalVolColor(0,0,0), totalSingleColor(0,0,0), Tr(0,0,0);
-	Ray outray = keyDiffRay;
-	outray.direction = -keyDiffRay.direction;
-	outray.contactObject = NULL;
-	outray.insideObject = mObj;
-	float offset = step * RandGenerator::genFloat();
-	float t = offset;
-	outray.origin += offset * keyDiffRay.direction;
-	Tr = obj->getRadianceDecay(outray, volDist);
-	for(int i = 0; i < N; i++, t+=step){
-		vec3f volColor = vec3f(0,0,0);
-		RangeQuery volQuery(outray.insideObject, outray, outray.origin, true);
-		omp_set_lock(&cmdLock);
-		mVolHashgrid.Process(mVolLightVertices, volQuery, volColor, true);
-		omp_unset_lock(&cmdLock);
-		
-		totalVolColor += volColor * obj->getRadianceDecay(outray, t);
-		//// single-scattering
-		//Ray lightShadow = genEmissiveSurfaceSample();
-		//vec3f pos = outray.origin;
-		//vec3f connect = pos - lightShadow.origin;
-		//float connectLen = connect.length();
-		//connect.normalize();
-		//lightShadow.direction = connect;
-		//NoSelfIntersectionCondition condShadow(&renderer->scene, lightShadow);
-		//IntersectInfo shadowInfo = intersect(lightShadow.origin, lightShadow.direction, &condShadow);
-		//if(shadowInfo.intersectObject != obj)
-		//	continue;
-		//float airLen = shadowInfo.dist;
-		//float volLen = connectLen - airLen;
-		//vec3f lightDecay = obj->getRadianceDecay(lightShadow, volLen);
-		//float lightPdf = lightShadow.getOriginSampleProbDensity(lightShadow) * lightShadow.getDirectionSampleProbDensity(lightShadow);
-		//vec3f oneTimeSingleColor = obj->ds * obj->bsdf->evaluate(LocalFrame(), connect, outray.direction) * 
-		//	lightShadow.color * lightDecay * obj->getRadianceDecay(outray, t) / lightPdf;
-		//totalSingleColor += oneTimeSingleColor;
-		
-		outray.origin += keyDiffRay.direction * step;
-	}
-
-	vec3f backGroundColor = vec3f(0,0,0);
-	Ray conditionRay = keyDiffRay;
-	conditionRay.origin += conditionRay.direction * volDist;
-	NoSelfIntersectionCondition cond2(&renderer->scene, conditionRay);
-	
-	IntersectInfo backGndInfo = intersect(conditionRay.origin, conditionRay.direction, &cond2);
-	if(backGndInfo.intersectObject){
-		Ray backGroundMergeRay = keyDiffRay;
-		backGroundMergeRay.insideObject = NULL;
-		backGroundMergeRay.contactObject = backGndInfo.intersectObject;
-		backGroundMergeRay.contactObjectTriangleID = backGndInfo.triangleID;
-		backGroundMergeRay.origin += keyDiffRay.direction * (backGndInfo.dist);
-		backGroundMergeRay.direction = -keyDiffRay.direction;
-		RangeQuery query(backGndInfo.intersectObject, backGroundMergeRay, backGroundMergeRay.origin, false);
-		mHashgrid.Process(mLightVertices, query, backGroundColor, false);
-		backGroundColor *= obj->getRadianceDecay(backGroundMergeRay, volDist);
-	}
-	return totalVolColor * step/*+ totalSingleColor * step*/ + backGroundColor;
 }
 
-void Photonmap::shootPhotons() 
-{
-	int photonsCount = 0;
-	while(photonsCount < photonsWant){
- 
-		Path lightPath, photonPath, volPhotonPath;
-		Ray lightRay = genEmissiveSurfaceSample();
-		lightRay.isDirectLightPhoton = true;
-		samplePath(lightPath, lightRay);
-		convLightpath2Photonpath(lightPath, photonPath, volPhotonPath);
-		for(int i = 0; i < photonPath.size(); i++)
-			mLightVertices.push_back(photonPath[i]);
-		for(int i = 0; i < volPhotonPath.size(); i++)
-			mVolLightVertices.push_back(volPhotonPath[i]);
-		photonsCount++;
-	}
-	return ;
-}
- 
-void Photonmap::showPhotons()
-{
-	int size = mLightVertices.size();
-	for(int i = 0; i < size; i++){
-		Ray &photon = mLightVertices[i];
-		std::cout << "pos " << photon.origin << " dir " << photon.direction << " f " << photon.color << " p " << photon.directionProb << std::endl;
-	}
-	return ;
-}
-
-void Photonmap::convLightpath2Photonpath(Path &lightPath, Path &photonPath, Path &volPhotonPath)
-{
-	int lightPathSize = lightPath.size();
-	vec3f curC = vec3f(1,1,1);
-	float curP = 1;
-	
-	for(int i = 0; i < lightPathSize - 1; i++){
-		Ray curRay = lightPath[i], nextRay = lightPath[i+1];
-		float dist = max2((curRay.origin - nextRay.origin).length(),EPSILON);
-		if(i > 0 && lightPath[i].contactObject && lightPath[i].contactObject->emissive()){
-			break;
-		}
-		
-		curC *= curRay.color * curRay.getRadianceDecay(dist) * curRay.getCosineTerm();
-		curP *= curRay.directionProb * curRay.originProb;
-	
-		Ray photon;
-		photon.color = curC;
-		photon.directionProb  = curP * nextRay.originProb;
-		photon.direction = curRay.direction;
-		photon.origin = nextRay.origin;
-		photon.photonType = nextRay.photonType;
-		photon.isDirectLightPhoton = curRay.isDirectLightPhoton;
-		
-			if(photon.photonType == Ray::OUTVOL){
-				photonPath.push_back(photon);
-			}
-			else if(photon.photonType == Ray::INVOL){
-				volPhotonPath.push_back(photon);
-			}	
-	}
-	return ;
-}
-
-void Photonmap::sampleMergePath(Path& path, Ray& prevRay, unsigned depth) const
-{
-	if((prevRay.directionSampleType == Ray::RANDOM) || prevRay.photonType == Ray::HITVOL){
-		path.push_back(prevRay);
-		return ;
-	}
-	Ray termRay;
-	termRay.origin = prevRay.origin;
-	termRay.direction = vec3f(0, 0, 0);
-	termRay.color = vec3f(0, 0, 0);
-	termRay.directionProb = 1;
-	termRay.insideObject = termRay.contactObject = termRay.intersectObject = NULL;
-	
-	termRay.directionSampleType = Ray::DEFINITE;
-
-
+void PhotonMap::sampleMergePath(Path &path, Ray &prevRay, uint depth) const{
 	path.push_back(prevRay);
 
-	Ray nextRay;
+	Ray terminateRay;
+	terminateRay.origin = prevRay.origin;
+	terminateRay.color = vec3f(0,0,0);
+	terminateRay.direction = vec3f(0,0,0);
+	terminateRay.directionSampleType = Ray::DEFINITE;
+	terminateRay.insideObject = NULL;
+	terminateRay.contactObject = NULL;
+	terminateRay.intersectObject = NULL;
 
-	if(prevRay.insideObject)
-	{
+	Ray nextRay;
+	if(prevRay.insideObject && prevRay.insideObject->isVolumeric())			
 		nextRay = prevRay.insideObject->scatter(prevRay);
-	}
-	else if(prevRay.intersectObject)
-	{
+	else if(prevRay.intersectObject){
+		if(prevRay.intersectObject->isVolumeric() && prevRay.contactObject && prevRay.contactObject->isVolumeric()){
+			prevRay.origin += prevRay.direction * prevRay.intersectDist;
+			prevRay.intersectDist = 0;
+		}
 		nextRay = prevRay.intersectObject->scatter(prevRay);
 	}
-	else
-	{
-		path.push_back(termRay);
-		return ;
+	else{
+		path.push_back(terminateRay);	return ;
 	}
 
-
-	if(nextRay.direction.length() < 0.5)
-	{
-		path.push_back(nextRay);
-		return ;
+	if(nextRay.direction.length() < 0.5){
+		path.push_back(nextRay);		return ;
 	}
-
-	if(depth+1 >= maxDepth)
-	{
-		path.push_back(termRay);
-		return  ;
+	if(depth + 1 > MERGE_LEN){
+		path.push_back(terminateRay);	return ;
 	}
-
 	NoSelfIntersectionCondition condition(&renderer->scene, nextRay);
-
-	Scene::ObjSourceInformation osi;
-	float dist;
-	dist = renderer->scene.intersect(nextRay, osi, &condition);
-
-	if(dist < 0)
-	{
+	Scene::ObjSourceInformation info;
+	float dist = renderer->scene.intersect(nextRay, info, &condition);
+	if(dist < 0){
 		path.push_back(nextRay);
-		path.push_back(termRay);
+		path.push_back(terminateRay);
 		return ;
 	}
-	else
-	{
-		nextRay.intersectObject = renderer->scene.objects[osi.objID];
-		nextRay.intersectObjectTriangleID = osi.triangleID;
+	else{
+		nextRay.intersectObject = renderer->scene.objects[info.objID];
+		nextRay.intersectObjectTriangleID = info.triangleID;
 		nextRay.intersectDist = dist;
 	}
-
 	sampleMergePath(path, nextRay, depth + 1);
 }
+
+void PhotonMap::throughputByDensityEstimation(vec3f &color, Path &eyeMergePath, 
+		std::vector<LightPoint> &surfaceVertices, std::vector<LightPoint> &volumeVertices)
+{
+	class Query{
+		PhotonMap  *photonMap;
+		vec3f	    contrib;
+		vec3f		position;
+		vec3f		hitNormal;
+		float	    radius;
+		int			photonsNum;
+		Ray         outRay;
+		float GaussianKernel(float mahalanobisDist) const{
+			double exponent = exp((double)-mahalanobisDist/2);
+			//photonMap->fout << " Gaussian exp = " << exponent << std::endl;
+			return exponent / (2*M_PI);
+		}
+		float Kernel(float distSqr, float radiusSqr) const{
+			float s = MAX(0, 1 - distSqr / radiusSqr);
+			return 3 * s * s / M_PI;
+		}
+	public:
+		Query(PhotonMap *map, float r, int n) : photonMap(map), radius(r), photonsNum(n)
+		{}
+		bool volumeMedia;
+		void SetContrib(const vec3f &color) { contrib = color; }
+		void SetPosition(const vec3f &pos)  { position = pos; }
+		void SetOutRay(const Ray &ray) { outRay = ray; }
+		void SetNormal(const vec3f &n) { hitNormal = n; }
+		vec3f GetContrib() const  { return contrib; }
+		vec3f GetPosition() const { return position; }
+		void Process(const LightPoint &lightPoint){
+			if(volumeMedia && lightPoint.photonType != Ray::INVOL)		return ;
+			if(!volumeMedia && lightPoint.photonType != Ray::OUTVOL)	return ;	
+			Path &lightPath = *lightPoint.pathThePointIn;
+			int index = lightPoint.indexInThePath;
+			vec3f photonThroughput(1,1,1);
+			for(int i = 0; i < index; i++){
+				photonThroughput *= lightPath[i].color / lightPath[i].directionProb / lightPath[i].originProb;
+				photonThroughput *= lightPath[i].getCosineTerm();
+				float dist = (lightPath[i].origin-lightPath[i+1].origin).length();
+				photonThroughput *= lightPath[i].getRadianceDecay(dist);
+			}
+			photonThroughput /= lightPath[index].originProb;
+			// runs here, photon's f/p is done.
+
+			Ray photonRay = lightPath[index];
+			photonRay.direction = lightPath[index-1].direction;
+			vec3f color = photonThroughput * photonRay.getBSDF(outRay);
+			float distSqr = powf((outRay.origin-lightPath[index].origin).length(), 2);
+			if(intensity(color) < 1e-6f)	return ;
+			float kernel = Kernel(distSqr, radius*radius);
+			float normalization = volumeMedia ? kernel/(photonsNum*radius*radius*radius) : kernel/(photonsNum*radius*radius);
+			//float normalization = volumeMedia==false ? 1.0 / (photonsNum*PI*radius*radius) : 1.0 / (photonsNum*PI*4.0/3*radius*radius*radius);
+			contrib += color * normalization;
+		}
+
+		double sumWeight; 
+		int    photonsCount;
+		
+		void weightScale(){
+			contrib /= ( sumWeight / photonsCount );
+		}
+
+	};
+
+	Query query(this, mRadius, mPhotonsNum);
+	vec3f Tr(1,1,1), SurfaceColor(0,0,0), VolumeColor(0,0,0);
+	int mergeIndex = 1;
+	for(int i = 1; i < eyeMergePath.size(); i++){
+		float dist = MAX((eyeMergePath[i-1].origin-eyeMergePath[i].origin).length(), EPSILON);
+
+		if(eyeMergePath[i-1].insideObject && eyeMergePath[i-1].insideObject->isVolumeric()){
+			//if(eyeMergePath[i-1].insideObject->homogeneous())
+			{
+				// ray marching volume radiance
+				Ray volThroughRay = eyeMergePath[i-1];
+				SceneVPMObject *volume = static_cast<SceneVPMObject*>(volThroughRay.insideObject);
+				float stepSize = volume->stepSize;
+				int N = dist / stepSize;
+				if(N == 0)		N++;
+				float step = dist / N;
+				float offset = step * RandGenerator::genFloat();
+				float t = offset;
+				Tr *= volume->getRadianceDecay(volThroughRay, offset);
+				for(int j = 0; j < N; j++, t+=step){
+					query.SetContrib(vec3f(0,0,0));
+					query.SetPosition(volThroughRay.origin + volThroughRay.direction*t);
+					Ray outRay = volThroughRay;
+					outRay.direction = -volThroughRay.direction;
+					outRay.origin = volThroughRay.origin + volThroughRay.direction*t;
+					outRay.contactObject = NULL;
+					query.SetOutRay(outRay);
+					query.volumeMedia = true;
+
+					volumeHashGrid.Process(volumeVertices, query);
+
+					Tr *= volume->getRadianceDecay(outRay, step);
+					vec3f volColor = query.GetContrib();
+					VolumeColor += volColor * Tr * step;
+				}
+			}
+			/*
+			else{
+				// ray marching volume radiance
+				
+				Ray volThroughRay = eyeMergePath[i-1];
+				HeterogeneousVolume *volume = static_cast<HeterogeneousVolume*>(volThroughRay.insideObj);
+				float stepSize = volume->getStepSize();
+				int N = dist / stepSize;
+				if(N == 0)		N++;
+				float step = dist / N;
+				float offset = step * engine->rng->genFloat();
+				float t = offset;
+				Tr *= volume->randianceDecay(volThroughRay, offset);
+				for(int j = 0; j < N; j++, t+=step){
+					query.SetContrib(vec3f(0,0,0));
+					query.SetPosition(volThroughRay.origin + volThroughRay.direction*t);
+					Ray outRay = volThroughRay;
+					outRay.direction = -volThroughRay.direction;
+					outRay.origin = volThroughRay.origin + volThroughRay.direction*t;
+					outRay.contactObj = NULL;
+					query.SetOutRay(outRay);
+					query.volumeMedia = true;
+
+					volumeHashGrid.Process(volumeVertices, query);
+
+					Tr *= volume->randianceDecay(outRay, step);
+					vec3f volColor = query.GetContrib();
+					VolumeColor += volColor * Tr * step;
+				}
+			}
+			*/
+		}
+
+		if(eyeMergePath[i].contactObject && eyeMergePath[i].contactObject->emissive()){
+			// eye path hit light, surface color equals to light radiance
+			SurfaceColor = eyeMergePath[i].color;
+			mergeIndex = i;
+			break;
+		}
+
+		if(eyeMergePath[i].contactObject && eyeMergePath[i].directionSampleType == Ray::RANDOM){
+			// non-specular photon density estimation
+			if(eyeMergePath[i].contactObject->isVolumeric())
+				continue;
+			query.SetContrib(vec3f(0,0,0));
+			query.SetPosition(eyeMergePath[i].origin);
+			Ray outRay = eyeMergePath[i];
+			outRay.direction = -eyeMergePath[i-1].direction;
+			query.SetOutRay(outRay);
+			query.volumeMedia = false;
+			Ray fromRay = eyeMergePath[i-1];
+			omp_set_lock(&surfaceHashGridLock);
+			surfaceHashGrid.Process(surfaceVertices, query);
+			omp_unset_lock(&surfaceHashGridLock);
+			SurfaceColor = query.GetContrib();
+			mergeIndex = i;
+			break;
+		}
+	}
+	color = Tr * SurfaceColor + VolumeColor;
+
+	if (rayMarching)
+	{
+		for(int i = 0; i < 1/*eyeMergePath.size()-1*/; i++){
+			color *= eyeMergePath[i].getCosineTerm() * eyeMergePath[i].color
+				/ eyeMergePath[i].directionProb / eyeMergePath[i].originProb;
+		}
+	}
+	else
+	{
+		for(int i = 0; i < mergeIndex; i++){
+			color *= eyeMergePath[i].getCosineTerm() * eyeMergePath[i].color
+				/ eyeMergePath[i].directionProb / eyeMergePath[i].originProb;
+			if (i + 1 < mergeIndex)
+			{
+				float dist = (eyeMergePath[i].origin - eyeMergePath[i+1].origin).length();
+				color *= eyeMergePath[i].getRadianceDecay(dist);
+			}
+		}
+	}
+}
+	

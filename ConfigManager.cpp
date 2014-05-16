@@ -235,11 +235,11 @@ void ConfigManager::load(const string &configFilePath)
 		{
 			renderer->mcRenderer = new PathTracerTest(renderer);
 		}
-		if(typeName == "Photonmap" || typeName == "PM")
+		if(typeName == "PhotonMap" || typeName == "PM")
 		{
-			renderer->mcRenderer = new Photonmap(renderer);
-			static_cast<Photonmap*>(renderer->mcRenderer)->setPhotonsWant(atoi(nodeConfig->first_node("photons")->value()));
-			static_cast<Photonmap*>(renderer->mcRenderer)->setRadius(atof(nodeConfig->first_node("radius")->value()));
+			renderer->mcRenderer = new PhotonMap(renderer);
+			//static_cast<PhotonMap*>(renderer->mcRenderer)->setPhotonsWant(atoi(nodeConfig->first_node("photons")->value()));
+			static_cast<PhotonMap*>(renderer->mcRenderer)->setRadius(atof(nodeConfig->first_node("radius")->value()));
 		}
 		if(typeName == "BidirectionalPathTracer" || typeName == "BPT")
 		{
@@ -277,13 +277,13 @@ void ConfigManager::load(const string &configFilePath)
 		{
 			renderer->mcRenderer = new PathTracerTest(renderer);
 		}
-		if(typeName == "Photonmap" || typeName == "PM")
+		if(typeName == "PhotonMap" || typeName == "PM")
 		{
-			renderer->mcRenderer = new Photonmap(renderer);
-			if(nodeRenderer->first_node("photons"))
-				static_cast<Photonmap*>(renderer->mcRenderer)->setPhotonsWant(atoi(nodeRenderer->first_node("photons")->value()));
+			renderer->mcRenderer = new PhotonMap(renderer);
+			//if(nodeRenderer->first_node("photons"))
+			//	static_cast<PhotonMap*>(renderer->mcRenderer)->setPhotonsWant(atoi(nodeRenderer->first_node("photons")->value()));
 			if(nodeRenderer->first_node("radius"))
-				static_cast<Photonmap*>(renderer->mcRenderer)->setRadius(atof(nodeRenderer->first_node("radius")->value()));
+				static_cast<PhotonMap*>(renderer->mcRenderer)->setRadius(atof(nodeRenderer->first_node("radius")->value()));
 		}
 		if(typeName == "BidirectionalPathTracer" || typeName == "BPT")
 		{

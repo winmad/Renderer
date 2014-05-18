@@ -44,14 +44,28 @@ Ray Scene::SurfaceSampler::genSample(bool isUniform) const
 	return targetObjects[index]->emit(isUniform);
 }
 
+void Scene::SurfaceSampler::print()
+{
+	for (int i = 0; i < targetObjects.size(); i++)
+	{
+		printf("%.8f %.8f\n" , targetObjects[i]->weight , targetObjects[i]->totalArea);
+	}
+	for (int i = 0; i < weightValues.size(); i++)
+	{
+		printf("%.8f\n" , weightValues[i]);
+	}
+	printf("%d\n" , lower_bound(weightValues.begin(), weightValues.end(), 4.1)-weightValues.begin());
+	printf("%.8f\n" , totalWeight);
+}
+
 Ray Scene::genEmissionSample(bool isUniform) const
 {
-	return emissiveSurfaceSampler->genSample();
+	return emissiveSurfaceSampler->genSample(isUniform);
 }
 
 Ray Scene::genOtherSample(bool isUniform) const
 {
-	return otherSurfaceSampler->genSample();
+	return otherSurfaceSampler->genSample(isUniform);
 }
 
 float Scene::SurfaceSampler::getDirectionProbDensity(const Ray& ray) const

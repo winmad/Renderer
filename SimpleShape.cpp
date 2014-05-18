@@ -31,19 +31,13 @@ vec3f SimpleShape::genRandTrianglePosition(unsigned ti) const
 	{
 		vps[i] = getWorldVertexPosition(faceVertexIndexList[ti][i]);
 	}
-	vec3f b1 = vps[1] - vps[0];
-	vec3f b2 = vps[2] - vps[0];
 	float u1 = RandGenerator::genFloat();
 	float u2 = RandGenerator::genFloat();
 	float su1 = sqrtf(u1);
 	float u = 1.f - su1;
 	float v = u2 * su1;
-	if(u + v > 1)
-	{
-		u = 1 - u;
-		v = 1 - v;
-	}
-	return vps[0]+b1*u+b2*v;
+	vec3f res = vps[0] * u + vps[1] * v + vps[2] * (1.f - u - v);
+	return res;
 }
 
 void SimpleShape::loadShape(const string &fileName, bool normalize, vector<SimpleShape*>* ss)

@@ -30,7 +30,7 @@ Ray SceneObject::emit(bool isUniform) const
 		return ray;
 	}
 	unsigned index = (lower_bound(areaValues.begin(), areaValues.end(), rnd)-areaValues.begin());
-	if(index == areaValues.size())
+	if(index >= areaValues.size())
 		index --; 
 	ray.contactObject = (SceneObject*)this;
 	ray.contactObjectTriangleID = index;

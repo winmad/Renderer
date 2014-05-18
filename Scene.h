@@ -40,11 +40,13 @@ private:
 		Ray genSample(bool isUniform = false) const;
 		float getDirectionProbDensity(const Ray& ray) const;
 		float getOriginProbDensity(const Ray& ray) const;
+		void print();
 	};
 
+public:
 	SurfaceSampler *emissiveSurfaceSampler;
 	SurfaceSampler *otherSurfaceSampler;
-public:
+
 	Scene()
 	{
 		emissiveSurfaceSampler = otherSurfaceSampler = NULL;

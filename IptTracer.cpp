@@ -15,6 +15,8 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 
 	preprocessEmissionSampler();
 	preprocessOtherSampler();
+	countHashGrid.init(renderer->scene);
+	countHashGrid.preprocess(renderer->scene);
 
 	for(int i=0; i<pixelLocks.size(); i++)
 	{
@@ -26,10 +28,8 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 
 	Real r0 = mergeRadius;
 
-	countHashGrid.init(renderer->scene);
-
 	totArea = renderer->scene.getTotalArea();
-	totVol = renderer->scene.getTotalVolume();
+	totVol = countHashGrid.totVolume;
 	printf("scene: totArea = %.8f, totVol = %.8f\n" , totArea , totVol);
 
 	for(unsigned s=0; s<spp; s++)
@@ -64,7 +64,6 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 
 			if (totVol > 1e-7f)
 			{
-				countHashGrid.addPhotons(partialSubPathList , 0 , lightPhotonNum);
 				//countHashGrid.print(fp);
 			}
 
@@ -202,7 +201,8 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 					cameraState.ray = &eyePath[i];
 
 					Real eyeWeight;
-					if(eyePath[i].directionSampleType != Ray::DEFINITE)
+					if(eyePath[i].directionSampleType != Ray::DEFINITE
+						&& nonSpecLength > 0)
 					{
 						//colorDirIllu = colorByConnectingLights(camera , cameraState);
 						//singleImageColors[cameraState.index] += colorDirIllu;
@@ -212,6 +212,8 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 						weights.push_back(weightFactor);
 						//weights.push_back(probDir[i] * probRev[i]);
 						//fprintf(fp , "%.8f " , cameraState.accuProb);
+
+						break;
 					}
 
 					if (eyePath[i].directionSampleType == Ray::RANDOM)
@@ -292,7 +294,6 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 
 			if (totVol > 1e-7f)
 			{
-				countHashGrid.addPhotons(partialSubPathList , 0 , lightPhotonNum);
 				//countHashGrid.print(fp);
 			}
 
@@ -643,6 +644,7 @@ Ray IptTracer::genIntermediateSamples(vector<IptPathState>& partialSubPathList ,
 		{
 			Ray ray = countHashGrid.volumeEmit(&scene);
 			ray.originProb *= volProb;
+			//printf("%.8f, %.8f\n" , ray.originProb , ray.directionProb);
 			return ray;
 		}
 		else
@@ -874,15 +876,13 @@ void IptTracer::genIntermediatePaths(omp_lock_t& cmdLock , vector<Path*>& interP
 
 				Real volMergeScale = 1;
 				Real originProb = 1.f / totArea;
-				//originProb = getOriginProb(countHashGrid , interPath[i].origin , false);
 				Real dirProb;
 				//dirProb = INV_2_PI;
 				dirProb = interPath[i].getCosineTerm() / M_PI;
 				if (interPath[i].insideObject && interPath[i].contactObject == NULL)
 				{
 					volMergeScale = 4.0 / 3.0 * mergeRadius;
-					//originProb = 1.f / totVol;
-					originProb = getOriginProb(countHashGrid , interPath[i].origin , true);
+					originProb = 1.f / totVol;
 					dirProb = 0.25 / M_PI;
 					//printf("%.8f,%.8f\n" , 1.f / totVol , originProb);
 				}

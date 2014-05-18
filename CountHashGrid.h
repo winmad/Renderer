@@ -53,6 +53,65 @@ public:
 		sumContribs = 0;
 	}
 
+	void preprocess(Scene& scene)
+	{
+		effectiveIndex.clear();
+		effectiveWeights.clear();
+
+		Ray ray;
+		float sumWeights = 0.f;
+
+		omp_lock_t lock;
+		omp_init_lock(&lock);
+
+#pragma omp parallel for
+		for (int i = 0; i < sizeNum * sizeNum * sizeNum; i++)
+		{
+			bool isInside = false;
+			for (int j = 0; j < 8; j++)
+			{
+				vec3f offset;
+				offset.x = (j & 1);
+				offset.y = ((j >> 1) & 1);
+				offset.z = ((j >> 2) & 1);
+				ray.origin = cellIndexToPosition(i , offset);
+				ray.direction = RandGenerator::genSphericalDirection();
+				SceneObject *insideObject = scene.findInsideObject(ray);
+				if (insideObject && insideObject->isVolumeric())
+				{
+					isInside = true;
+					break;
+				}
+			}
+			if (!isInside)
+			{
+				vec3f offset;
+				offset.x = offset.y = offset.z = 0.5f;
+				ray.origin = cellIndexToPosition(i , offset);
+				ray.direction = RandGenerator::genSphericalDirection();
+				SceneObject *insideObject = scene.findInsideObject(ray);
+				if (insideObject && insideObject->isVolumeric())
+					isInside = true;
+			}
+
+			if (isInside)
+			{
+				omp_set_lock(&lock);
+				sumWeights += 1.f;
+				effectiveIndex.push_back(i);
+				effectiveWeights.push_back(sumWeights);
+				omp_unset_lock(&lock);
+			}
+		}
+
+		for (int i = 0; i < effectiveWeights.size(); i++)
+			effectiveWeights[i] /= sumWeights;
+
+		totVolume = sumWeights * mCellSize * mCellSize * mCellSize;
+
+		omp_destroy_lock(&lock);
+	}
+
 	template<typename tParticle>
 	void addPhotons(const std::vector<tParticle> &aParticles , const int st , const int ed)
 	{
@@ -150,7 +209,7 @@ public:
 
 	void print(FILE* fp)
 	{
-		fprintf(fp , "============ one iter, sum = %.8f ============\n" , sumContribs);
+		fprintf(fp , "============ one iter============\n");
 		for (int i = 0; i < effectiveWeights.size(); i++)
 		{
 			fprintf(fp , "index = %d, accuWeight = %.8f\n" , effectiveIndex[i] , effectiveWeights[i]);
@@ -190,7 +249,8 @@ public:
 		return GetCellIndex(coordI);
 	}
 	
-	vec3f cellIndexToPosition(const int &index)
+	// offset in [(0,0,0) , (1,1,1)]
+	vec3f cellIndexToPosition(const int &index , const vec3f& offset)
 	{
 		int x = index / (sizeNum * sizeNum);
 		int y = index / sizeNum % sizeNum;
@@ -199,8 +259,7 @@ public:
 		vec3f corner = mBBoxMin + vec3f(mCellSize , 0 , 0) * x + 
 			vec3f(0 , mCellSize , 0) * y + vec3f(0 , 0 , mCellSize) * z;
 
-		vec3f res = corner + vec3f(mCellSize , 0 , 0) * RandGenerator::genFloat() +
-			vec3f(0 , mCellSize , 0) * RandGenerator::genFloat() + vec3f(0 , 0 , mCellSize) * RandGenerator::genFloat();
+		vec3f res = corner + vec3f(mCellSize , mCellSize , mCellSize) * offset;
 
 		return res;
 	}
@@ -217,7 +276,8 @@ public:
 		{
 			pdf = effectiveWeights[index] - effectiveWeights[index - 1];
 		}
-		vec3f res = cellIndexToPosition(effectiveIndex[index]);
+		vec3f rndOffset = vec3f(RandGenerator::genFloat() , RandGenerator::genFloat() , RandGenerator::genFloat());
+		vec3f res = cellIndexToPosition(effectiveIndex[index] , rndOffset);
 		return res;
 	}
 
@@ -236,11 +296,7 @@ public:
 
 		//printf("%.8f , %.8f\n" , ray.originProb , 1.f / scene->getTotalVolume());
 
-		UniformSphericalSampler uniformSphericalSampler;
-
-		LocalFrame lf;
-
-		ray.direction = uniformSphericalSampler.genSample(lf);
+		ray.direction = RandGenerator::genSphericalDirection();
 
 		ray.insideObject = scene->findInsideObject(ray, ray.contactObject);
 		if (ray.insideObject == NULL)
@@ -251,7 +307,7 @@ public:
 		ray.current_tid = scene->getContactTreeTid(ray);
 		ray.color = vec3f(1, 1, 1);
 
-		ray.directionProb = uniformSphericalSampler.getProbDensity(lf , ray.direction);
+		ray.directionProb = 0.25f / M_PI;
 		
 		ray.directionSampleType = ray.originSampleType = Ray::RANDOM;
 

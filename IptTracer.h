@@ -75,9 +75,9 @@ public:
 
 		pixelNum = renderer->camera.height * renderer->camera.width;
 		cameraPathNum = pixelNum;
-		lightPathNum = pixelNum * 3;
-		interPathNum = pixelNum * 3;
-		partialPathNum = pixelNum * 3;
+		lightPathNum = pixelNum;
+		interPathNum = pixelNum;
+		partialPathNum = pixelNum;
 
 		usePPM = false;
 		if (usePPM)
@@ -87,7 +87,7 @@ public:
 		}
 		else
 		{
-			mergeIterations = 1;
+			mergeIterations = 5;
 			useWeight = true;
 		}
 	}

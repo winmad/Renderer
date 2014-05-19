@@ -260,7 +260,7 @@ vector<Path> MCRenderer::samplePathList(const vector<Ray>& startRayList) const
 		renderer->scene.fillIntersectObject(rays);
 
 		
-		
+		candidateRays.clear();
 		candidateRays.resize(rays.size());
 #pragma omp parallel for
 		for(int i=0; i<rays.size(); i++)

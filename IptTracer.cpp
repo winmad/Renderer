@@ -131,7 +131,8 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 			for(int p=0; p<cameraPathNum; p++)
 			{
 				Path eyePath;
-				samplePath(eyePath, camera.generateRay(p));
+				//samplePath(eyePath, camera.generateRay(p));
+				sampleMergePath(eyePath , camera.generateRay(p) , 0);
 
 				if (eyePath.size() <= 1)
 					continue;
@@ -147,7 +148,7 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 
 				vector<double> probDir , probRev;
 				vector<float> weights;
-				calcEyePathProbs(eyePath , probDir , probRev);
+				//calcEyePathProbs(eyePath , probDir , probRev);
 
 				//fprintf(fp , "\n===================\n");
 
@@ -160,8 +161,8 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 
 				float weightFactor = 1.f;
 
-				//for(unsigned i = 1; i < eyePath.size(); i++)
-				for (unsigned i = 1; i < 3; i++)
+				for(unsigned i = 1; i < eyePath.size(); i++)
+				//for (unsigned i = 1; i < 4; i++)
 				{
 					vec3f colorHitLight(0.f) , colorDirIllu(0.f) , colorGlbIllu(0.f);
 
@@ -202,7 +203,7 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 
 					Real eyeWeight;
 					if(eyePath[i].directionSampleType != Ray::DEFINITE
-						&& nonSpecLength > 0)
+						&& nonSpecLength > 1)
 					{
 						//colorDirIllu = colorByConnectingLights(camera , cameraState);
 						//singleImageColors[cameraState.index] += colorDirIllu;
@@ -1637,4 +1638,76 @@ void IptTracer::movePaths(omp_lock_t& cmdLock , vector<Path>& pathListGPU , vect
 	{
 		pathList[i] = &pathListGPU[i];
 	}
+}
+
+void IptTracer::sampleMergePath(Path &path, Ray &prevRay, uint depth) 
+{
+	path.push_back(prevRay);
+
+	Ray terminateRay;
+	terminateRay.origin = prevRay.origin;
+	terminateRay.color = vec3f(0,0,0);
+	terminateRay.direction = vec3f(0,0,0);
+	terminateRay.directionSampleType = Ray::DEFINITE;
+	terminateRay.insideObject =	terminateRay.contactObject = terminateRay.intersectObject = NULL;
+
+	Ray nextRay;
+	if (prevRay.insideObject && prevRay.insideObject->isVolumeric())
+	{
+		nextRay = prevRay.insideObject->scatter(prevRay);
+	}
+	else 
+	{
+		if (prevRay.intersectObject)
+		{
+			if (prevRay.intersectObject->isVolumeric() && 
+				prevRay.contactObject && prevRay.contactObject->isVolumeric())
+			{
+				prevRay.origin += prevRay.direction * prevRay.intersectDist;
+				prevRay.intersectDist = 0;
+			}
+			nextRay = prevRay.intersectObject->scatter(prevRay);
+		}
+		else
+		{
+			path.push_back(terminateRay);
+			return;
+		}
+	}
+
+	if (nextRay.direction.length() < 0.5) 
+	{
+		path.push_back(nextRay);		
+		return;
+	}
+
+	if (depth > maxDepth)
+	{
+		path.push_back(terminateRay);
+		return;
+	}
+	
+	if (nextRay.contactObject && nextRay.directionSampleType == Ray::RANDOM)
+	{
+		path.push_back(nextRay);
+		path.push_back(terminateRay);
+		return;
+	}
+
+	NoSelfIntersectionCondition condition(&renderer->scene, nextRay);
+	Scene::ObjSourceInformation info;
+	float dist = renderer->scene.intersect(nextRay, info, &condition);
+	if (dist < 0)
+	{
+		path.push_back(nextRay);
+		path.push_back(terminateRay);
+		return;
+	}
+	else
+	{
+		nextRay.intersectObject = renderer->scene.objects[info.objID];
+		nextRay.intersectObjectTriangleID = info.triangleID;
+		nextRay.intersectDist = dist;
+	}
+	sampleMergePath(path, nextRay, depth + 1);
 }

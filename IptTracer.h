@@ -57,6 +57,8 @@ protected:
 
 	vec3f colorByConnectingCamera(const Camera& camera, const IptPathState& lightState , int& _x , int& _y);
 
+	void sampleMergePath(Path &path, Ray &prevRay, uint depth);
+
 public:
 	Real mergeRadius;
 	Real mergeKernel;
@@ -79,7 +81,7 @@ public:
 		interPathNum = pixelNum;
 		partialPathNum = pixelNum;
 
-		usePPM = true;
+		usePPM = false;
 		if (usePPM)
 		{
 			mergeIterations = 0;

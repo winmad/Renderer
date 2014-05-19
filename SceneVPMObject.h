@@ -16,7 +16,8 @@ public:
 	float IOR;
 	Ray scatter(const Ray& inRay, const bool russian = true) const;
 	bool isVolumeric() { return true; }
-	bool hasCosineTerm(){ return false; }
+	bool hasCosineTerm() { return false; }
+	bool isHomogeneous() { return true; }
  protected:
 	float y(vec3f c) const {
         const float YWeight[3] = { 0.212671f, 0.715160f, 0.072169f };
@@ -53,6 +54,9 @@ public:
 	float getContinueProbability(const Ray &inRay, const Ray &outRay) const;
 	float getRefrCoeff() const {
 		return IOR;
+	}
+	float getG() const {
+		return g;
 	}
 	SceneVPMObject(Scene* scene) : SceneObject(scene)
 	{

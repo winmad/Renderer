@@ -4,6 +4,8 @@
 #include <cmath>
 #include "nvVector.h"
 #include "UniformSphericalSampler.h"
+#include "HGPhaseSampler.h"
+#include "LocalFrame.h"
 using namespace nv;
 
 typedef unsigned int uint;
@@ -297,18 +299,26 @@ public:
 		//printf("%.8f , %.8f\n" , ray.originProb , 1.f / scene->getTotalVolume());
 
 		ray.direction = RandGenerator::genSphericalDirection();
-
 		ray.insideObject = scene->findInsideObject(ray, ray.contactObject);
 		if (ray.insideObject == NULL)
 		{
 			continue;
 		}
 
+		HGPhaseSampler hgSampler(ray.insideObject->getG());
+		LocalFrame lf;
+		lf.buildFromNormal(RandGenerator::genSphericalDirection());
+		/*
+		ray.direction = RandGenerator::genSphericalDirection();
+		ray.directionProb = 0.25f / M_PI;
+		*/
+		ray.direction = hgSampler.genSample(lf);
+		ray.directionProb = hgSampler.getProbDensity(lf , ray.direction);
+		//printf("%.8f\n" , ray.directionProb);
+
 		ray.current_tid = scene->getContactTreeTid(ray);
 		ray.color = vec3f(1, 1, 1);
 
-		ray.directionProb = 0.25f / M_PI;
-		
 		ray.directionSampleType = ray.originSampleType = Ray::RANDOM;
 
 		if(!scene->usingGPU())

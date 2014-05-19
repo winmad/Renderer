@@ -44,6 +44,8 @@ public:
     virtual bool hasCosineTerm(){ return true; }
 	virtual bool emissive() const{ return false; }
 	virtual bool isVolumeric() { return false; }
+	virtual bool isHomogeneous() { return false; }
+	virtual float getG() const { return 0.f; }
 	virtual float getRefrCoeff() const{ return 1; }
 	virtual void preprocessEmissionSampler();
 	void normalizeEmissionWeight(float totalWeight){ weight /= totalWeight; }

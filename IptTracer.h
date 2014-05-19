@@ -79,7 +79,7 @@ public:
 		interPathNum = pixelNum;
 		partialPathNum = pixelNum;
 
-		usePPM = false;
+		usePPM = true;
 		if (usePPM)
 		{
 			mergeIterations = 0;
@@ -117,8 +117,6 @@ public:
 			s *= *initProb;
 		if (dirProb)
 			s *= *dirProb;
-		if (*volScale > 1.f)
-			s *= 0.5f;
 		Real res = M_PI * mergeRadius * mergeRadius * partialPathNum * s;
 		return res;
 	}

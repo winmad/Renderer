@@ -127,7 +127,7 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 			printf("sur = %d, vol = %d\n" , surNum , volNum);
 			*/
 
-#pragma omp parallel for
+//#pragma omp parallel for
 			for(int p=0; p<cameraPathNum; p++)
 			{
 				Path eyePath;
@@ -160,8 +160,8 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 
 				float weightFactor = 1.f;
 
-				for(unsigned i = 1; i < eyePath.size(); i++)
-				//for (unsigned i = 1; i < 2; i++)
+				//for(unsigned i = 1; i < eyePath.size(); i++)
+				for (unsigned i = 1; i < 3; i++)
 				{
 					vec3f colorHitLight(0.f) , colorDirIllu(0.f) , colorGlbIllu(0.f);
 
@@ -211,9 +211,7 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 						mergeContribs.push_back(colorGlbIllu);
 						weights.push_back(weightFactor);
 						//weights.push_back(probDir[i] * probRev[i]);
-						//fprintf(fp , "%.8f " , cameraState.accuProb);
-
-						break;
+						//fprintf(fp , "%.8f " , weightFactor);
 					}
 
 					if (eyePath[i].directionSampleType == Ray::RANDOM)
@@ -241,24 +239,30 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 					
 					if (eyePath[i].directionSampleType != Ray::DEFINITE)
 					{
-						Real pdf = eyePath[i].directionProb;
-		
+						Ray inRay = eyePath[i + 1];
+						inRay.direction = -eyePath[i].direction;
+						Ray outRay = eyePath[i];
+						outRay.direction = -eyePath[i - 1].direction;
+
+						Real dirPdf = eyePath[i].directionProb;
+						Real revPdf = inRay.getDirectionSampleProbDensity(outRay);
+						//printf("%.8f, %.8f\n" , dirPdf , revPdf);
+
 						Real volMergeScale = 1;
 						Real originProb = 1.f / totArea;
-						//originProb = getOriginProb(countHashGrid , cameraState.pos , false);
-						if (eyePath[i].insideObject && eyePath[i].contactObject == NULL)
+						Real dirProb = eyePath[i].getCosineTerm() / M_PI;
+						if (eyePath[i].insideObject && !eyePath[i].contactObject)
 						{
 							volMergeScale = 4.0 / 3.0 * mergeRadius;
 							originProb = 1.f / totVol;
-							//originProb = getOriginProb(countHashGrid , cameraState.pos , true);
+							dirProb = 0.25f / M_PI;
 						}
 
-						//originProb = lastAccuProb;
-						
-						//weightFactor = connectFactor(pdf) /
-						//	(connectFactor(pdf) + mergeFactor(&volMergeScale , &originProb , &INV_2_PI));
+						weightFactor *= connectFactor(revPdf) /
+							(connectFactor(revPdf) + mergeFactor(&volMergeScale , &originProb , &dirProb));
 
-						//fprintf(fp , "w = %.8f\n" , weightFactor);
+						if (_isnan(weightFactor))
+							printf("error, w = %.8f\n" , weightFactor);
 
 						//cameraState.throughput *= weightFactor;
 						//weights.push_back(weightFactor);
@@ -268,10 +272,9 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 				double sumWeights = 0.f;
 				for (int i = 0; i < weights.size(); i++)
 					sumWeights += weights[i];
-				//printf("%d %d %.8lf\n" , mergeContribs.size() , weights.size() , sumWeights);
 				for (int i = 0; i < mergeContribs.size(); i++)
 				{
-					singleImageColors[cameraState.index] += mergeContribs[i] * weights[i] / sumWeights;
+					singleImageColors[cameraState.index] += mergeContribs[i];// * weights[i] / sumWeights;
 					//if (nonSpecLength > 0)
 					//	singleImageColors[cameraState.index] += mergeContribs[i] / (Real)nonSpecLength;		
 				}

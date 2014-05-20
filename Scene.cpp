@@ -93,7 +93,7 @@ void Scene::preprocessAllSamplers()
 			emissiveSurfaceSampler->targetObjects.push_back(objects[i]);
 		else
 		{
-			if (objects[i]->canMerge)
+			if (objects[i]->canMerge && !objects[i]->isVolumeric())
 				otherSurfaceSampler->targetObjects.push_back(objects[i]);
 		}
 	}
@@ -121,7 +121,7 @@ void Scene::preprocessOtherSampler()
 	otherSurfaceSampler = new SurfaceSampler(this);
 	for(unsigned i=0; i<objects.size(); i++)
 	{
-		if (objects[i]->canMerge)
+		if (objects[i]->canMerge && !objects[i]->isVolumeric())
 			otherSurfaceSampler->targetObjects.push_back(objects[i]);
 	}
 	otherSurfaceSampler->preprocess();

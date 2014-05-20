@@ -214,7 +214,7 @@ Ray SceneVPMObject::scatter(const Ray& inRay, const bool russian) const
 			if (inRay.intersectObject != NULL)
 				outRay = inRay.intersectObject->scatter(outRay , russian);
 			else
-				printf("error\n");
+				printf("error VPM object scattering\n");
 			//---------------------
 
 			outRay.originProb *= P_surface(inRay.intersectDist);

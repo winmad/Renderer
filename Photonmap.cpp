@@ -7,6 +7,8 @@
 #define MERGE_LEN 10
 #define PPM
 
+static FILE* fp = fopen("debug_pm.txt" , "w");
+
 vector<vec3f> PhotonMap::renderPixels(const Camera& camera){
 	uint width = camera.width, height = camera.height;
 	std::vector<vec3f> pixelColors(width * height, vec3f(0,0,0));
@@ -92,6 +94,13 @@ vector<vec3f> PhotonMap::renderPixels(const Camera& camera){
 				sampleMergePath(eyePath, camera.generateRay(p), 0);
 			else
 				samplePath(eyePath, camera.generateRay(p));
+
+			//fprintf(fp , "===================\n");
+			//for (int i = 0; i < eyePath.size(); i++)
+			//{
+			//	fprintf(fp , "l=%d, bsdf=(%.8f,%.8f,%.8f), originPdf=%.8f, dirPdf=%.8f\n" , i , eyePath[i].color.x ,
+			//		eyePath[i].color.y , eyePath[i].color.z , eyePath[i].originProb , eyePath[i].directionProb);
+			//}
 
 			/*if(eyePath[1].contactObj && eyePath[1].contactObj->anisotropic()){
 				pixelMaps[p] = 1;

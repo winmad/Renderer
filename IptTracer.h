@@ -55,6 +55,8 @@ protected:
 
 	vec3f colorByMergingVolume(IptPathState& cameraState, PointKDTree<IptPathState>& partialSubPaths , vec3f& tr);
 
+	vec3f colorByRayMarching(Path& eyeMergePath , PointKDTree<IptPathState>& partialSubPaths);
+
 	vec3f colorByConnectingLights(const Camera& camera, const IptPathState& cameraState);
 
 	vec3f colorByConnectingCamera(const Camera& camera, const IptPathState& lightState , int& _x , int& _y);

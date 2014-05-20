@@ -1,7 +1,6 @@
 #include "StdAfx.h"
 #include "SceneEmissiveObject.h"
 
-
 Ray SceneEmissiveObject::scatter(const Ray& inRay , const bool russian) const
 {
 	Ray outRay;

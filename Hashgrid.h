@@ -202,8 +202,8 @@ private:
 	float mInvCellSize;
 
 public:
-	vec3f		 mHitPoint;
-	float		 mAniRatio;
+	vec3f mHitPoint;
+	float mAniRatio;
 
 };
 

@@ -134,7 +134,10 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 				Path eyePath;
 				//samplePath(eyePath, camera.generateRay(p));
 				sampleMergePath(eyePath , camera.generateRay(p) , 0);
+				singleImageColors[p] += colorByRayMarching(eyePath , partialSubPaths);
+				continue;
 
+				// abandon all the rest!
 				if (eyePath.size() <= 1)
 					continue;
 
@@ -286,6 +289,7 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 		}
 		else
 		{
+			/*
 			vector<Path> lightPathListGPU , interPathListGPU , eyePathListGPU;
 			vector<Ray> eyeRayList(cameraPathNum);
 			vector<Ray> lightRayList(lightPathNum);
@@ -369,16 +373,6 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 
 					Real dist = std::max((eyePath[i].origin - eyePath[i - 1].origin).length() , 1e-5f);
 					cameraState.throughput *= eyePath[i - 1].getRadianceDecay(dist);
-
-					/*
-					cameraState.accuProb *= eyePath[i - 1].directionProb * eyePath[i].originProb;
-					double cosThere = 1.f;
-					if (eyePath[i].contactObject && eyePath[i].contactObject->hasCosineTerm())
-					{
-						cosThere = eyePath[i].getContactNormal().dot(-eyePath[i - 1].direction);
-					}
-					cameraState.accuProb *= cosThere / (dist * dist);
-					*/
 
 					if(eyePath[i].contactObject && eyePath[i].contactObject->emissive())
 					{
@@ -471,8 +465,9 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 					singleImageColors[cameraState.index] += mergeContribs[i] * weights[i] / sumWeights;
 					//if (nonSpecLength > 0)
 					//	singleImageColors[cameraState.index] += mergeContribs[i] / (Real)nonSpecLength;		
-				}
+				}	
 			}
+			*/
 		}
 
 		printf("done calculation, release memory\n");
@@ -1378,6 +1373,95 @@ vec3f IptTracer::colorByMergingPaths(IptPathState& cameraState, PointKDTree<IptP
 	return (surfaceRes * tr + volumeRes);
 }
 
+vec3f IptTracer::colorByRayMarching(Path& eyeMergePath , PointKDTree<IptPathState>& partialSubPaths)
+{
+	vec3f tr(1.f) , surfaceRes(0.f) , volumeRes(0.f);
+	for (int i = 1; i < eyeMergePath.size(); i++)
+	{
+		// volume
+		Real dist = std::max((eyeMergePath[i - 1].origin - eyeMergePath[i].origin).length() , 1e-5f);
+		if (eyeMergePath[i - 1].insideObject && eyeMergePath[i - 1].insideObject->isVolumeric())
+		{
+			if (eyeMergePath[i - 1].insideObject->isHomogeneous())
+			{
+				GatherQuery query(this);
+				query.color = vec3f(0.f);
+				query.constKernel = false;
+
+				Ray volRay = eyeMergePath[i - 1];
+				SceneVPMObject *vol = static_cast<SceneVPMObject*>(volRay.insideObject);
+				Real stepSize = vol->stepSize;
+				int N = dist / stepSize;
+				if (N == 0)
+					N++;
+
+				Real step = dist / N;
+				Real offset = step * RandGenerator::genFloat();
+				float t = offset;
+				tr *= vol->getRadianceDecay(volRay , offset);
+
+				IptPathState cameraState;
+				cameraState.throughput = vec3f(1.f);
+				cameraState.lastRay = &volRay;
+
+				Ray outRay = volRay;
+				outRay.contactObject = NULL;
+
+				for (int i = 0; i < N; i++)
+				{
+					query.color = vec3f(0.f);
+					outRay.origin = volRay.origin + volRay.direction * t;
+					cameraState.ray = &outRay;
+					cameraState.pos = outRay.origin;
+					query.cameraState = &cameraState;
+
+					partialSubPaths.searchInRadius(0 , query.cameraState->pos , mergeRadius , query);
+
+					outRay.origin -= volRay.direction * t;
+					tr *= vol->getRadianceDecay(outRay , step);
+
+					volumeRes += query.color * tr * step;
+					t += step;
+				}
+			}
+		}
+
+		// hit light
+		if (eyeMergePath[i].contactObject && eyeMergePath[i].contactObject->emissive())
+		{
+			surfaceRes = eyeMergePath[i].color;
+			break;
+		}
+
+		// surface
+		if (eyeMergePath[i].contactObject && eyeMergePath[i].directionSampleType == Ray::RANDOM)
+		{
+			if (eyeMergePath[i].contactObject->isVolumeric())
+				continue;
+
+			GatherQuery query(this);
+			query.color = vec3f(0.f);
+			query.constKernel = false;
+
+			IptPathState cameraState;
+			cameraState.throughput = vec3f(1.f);
+			cameraState.lastRay = &eyeMergePath[i - 1];
+			cameraState.ray = &eyeMergePath[i];
+			cameraState.pos = cameraState.ray->origin;
+
+			query.cameraState = &cameraState;
+
+			partialSubPaths.searchInRadius(0 , query.cameraState->pos , mergeRadius , query);
+
+			surfaceRes = query.color;
+			break;
+		}
+	}
+
+	vec3f color = tr * surfaceRes + volumeRes;
+	return color;
+}
+
 void IptTracer::mergePartialPaths(vector<vec3f>& contribs , const IptPathState& lightState , const int mergeIters)
 {
 	struct MergeQuery
@@ -1657,7 +1741,6 @@ void IptTracer::sampleMergePath(Path &path, Ray &prevRay, uint depth)
 	}
 	
 	terminateRay.origin = nextRay.origin;
-
 	if (nextRay.contactObject && (nextRay.contactObject->emissive() || nextRay.directionSampleType == Ray::RANDOM))
 	{
 		path.push_back(nextRay);

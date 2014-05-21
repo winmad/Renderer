@@ -3,6 +3,7 @@
 #include "Hashgrid.h"
 #include "BSDF.h"
 #include "SceneVPMObject.h"
+#include "SceneHeterogeneousVolume.h"
 #include <omp.h>
 
 class PhotonMap : public MCRenderer

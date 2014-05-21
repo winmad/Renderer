@@ -145,10 +145,10 @@ void PhotonMap::sampleMergePath(Path &path, Ray &prevRay, uint depth) const{
 	terminateRay.intersectObject = NULL;
 
 	Ray nextRay;
-	if(prevRay.insideObject && !prevRay.insideObject->isVolumeric())			
+	if(prevRay.insideObject && !prevRay.insideObject->isVolumetric())			
 		nextRay = prevRay.insideObject->scatter(prevRay);
 	else if(prevRay.intersectObject){
-		if(prevRay.intersectObject->isVolumeric() && prevRay.contactObject && prevRay.contactObject->isVolumeric()){
+		if(prevRay.intersectObject->isVolumetric() && prevRay.contactObject && prevRay.contactObject->isVolumetric()){
 			prevRay.origin += prevRay.direction * prevRay.intersectDist;
 			prevRay.intersectDist = 0;
 		}
@@ -251,8 +251,8 @@ void PhotonMap::throughputByDensityEstimation(vec3f &color, Path &eyeMergePath,
 	for(int i = 1; i < eyeMergePath.size(); i++){
 		float dist = MAX((eyeMergePath[i-1].origin-eyeMergePath[i].origin).length(), EPSILON);
 
-		if(eyeMergePath[i-1].insideObject && eyeMergePath[i-1].insideObject->isVolumeric()){
-			//if(eyeMergePath[i-1].insideObject->homogeneous())
+		if(eyeMergePath[i-1].insideObject && eyeMergePath[i-1].insideObject->isVolumetric()){
+			if(eyeMergePath[i-1].insideObject->isHomogeneous())
 			{
 				// ray marching volume radiance
 				Ray volThroughRay = eyeMergePath[i-1];
@@ -281,37 +281,35 @@ void PhotonMap::throughputByDensityEstimation(vec3f &color, Path &eyeMergePath,
 					VolumeColor += volColor * Tr * step;
 				}
 			}
-			/*
 			else{
 				// ray marching volume radiance
-				
 				Ray volThroughRay = eyeMergePath[i-1];
-				HeterogeneousVolume *volume = static_cast<HeterogeneousVolume*>(volThroughRay.insideObj);
+				HeterogeneousVolume *volume = static_cast<HeterogeneousVolume*>(volThroughRay.insideObject);
 				float stepSize = volume->getStepSize();
 				int N = dist / stepSize;
 				if(N == 0)		N++;
 				float step = dist / N;
-				float offset = step * engine->rng->genFloat();
+				float offset = step * RandGenerator::genFloat();
 				float t = offset;
-				Tr *= volume->randianceDecay(volThroughRay, offset);
+				Tr *= volume->getRadianceDecay(volThroughRay, offset);
 				for(int j = 0; j < N; j++, t+=step){
 					query.SetContrib(vec3f(0,0,0));
 					query.SetPosition(volThroughRay.origin + volThroughRay.direction*t);
 					Ray outRay = volThroughRay;
 					outRay.direction = -volThroughRay.direction;
 					outRay.origin = volThroughRay.origin + volThroughRay.direction*t;
-					outRay.contactObj = NULL;
+					outRay.contactObject = NULL;
 					query.SetOutRay(outRay);
 					query.volumeMedia = true;
 
 					volumeHashGrid.Process(volumeVertices, query);
 
-					Tr *= volume->randianceDecay(outRay, step);
+					Tr *= volume->getRadianceDecay(outRay, step);
 					vec3f volColor = query.GetContrib();
 					VolumeColor += volColor * Tr * step;
 				}
 			}
-			*/
+			
 		}
 
 		if(eyeMergePath[i].contactObject && eyeMergePath[i].contactObject->emissive()){
@@ -323,7 +321,7 @@ void PhotonMap::throughputByDensityEstimation(vec3f &color, Path &eyeMergePath,
 
 		if(eyeMergePath[i].contactObject && eyeMergePath[i].directionSampleType == Ray::RANDOM){
 			// non-specular photon density estimation
-			if(eyeMergePath[i].contactObject->isVolumeric())
+			if(eyeMergePath[i].contactObject->isVolumetric())
 				continue;
 			query.SetContrib(vec3f(0,0,0));
 			query.SetPosition(eyeMergePath[i].origin);

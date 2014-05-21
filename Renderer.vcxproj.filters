@@ -117,9 +117,6 @@
     <ClInclude Include="SceneVPMObject.h">
       <Filter>头文件\SceneObject</Filter>
     </ClInclude>
-    <ClInclude Include="SceneHeteroObject.h">
-      <Filter>头文件\SceneObject</Filter>
-    </ClInclude>
     <ClInclude Include="Shader.h">
       <Filter>头文件\GPU</Filter>
     </ClInclude>
@@ -228,6 +225,9 @@
     <ClInclude Include="NewBidirectionalPathTracer.h">
       <Filter>头文件\Tracer</Filter>
     </ClInclude>
+    <ClInclude Include="SceneHeterogeneousVolume.h">
+      <Filter>头文件\SceneObject</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -260,16 +260,10 @@
     <ClCompile Include="NoSelfIntersectionCondition.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="volumeData.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="SceneVPMObject.cpp">
       <Filter>源文件\SceneObject</Filter>
     </ClCompile>
     <ClCompile Include="SceneEmissiveObject.cpp">
-      <Filter>源文件\SceneObject</Filter>
-    </ClCompile>
-    <ClCompile Include="SceneHeteroObject.cpp">
       <Filter>源文件\SceneObject</Filter>
     </ClCompile>
     <ClCompile Include="SceneObject.cpp">
@@ -334,6 +328,9 @@
     </ClCompile>
     <ClCompile Include="NewBidirectionalPathTracer.cpp">
       <Filter>源文件\Tracer</Filter>
+    </ClCompile>
+    <ClCompile Include="SceneHeterogeneousVolume.cpp">
+      <Filter>源文件\SceneObject</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

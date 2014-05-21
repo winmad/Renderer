@@ -18,9 +18,8 @@ public:
 	float directionProb;
 	float originProb;
 	
-	float photonProb; // TerminatingProb * oPdfW 
+	float photonProb; 
 	PhotonType photonType;
-	bool isDirectLightPhoton; 
 
 	SceneObject* insideObject;
 	SceneObject* contactObject;
@@ -46,7 +45,6 @@ public:
 		originSampleType = DEFINITE;
 		directionSampleType = RANDOM;
 		pixelID = -1;
-		isDirectLightPhoton = false;
 		current_tid = -1;
 		intersect_tid = -1;
 		intersectDist = -1;

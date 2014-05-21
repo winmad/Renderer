@@ -70,7 +70,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <TargetName>IPT</TargetName>
+    <TargetName>Renderer</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
@@ -185,7 +185,7 @@
     <ClInclude Include="RefractiveMaterial.h" />
     <ClInclude Include="Renderer.h" />
     <ClInclude Include="SceneGlossyObject.h" />
-    <ClInclude Include="SceneHeteroObject.h" />
+    <ClInclude Include="SceneHeterogeneousVolume.h" />
     <ClInclude Include="SceneParallelLight.h" />
     <ClInclude Include="ScenePhongObject.h" />
     <ClInclude Include="SceneVPMObject.h" />
@@ -232,7 +232,7 @@
     <ClCompile Include="Renderer.cpp" />
     <ClCompile Include="Scene.cpp" />
     <ClCompile Include="SceneEmissiveObject.cpp" />
-    <ClCompile Include="SceneHeteroObject.cpp" />
+    <ClCompile Include="SceneHeterogeneousVolume.cpp" />
     <ClCompile Include="SceneObject.cpp" />
     <ClCompile Include="SceneParallelLight.cpp" />
     <ClCompile Include="SceneVPMObject.cpp" />
@@ -247,7 +247,6 @@
     <ClCompile Include="textfile.cpp" />
     <ClCompile Include="Texture.cpp" />
     <ClCompile Include="VCMTracer.cpp" />
-    <ClCompile Include="volumeData.cpp" />
     <ClCompile Include="xmlHelper.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

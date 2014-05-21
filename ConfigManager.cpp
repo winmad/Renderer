@@ -5,6 +5,7 @@
 #include "SceneEmissiveObject.h"
 #include "SceneRefractiveObject.h"
 #include "SceneVPMObject.h"
+#include "SceneHeterogeneousVolume.h"
 #include "SceneReflectiveObject.h"
 #include "BidirectionalPathTracer.h"
 #include "SceneGlossyObject.h"
@@ -14,7 +15,7 @@
 #include "VCMTracer.h"
 #include "IptTracer.h"
 #include "PathTracerTest.h"
-#include "NewBidirectionalPathTracer.h"
+
 
 ConfigManager::ConfigManager(Renderer* renderer)
 {
@@ -68,7 +69,46 @@ SceneObject* ConfigManager::generateSceneObject(xml_node<>* nodeObj, xml_node<>*
 		//obj->setStepSize(atof(nodeMat->first_node("stepsize")->value()));
 		if(shape)
 			*((SimpleShape*)obj) = *shape;
+		std::cout << "VPM Obj " << std::endl;
+		std::cout << obj->isHomogeneous() << ' ' << obj->isVolumetric() << std::endl;
+		std::cout << sceneObject->isHomogeneous() << ' ' << sceneObject->isVolumetric() << std::endl;
 	}
+
+	if(strcmp(nodeMat->first_node("type")->value(), "GridVolume") == 0)
+	{
+		HeterogeneousVolume *obj = new HeterogeneousVolume(&renderer->scene, atof(nodeMat->first_node("g")->value()));
+		sceneObject = obj;
+		if(nodeMat->first_node("IOR"))
+			obj->setIOR(atof(nodeMat->first_node("IOR")->value()));
+		if(nodeMat->first_node("stepsize"))
+			obj->setStepSize(atof(nodeMat->first_node("stepsize")->value()));
+		if(nodeMat->first_node("sigma_s") && nodeMat->first_node("sigma_a")){
+			obj->setSigma(readVec(nodeMat->first_node("sigma_s")->value()),readVec(nodeMat->first_node("sigma_a")->value()));
+		}
+		if(nodeMat->first_node("density_scale"))
+			obj->setDensityScale(atof(nodeMat->first_node("density_scale")->value()));
+		if(nodeMat->first_node("scattering_scale"))
+			obj->setDensityScale(atof(nodeMat->first_node("scattering_scale")->value()));
+		if(nodeMat->first_node("absorption_scale"))
+			obj->setDensityScale(atof(nodeMat->first_node("absorption_scale")->value()));
+
+		if(nodeMat->first_node("lookup_flag"))
+			obj->setSubsurfaceLookUpFlag(atof(nodeMat->first_node("lookup_flag")->value()));
+
+
+		if(nodeMat->first_node("subsurface"))
+			obj->setSubSurface(atof(nodeMat->first_node("subsurface")->value()));
+
+		if(nodeObj->first_node("transform"))
+			obj->transform = (readMatrix(nodeObj->first_node("transform")->value()));
+		if(shape)
+			*((SimpleShape*)obj) = *shape;
+
+		std::cout << "GridVolume Obj " << std::endl;
+		return obj;
+		
+	}
+
 	if(strcmp(nodeMat->first_node("type")->value(), "Emissive") == 0)
 	{
 		SceneEmissiveObject *obj = new SceneEmissiveObject(&renderer->scene);
@@ -205,6 +245,17 @@ void ConfigManager::load(const string &configFilePath)
 		obj->loadShape(path , true); // NEED TO BE TRUE WHEN NOT TESTING
 		// FALSE WHEN test_cornell_box
 
+		if(obj->isVolumetric()){
+			if(nodeMat->first_node("density_file"))
+				((HeterogeneousVolume*)obj)->loadDensityMap(nodeMat->first_node("density_file")->value());
+
+			if(nodeMat->first_node("volume_data_s") && nodeMat->first_node("volume_data_a")){
+				((HeterogeneousVolume*)obj)->loadSubSurfaceVolumeData(nodeMat->first_node("volume_data_s")->value(), nodeMat->first_node("volume_data_a")->value());
+			}
+			std::cout << "BBox = " << (vec3f(obj->transform * vec4f(obj->minCoord, 1))) << " " << (vec3f(obj->transform * vec4f(obj->maxCoord, 1))) << std::endl;
+		}
+
+
 		renderer->scene.objects.push_back(obj);
 	}
 
@@ -245,10 +296,10 @@ void ConfigManager::load(const string &configFilePath)
 		{
 			renderer->mcRenderer = new BidirectionalPathTracer(renderer);
 		}
-		if (typeName == "newBPT")
+		/*if (typeName == "newBPT")
 		{
 			renderer->mcRenderer = new NewBidirectionalPathTracer(renderer);
-		}
+		}*/
 		if(typeName == "VCMTracer" || typeName == "VCM")
 		{
 			renderer->mcRenderer = new VCMTracer(renderer);
@@ -289,10 +340,10 @@ void ConfigManager::load(const string &configFilePath)
 		{
 			renderer->mcRenderer = new BidirectionalPathTracer(renderer);
 		}
-		if (typeName == "newBPT")
-		{
-			renderer->mcRenderer = new NewBidirectionalPathTracer(renderer);
-		}
+		//if (typeName == "newBPT")
+		//{
+		//	renderer->mcRenderer = new NewBidirectionalPathTracer(renderer);
+		//}
 		if(typeName == "VCMTracer" || typeName == "VCM")
 		{
 			renderer->mcRenderer = new VCMTracer(renderer);

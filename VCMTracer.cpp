@@ -450,6 +450,10 @@ void VCMTracer::colorByConnectingPaths(vector<omp_lock_t> &pixelLocks, const Cam
 
 			if(eyePathLen > 0 && lightPathLen > 0)
 			{
+				//====== add on May 21 =======
+				//if (lightRay.direction.length() < 0.5f || eyeRay.direction.length() < 0.5f)
+				//	continue;
+				//============================
 				if(lightPathLen > 1 && lightRay.contactObject && lightRay.contactObject->emissive())
 					continue;
 				if(eyeRay.contactObject && eyeRay.contactObject->emissive())
@@ -546,9 +550,11 @@ void VCMTracer::colorByMergingPaths(vector<vec3f>& colors, const Path& eyePath, 
 
 		void process(const LightPathPoint& lpp)
 		{
+			//Ray lightRay = (*lpp.path)[lpp.index];
+			//if (lightRay.direction.length() < 0.5f)
+			//	return;
 			/*
 			Ray cameraRay = (*eyePath)[eyePathLen - 1];
-			Ray lightRay = (*lpp.path)[lpp.index];
 			if (cameraRay.insideObject && cameraRay.contactObject == NULL)
 			{
 				if (lightRay.insideObject == NULL ||
@@ -604,6 +610,10 @@ void VCMTracer::colorByMergingPaths(vector<vec3f>& colors, const Path& eyePath, 
 	{
 		if(eyePath[ei].contactObject && eyePath[ei].contactObject->emissive())
 			break;
+		//======== add on May 21 ===========
+		//if(eyePath[ei].direction.length() < 0.5f)
+		//	break;
+		//==================================
 		if(eyePath[ei].directionSampleType == Ray::DEFINITE)
 			continue;
 		query.color = vec3f(0, 0, 0);

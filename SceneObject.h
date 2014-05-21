@@ -43,8 +43,8 @@ public:
 	virtual LocalFrame getAutoGenWorldLocalFrame(unsigned fi, const vec3f& position, bool flat = false) const;
     virtual bool hasCosineTerm(){ return true; }
 	virtual bool emissive() const{ return false; }
-	virtual bool isVolumeric() { return false; }
-	virtual bool isHomogeneous() { return false; }
+	virtual bool isVolumetric() { return false; }
+	virtual bool isHomogeneous() { return true; }
 	virtual float getG() const { return 0.f; }
 	virtual float getRefrCoeff() const{ return 1; }
 	virtual void preprocessEmissionSampler();

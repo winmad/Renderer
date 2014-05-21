@@ -46,7 +46,7 @@ public:
 		cellVolume = mCellSize * mCellSize * mCellSize;
 		printf("cell size = %.8f\n" , mCellSize);
 		
-		totVolume = diag[0] * diag[1] * diag[2];
+		totVolume = 0.f;
 	}
 
 	void preprocess(Scene& scene)
@@ -64,18 +64,18 @@ public:
 		{
 			Ray ray;
 			bool isInside = true;
-			for (int j = 0; j < 8; j++)
+			for (int j = 0; j < 2; j++)
 			{
 				vec3f offset;
-				offset.x = (j & 1);
-				offset.y = ((j >> 1) & 1);
-				offset.z = ((j >> 2) & 1);
+				offset.x = RandGenerator::genFloat();
+				offset.y = RandGenerator::genFloat();
+				offset.z = RandGenerator::genFloat();
 				ray.origin = cellIndexToPosition(i , offset);
 				ray.direction = RandGenerator::genSphericalDirection();
 				//ray.direction = vec3f(0.f , 1.f , 0.f);
 
 				SceneObject *insideObject = scene.findInsideObject(ray);
-				if (!insideObject || !insideObject->isVolumeric())
+				if (!insideObject || !insideObject->isVolumetric())
 				{
 					isInside = false;
 					break;
@@ -90,7 +90,7 @@ public:
 				//ray.direction = vec3f(0.f , 1.f , 0.f);
 
 				SceneObject *insideObject = scene.findInsideObject(ray);
-				if (!insideObject || !insideObject->isVolumeric())
+				if (!insideObject || !insideObject->isVolumetric())
 					isInside = false;
 			}
 

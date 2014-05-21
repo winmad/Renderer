@@ -88,7 +88,7 @@ public:
 		interPathNum = pixelNum;
 		partialPathNum = pixelNum;
 
-		usePPM = false;
+		usePPM = true;
 		if (usePPM)
 		{
 			mergeIterations = 0;

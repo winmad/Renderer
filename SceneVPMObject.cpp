@@ -76,7 +76,7 @@ Ray SceneVPMObject::scatter(const Ray& inRay, const bool russian) const
 				outRay.contactObject = outRay.insideObject = (SceneObject*)this;
 				outRay.directionSampleType = Ray::DEFINITE;
 				outRay.photonType = Ray::HITVOL;
-				outRay.isDirectLightPhoton = inRay.isDirectLightPhoton;
+			
 			}
 			outRay.direction.normalize();
 		}
@@ -113,8 +113,7 @@ Ray SceneVPMObject::scatter(const Ray& inRay, const bool russian) const
 			outRay.originProb = p_medium(sampDist);
 			outRay.directionSampleType = Ray::RANDOM;
 			outRay.color *= ds;
-			outRay.photonType = inRay.isDirectLightPhoton ? Ray::NOUSE : Ray::INVOL;
-			outRay.isDirectLightPhoton = false;
+			outRay.photonType = Ray::INVOL;
 		}
 		else{
 			// terminate
@@ -127,8 +126,8 @@ Ray SceneVPMObject::scatter(const Ray& inRay, const bool russian) const
 			outRay.insideObject = NULL;
 			outRay.contactObject = NULL;
 			outRay.directionSampleType = Ray::RANDOM;
-			outRay.photonType = inRay.isDirectLightPhoton ? Ray::NOUSE : Ray::INVOL;
-			outRay.isDirectLightPhoton = false;
+			outRay.photonType = Ray::NOUSE;
+		 
 		}
 		return outRay;
 	}
@@ -218,7 +217,7 @@ Ray SceneVPMObject::scatter(const Ray& inRay, const bool russian) const
 			//---------------------
 
 			outRay.originProb *= P_surface(inRay.intersectDist);
-			outRay.photonType = Ray::NOUSE;
+			outRay.photonType = inRay.intersectObject->isVolumetric() ? Ray::NOUSE : Ray::OUTVOL;
 		}
 		return outRay;
 	}

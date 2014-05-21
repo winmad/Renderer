@@ -11,7 +11,7 @@
 int _tmain(int argc, _TCHAR* argv[])
 {	
 	Renderer renderer;
-	renderer.showWindow();
+	//renderer.showWindow();
 	renderer.waitForCommand();
 	
 	return 0;

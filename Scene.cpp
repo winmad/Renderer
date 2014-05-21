@@ -93,7 +93,7 @@ void Scene::preprocessAllSamplers()
 			emissiveSurfaceSampler->targetObjects.push_back(objects[i]);
 		else
 		{
-			if (objects[i]->canMerge && !objects[i]->isVolumeric())
+			if (objects[i]->canMerge && !objects[i]->isVolumetric() && !objects[i]->emissive())
 				otherSurfaceSampler->targetObjects.push_back(objects[i]);
 		}
 	}
@@ -121,7 +121,7 @@ void Scene::preprocessOtherSampler()
 	otherSurfaceSampler = new SurfaceSampler(this);
 	for(unsigned i=0; i<objects.size(); i++)
 	{
-		if (objects[i]->canMerge && !objects[i]->isVolumeric())
+		if (objects[i]->canMerge && !objects[i]->isVolumetric() && !objects[i]->emissive())
 			otherSurfaceSampler->targetObjects.push_back(objects[i]);
 	}
 	otherSurfaceSampler->preprocess();
@@ -198,7 +198,7 @@ void Scene::buildObjKDTrees()
 		}
 		objKDTrees[oi].build();
 
-		if (obj->isVolumeric())
+		if (obj->isVolumetric())
 		{
 			float r = objKDTrees[oi].getDiagonal().length() / 2;
 			obj->totalVolume = 4.f / 3.f * r * r * r;

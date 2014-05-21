@@ -4,6 +4,7 @@
 #include "UniformSphericalSampler.h"
 #include "NoSelfIntersectionCondition.h"
 #include "SceneVPMObject.h"
+#include "SceneHeteroGeneousVolume.h"
 
 static FILE *fp = fopen("debug_ipt.txt" , "w");
 
@@ -16,9 +17,12 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 
 	preprocessEmissionSampler();
 	preprocessOtherSampler();
-	countHashGrid.init(renderer->scene);
-	countHashGrid.preprocess(renderer->scene);
-
+	if (renderer->scene.getTotalVolume() > 1e-6f)
+	{
+		countHashGrid.init(renderer->scene);
+		countHashGrid.preprocess(renderer->scene);
+	}
+	
 	for(int i=0; i<pixelLocks.size(); i++)
 	{
 		omp_init_lock(&pixelLocks[i]);
@@ -550,6 +554,9 @@ void IptTracer::genLightPaths(omp_lock_t& cmdLock , vector<Path*>& lightPathList
 		for(unsigned i = 1; i < lightPath.size(); i++)
 		//for (unsigned i = 1; i < 2; i++)
 		{
+			//if (lightPath[i].direction.length() < 0.5f)
+			//	break;
+
 			Real dist = std::max((lightPath[i].origin - lightPath[i - 1].origin).length() , 1e-5f);
 			vec3f decayFactor = lightPath[i - 1].getRadianceDecay(dist);
 			lightState.throughput *= decayFactor;
@@ -829,6 +836,9 @@ void IptTracer::genIntermediatePaths(omp_lock_t& cmdLock , vector<Path*>& interP
 		for(unsigned i = 1; i < interPath.size(); i++)
 		//for (unsigned i = 1; i < 2; i++)
 		{
+			//if (interPath[i].direction.length() < 0.5f)
+			//	break;
+
 			Real dist = std::max((interPath[i].origin - interPath[i - 1].origin).length() , 1e-5f);
 			interState.throughput *= interPath[i - 1].getRadianceDecay(dist);
 
@@ -1281,7 +1291,7 @@ vec3f IptTracer::colorByMergingVolume(IptPathState& cameraState, PointKDTree<Ipt
 {
 	vec3f volumeRes(0.f);
 	Real dist = std::max((cameraState.lastRay->origin - cameraState.ray->origin).length() , 1e-6f);
-	if (cameraState.lastRay->insideObject && cameraState.lastRay->insideObject->isVolumeric())
+	if (cameraState.lastRay->insideObject && cameraState.lastRay->insideObject->isVolumetric())
 	{
 		if (cameraState.lastRay->insideObject->isHomogeneous())
 		{
@@ -1334,7 +1344,7 @@ vec3f IptTracer::colorByMergingSurface(IptPathState& cameraState, PointKDTree<Ip
 	vec3f surfaceRes(0.f);
 	if (cameraState.ray->contactObject && cameraState.ray->directionSampleType == Ray::RANDOM)
 	{
-		if (cameraState.ray->contactObject->isVolumeric())
+		if (cameraState.ray->contactObject->isVolumetric())
 			return surfaceRes;
 
 		GatherQuery query(this);
@@ -1368,9 +1378,19 @@ vec3f IptTracer::colorByRayMarching(Path& eyeMergePath , PointKDTree<IptPathStat
 	vec3f tr(1.f) , surfaceRes(0.f) , volumeRes(0.f);
 	for (int i = 1; i < eyeMergePath.size(); i++)
 	{
+		// hit light
+		if (eyeMergePath[i].contactObject && eyeMergePath[i].contactObject->emissive())
+		{
+			surfaceRes = eyeMergePath[i].color;
+			break;
+		}
+
+		//if (eyeMergePath[i].direction.length() < 0.5f)
+		//	break;
+
 		// volume
 		Real dist = std::max((eyeMergePath[i - 1].origin - eyeMergePath[i].origin).length() , 1e-5f);
-		if (eyeMergePath[i - 1].insideObject && eyeMergePath[i - 1].insideObject->isVolumeric())
+		if (eyeMergePath[i - 1].insideObject && eyeMergePath[i - 1].insideObject->isVolumetric())
 		{
 			if (eyeMergePath[i - 1].insideObject->isHomogeneous())
 			{
@@ -1414,19 +1434,55 @@ vec3f IptTracer::colorByRayMarching(Path& eyeMergePath , PointKDTree<IptPathStat
 					t += step;
 				}
 			}
-		}
+			else
+			{
+				GatherQuery query(this);
+				query.color = vec3f(0.f);
+				query.constKernel = false;
 
-		// hit light
-		if (eyeMergePath[i].contactObject && eyeMergePath[i].contactObject->emissive())
-		{
-			surfaceRes = eyeMergePath[i].color;
-			break;
+				Ray volRay = eyeMergePath[i - 1];
+				HeterogeneousVolume *vol = static_cast<HeterogeneousVolume*>(volRay.insideObject);
+				float stepSize = vol->getStepSize();
+				int N = dist / stepSize;
+				if (N == 0)
+					N++;
+
+				float step = dist / N;
+				float offset = step * RandGenerator::genFloat();
+				float t = offset;
+				tr *= vol->getRadianceDecay(volRay , offset);
+
+				IptPathState cameraState;
+				cameraState.throughput = vec3f(1.f);
+				cameraState.lastRay = &volRay;
+
+				Ray outRay = volRay;
+				outRay.contactObject = NULL;
+
+				for(int i = 0; i < N; i++)
+				{
+					query.color = vec3f(0.f);
+					outRay.origin = volRay.origin + volRay.direction * t;
+					cameraState.ray = &outRay;
+					cameraState.pos = outRay.origin;
+					query.cameraState = &cameraState;
+
+					partialSubPaths.searchInRadius(0 , query.cameraState->pos , mergeRadius , query);
+
+					outRay.origin -= volRay.direction * t;
+					tr *= vol->getRadianceDecay(outRay , step);
+
+					volumeRes += query.color * tr * step;
+					
+					t += step;
+				}
+			}
 		}
 
 		// surface
 		if (eyeMergePath[i].contactObject && eyeMergePath[i].directionSampleType == Ray::RANDOM)
 		{
-			if (eyeMergePath[i].contactObject->isVolumeric())
+			if (eyeMergePath[i].contactObject->isVolumetric())
 				continue;
 
 			GatherQuery query(this);
@@ -1695,7 +1751,7 @@ void IptTracer::sampleMergePath(Path &path, Ray &prevRay, uint depth)
 	terminateRay.insideObject =	terminateRay.contactObject = terminateRay.intersectObject = NULL;
 
 	Ray nextRay;
-	if (prevRay.insideObject && !prevRay.insideObject->isVolumeric())
+	if (prevRay.insideObject && !prevRay.insideObject->isVolumetric())
 	{
 		nextRay = prevRay.insideObject->scatter(prevRay);
 	}
@@ -1703,8 +1759,8 @@ void IptTracer::sampleMergePath(Path &path, Ray &prevRay, uint depth)
 	{
 		if (prevRay.intersectObject)
 		{
-			if (prevRay.intersectObject->isVolumeric() && 
-				prevRay.contactObject && prevRay.contactObject->isVolumeric())
+			if (prevRay.intersectObject->isVolumetric() && 
+				prevRay.contactObject && prevRay.contactObject->isVolumetric())
 			{
 				prevRay.origin += prevRay.direction * prevRay.intersectDist;
 				prevRay.intersectDist = 0;

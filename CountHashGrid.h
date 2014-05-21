@@ -38,7 +38,7 @@ public:
 		mBBoxMin = scene.tree.root->boundingBox.minCoord;
 		mBBoxMax = scene.tree.root->boundingBox.maxCoord;
 
-		sizeNum = 100;
+		sizeNum = 300;
 
 		mCellSize = max(diag[0] , max(diag[1] , diag[2])) / sizeNum;
 		mInvCellSize = 1.f / mCellSize;
@@ -47,12 +47,6 @@ public:
 		printf("cell size = %.8f\n" , mCellSize);
 		
 		totVolume = diag[0] * diag[1] * diag[2];
-
-		weights.clear();
-		weights.resize(sizeNum * sizeNum * sizeNum);
-		memset(&weights[0] , 0 , sizeof(weights));
-
-		sumContribs = 0;
 	}
 
 	void preprocess(Scene& scene)
@@ -60,7 +54,6 @@ public:
 		effectiveIndex.clear();
 		effectiveWeights.clear();
 
-		Ray ray;
 		float sumWeights = 0.f;
 
 		omp_lock_t lock;
@@ -69,7 +62,8 @@ public:
 #pragma omp parallel for
 		for (int i = 0; i < sizeNum * sizeNum * sizeNum; i++)
 		{
-			bool isInside = false;
+			Ray ray;
+			bool isInside = true;
 			for (int j = 0; j < 8; j++)
 			{
 				vec3f offset;
@@ -78,10 +72,12 @@ public:
 				offset.z = ((j >> 2) & 1);
 				ray.origin = cellIndexToPosition(i , offset);
 				ray.direction = RandGenerator::genSphericalDirection();
+				//ray.direction = vec3f(0.f , 1.f , 0.f);
+
 				SceneObject *insideObject = scene.findInsideObject(ray);
-				if (insideObject && insideObject->isVolumeric())
+				if (!insideObject || !insideObject->isVolumeric())
 				{
-					isInside = true;
+					isInside = false;
 					break;
 				}
 			}
@@ -91,9 +87,11 @@ public:
 				offset.x = offset.y = offset.z = 0.5f;
 				ray.origin = cellIndexToPosition(i , offset);
 				ray.direction = RandGenerator::genSphericalDirection();
+				//ray.direction = vec3f(0.f , 1.f , 0.f);
+
 				SceneObject *insideObject = scene.findInsideObject(ray);
-				if (insideObject && insideObject->isVolumeric())
-					isInside = true;
+				if (!insideObject || !insideObject->isVolumeric())
+					isInside = false;
 			}
 
 			if (isInside)
@@ -209,15 +207,6 @@ public:
 		}
 	}
 
-	void print(FILE* fp)
-	{
-		fprintf(fp , "============ one iter============\n");
-		for (int i = 0; i < effectiveWeights.size(); i++)
-		{
-			fprintf(fp , "index = %d, accuWeight = %.8f\n" , effectiveIndex[i] , effectiveWeights[i]);
-		}
-	}
-
 public:
 	int GetCellIndex(const vec3i &aCoord) const
 	{
@@ -266,10 +255,14 @@ public:
 		return res;
 	}
 
-	vec3f getRandomPosition(float &pdf)
+	vec3f getRandomPosition(float &pdf , int *givenIndex = NULL)
 	{
 		float rnd = RandGenerator::genFloat();
 		unsigned index = (lower_bound(effectiveWeights.begin(), effectiveWeights.end(), rnd)-effectiveWeights.begin());
+
+		if (givenIndex)
+			index = *givenIndex;
+
 		if(index == 0)
 		{
 			pdf = effectiveWeights[index];
@@ -283,14 +276,18 @@ public:
 		return res;
 	}
 
-	Ray volumeEmit(Scene *scene)
+	Ray volumeEmit(Scene *scene , int *givenIndex = NULL)
 	{
 		for (;;)
 		{
 		Ray ray;
 		ray.contactObject = NULL;
 		ray.contactObjectTriangleID = -1;
-		ray.origin = getRandomPosition(ray.originProb);
+
+		if (!givenIndex)
+			ray.origin = getRandomPosition(ray.originProb);
+		else
+			ray.origin = getRandomPosition(ray.originProb , givenIndex);
 
 		// not sure
 		ray.originProb *= mInvCellSize * mInvCellSize * mInvCellSize;
@@ -302,6 +299,7 @@ public:
 		ray.insideObject = scene->findInsideObject(ray, ray.contactObject);
 		if (ray.insideObject == NULL)
 		{
+			//printf("weird! It should always have insideObject\n");
 			continue;
 		}
 
@@ -312,8 +310,10 @@ public:
 		ray.direction = RandGenerator::genSphericalDirection();
 		ray.directionProb = 0.25f / M_PI;
 		*/
+		
 		ray.direction = hgSampler.genSample(lf);
 		ray.directionProb = hgSampler.getProbDensity(lf , ray.direction);
+		
 		//printf("%.8f\n" , ray.directionProb);
 
 		ray.current_tid = scene->getContactTreeTid(ray);
@@ -326,14 +326,37 @@ public:
 			Scene::ObjSourceInformation osi;
 			NoSelfIntersectionCondition condition(scene, ray);
 			float dist = scene->intersect(ray, osi, &condition);
-			if(dist > 0)
+			if(dist > 1e-6f)
 			{
 				ray.intersectDist = dist;
 				ray.intersectObject = scene->objects[osi.objID];
 				ray.intersectObjectTriangleID = osi.triangleID;
 			}
 		}
+
+		if (ray.insideObject && !ray.intersectObject)
+		{
+			printf("weird! It has insideObject but no intersectObject\n");
+			continue;
+		}
+
 		return ray;
+		}
+	}
+
+	void print(FILE *fp , Scene* scene)
+	{
+		fprintf(fp , "============ one iter============\n");
+		
+		for (int i = 0; i < effectiveWeights.size(); i++)
+		{
+			Ray ray = volumeEmit(scene , &i);
+			fprintf(fp , "=====================\n");
+			fprintf(fp , "pos = (%.8f, %.8f, %.8f) , dir = (%.8f, %.8f, %.8f)\n" , ray.origin.x , ray.origin.y , ray.origin.z ,
+				ray.direction.x , ray.direction.y , ray.direction.z);
+			fprintf(fp , "insideObj = %d, contactObj = %d, intersectObj = %d , t = %.8f\n" , ray.insideObject , ray.contactObject , 
+				ray.intersectObject , ray.intersectDist);
+			fprintf(fp , "index = %d, accuWeight = %.8f\n" , effectiveIndex[i] , effectiveWeights[i]);
 		}
 	}
 

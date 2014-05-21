@@ -33,6 +33,9 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 	totVol = countHashGrid.totVolume;
 	printf("scene: totArea = %.8f, totVol = %.8f\n" , totArea , totVol);
 
+	//if (totVol > 1e-7f)
+	//	countHashGrid.print(fp , &renderer->scene);
+
 	for(unsigned s=0; s<spp; s++)
 	{
 		partPathMergeIndex.resize(interPathNum);
@@ -62,11 +65,6 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 		if (!renderer->scene.usingGPU())
 		{
 			genLightPaths(cmdLock , lightPathList);
-
-			if (totVol > 1e-7f)
-			{
-				//countHashGrid.print(fp);
-			}
 
 			if (!usePPM)
 				genIntermediatePaths(cmdLock , interPathList);
@@ -138,6 +136,7 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 				continue;
 
 				// abandon all the rest!
+				/*
 				if (eyePath.size() <= 1)
 					continue;
 
@@ -177,16 +176,6 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 
 					//Real dist = std::max((eyePath[i].origin - eyePath[i - 1].origin).length() , 1e-5f);
 					//cameraState.throughput *= eyePath[i - 1].getRadianceDecay(dist);
-
-					/*
-					cameraState.accuProb *= eyePath[i - 1].directionProb * eyePath[i].originProb;
-					double cosThere = 1.f;
-					if (eyePath[i].contactObject && eyePath[i].contactObject->hasCosineTerm())
-					{
-						cosThere = eyePath[i].getContactNormal().dot(-eyePath[i - 1].direction);
-					}
-					cameraState.accuProb *= cosThere / (dist * dist);
-					*/
 
 					if(eyePath[i].contactObject && eyePath[i].contactObject->emissive())
 					{
@@ -285,6 +274,7 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 					//if (nonSpecLength > 0)
 					//	singleImageColors[cameraState.index] += mergeContribs[i] / (Real)nonSpecLength;		
 				}
+				*/
 			}
 		}
 		else
@@ -1705,7 +1695,7 @@ void IptTracer::sampleMergePath(Path &path, Ray &prevRay, uint depth)
 	terminateRay.insideObject =	terminateRay.contactObject = terminateRay.intersectObject = NULL;
 
 	Ray nextRay;
-	if (prevRay.insideObject && prevRay.insideObject->isVolumeric())
+	if (prevRay.insideObject && !prevRay.insideObject->isVolumeric())
 	{
 		nextRay = prevRay.insideObject->scatter(prevRay);
 	}

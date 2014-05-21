@@ -145,7 +145,7 @@ void PhotonMap::sampleMergePath(Path &path, Ray &prevRay, uint depth) const{
 	terminateRay.intersectObject = NULL;
 
 	Ray nextRay;
-	if(prevRay.insideObject && prevRay.insideObject->isVolumeric())			
+	if(prevRay.insideObject && !prevRay.insideObject->isVolumeric())			
 		nextRay = prevRay.insideObject->scatter(prevRay);
 	else if(prevRay.intersectObject){
 		if(prevRay.intersectObject->isVolumeric() && prevRay.contactObject && prevRay.contactObject->isVolumeric()){

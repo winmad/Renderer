@@ -69,9 +69,6 @@ SceneObject* ConfigManager::generateSceneObject(xml_node<>* nodeObj, xml_node<>*
 		//obj->setStepSize(atof(nodeMat->first_node("stepsize")->value()));
 		if(shape)
 			*((SimpleShape*)obj) = *shape;
-		std::cout << "VPM Obj " << std::endl;
-		std::cout << obj->isHomogeneous() << ' ' << obj->isVolumetric() << std::endl;
-		std::cout << sceneObject->isHomogeneous() << ' ' << sceneObject->isVolumetric() << std::endl;
 	}
 
 	if(strcmp(nodeMat->first_node("type")->value(), "GridVolume") == 0)

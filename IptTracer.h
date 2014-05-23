@@ -88,7 +88,7 @@ public:
 		interPathNum = pixelNum;
 		partialPathNum = pixelNum;
 
-		usePPM = true;
+		usePPM = false;
 		if (usePPM)
 		{
 			mergeIterations = 0;
@@ -103,13 +103,6 @@ public:
 	void setRadius(const Real& r) { mergeRadius = r; }
 	void setInitProb(const Real& r) { initialProb = r; }
 	virtual vector<vec3f> renderPixels(const Camera& camera);
-	
-	Real getOriginProb(CountHashGrid& hashGrid , vec3f& pos , const bool isVol)
-	{
-		CountQuery query(pos);
-		hashGrid.count(query);
-		return query.count * (hashGrid.mInvCellSize * hashGrid.mInvCellSize * hashGrid.mInvCellSize);
-	}
 	
 	Real connectFactor(Real pdf)
 	{
@@ -191,7 +184,10 @@ struct GatherQuery
 			return;
 
 		vec3f totContrib(0.f);
-		totContrib = lightState.throughput + lightState.indirContrib;
+		if (lightState.index < tracer->lightPhotonNum)
+			totContrib = lightState.throughput;
+		else
+			totContrib = lightState.indirContrib;
 		//totContrib = lightState.indirContrib;
 
 		vec3f tmp = totContrib * bsdfFactor * cameraState->throughput; 

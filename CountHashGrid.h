@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <cmath>
+#include <omp.h>
 #include "nvVector.h"
 #include "UniformSphericalSampler.h"
 #include "HGPhaseSampler.h"
@@ -9,14 +10,6 @@
 using namespace nv;
 
 typedef unsigned int uint;
-
-struct CountQuery
-{
-	vec3f& pos;
-	double count;
-
-	CountQuery(vec3f& _pos) : pos(_pos) , count(0.f) {}
-};
 
 class CountHashGrid
 {
@@ -28,33 +21,38 @@ public:
 
 	void clear()
 	{
-		weights.clear();
-		weights.shrink_to_fit();
+		effectiveIndex.clear();
+		effectiveIndex.shrink_to_fit();
+		effectiveWeights.clear();
+		effectiveWeights.shrink_to_fit();
 	}
 
-	void init(Scene& scene)
+	void init(Scene *scene , int objIndex)
 	{
-		vec3f diag = scene.getDiagonal();
-		mBBoxMin = scene.tree.root->boundingBox.minCoord;
-		mBBoxMax = scene.tree.root->boundingBox.maxCoord;
+		vec3f diag = scene->objKDTrees[objIndex].root->boundingBox.maxCoord -
+			scene->objKDTrees[objIndex].root->boundingBox.minCoord;
+		mBBoxMin = scene->objKDTrees[objIndex].root->boundingBox.minCoord;
+		mBBoxMax = scene->objKDTrees[objIndex].root->boundingBox.maxCoord;
 
-		sizeNum = 300;
+		sizeNum = 50;
 
-		mCellSize = max(diag[0] , max(diag[1] , diag[2])) / sizeNum;
+		mCellSize = diag / sizeNum;
 		mInvCellSize = 1.f / mCellSize;
-		cellArea = mCellSize * mCellSize;
-		cellVolume = mCellSize * mCellSize * mCellSize;
-		printf("cell size = %.8f\n" , mCellSize);
+		cellVolume = mCellSize.x * mCellSize.y * mCellSize.z;
+		printf("cell size = (%.8f, %.8f, %.8f)\n" , mCellSize.x , mCellSize.y , mCellSize.z);
 		
+		sumWeights = 0.f;
 		totVolume = 0.f;
+
+		this->objectIndex = objIndex;
 	}
 
-	void preprocess(Scene& scene)
+	void preprocess(Scene *scene , int objIndex)
 	{
+		printf("preprocess volume object \#%d...\n" , objIndex);
+
 		effectiveIndex.clear();
 		effectiveWeights.clear();
-
-		float sumWeights = 0.f;
 
 		omp_lock_t lock;
 		omp_init_lock(&lock);
@@ -63,8 +61,9 @@ public:
 		for (int i = 0; i < sizeNum * sizeNum * sizeNum; i++)
 		{
 			Ray ray;
-			bool isInside = true;
-			for (int j = 0; j < 2; j++)
+			float insideCnt = 0.f;
+			int N = 8;
+			for (int j = 0; j < N; j++)
 			{
 				vec3f offset;
 				offset.x = RandGenerator::genFloat();
@@ -74,30 +73,17 @@ public:
 				ray.direction = RandGenerator::genSphericalDirection();
 				//ray.direction = vec3f(0.f , 1.f , 0.f);
 
-				SceneObject *insideObject = scene.findInsideObject(ray);
-				if (!insideObject || !insideObject->isVolumetric())
+				if (scene->checkInsideObject(ray , objIndex))
 				{
-					isInside = false;
-					break;
+					insideCnt += 1.f;
 				}
 			}
-			if (!isInside)
-			{
-				vec3f offset;
-				offset.x = offset.y = offset.z = 0.5f;
-				ray.origin = cellIndexToPosition(i , offset);
-				ray.direction = RandGenerator::genSphericalDirection();
-				//ray.direction = vec3f(0.f , 1.f , 0.f);
+			float insideCellVol = insideCnt / (float)N;
 
-				SceneObject *insideObject = scene.findInsideObject(ray);
-				if (!insideObject || !insideObject->isVolumetric())
-					isInside = false;
-			}
-
-			if (isInside)
+			if (insideCellVol > 1e-6f)
 			{
 				omp_set_lock(&lock);
-				sumWeights += 1.f;
+				sumWeights += insideCellVol;
 				effectiveIndex.push_back(i);
 				effectiveWeights.push_back(sumWeights);
 				omp_unset_lock(&lock);
@@ -107,104 +93,9 @@ public:
 		for (int i = 0; i < effectiveWeights.size(); i++)
 			effectiveWeights[i] /= sumWeights;
 
-		totVolume = sumWeights * mCellSize * mCellSize * mCellSize;
+		totVolume = sumWeights * mCellSize.x * mCellSize.y * mCellSize.z;
 
 		omp_destroy_lock(&lock);
-	}
-
-	template<typename tParticle>
-	void addPhotons(const std::vector<tParticle> &aParticles , const int st , const int ed)
-	{
-		double energy;
-
-		for (int i = 0; i < weights.size(); i++)
-			weights[i] *= sumContribs;
-
-		for(int i=st; i<ed; i++)
-		{
-			if (aParticles[i].ray->insideObject == NULL)
-				continue;
-			const vec3f &pos = aParticles[i].pos;
-			vec3f totContrib = aParticles[i].throughput;
-			int cellIndex = GetCellIndex(pos);
-			if (cellIndex == -1)
-			{
-				printf("error index\n");
-				continue;
-			}
-			
-			energy = y(totContrib) * 1e-7f;
-			sumContribs += energy;
-			weights[cellIndex] += energy;
-		}
-
-		for (int i = 0; i < weights.size(); i++)
-			weights[i] /= sumContribs;
-
-		effectiveIndex.clear();
-		effectiveWeights.clear();
-		for (int i = 0; i < weights.size(); i++)
-		{
-			if (weights[i] < 1e-7f)
-				continue;
-			effectiveIndex.push_back(i);
-			effectiveWeights.push_back(weights[i]);
-			//effectiveWeights.push_back(1.f);
-		}
-
-		//for (int i = 0; i < effectiveWeights.size(); i++)
-		//	effectiveWeights[i] /= (Real)effectiveWeights.size();
-		for (int i = 1; i < effectiveWeights.size(); i++)
-			effectiveWeights[i] += effectiveWeights[i - 1];
-	}
-
-	template<typename tQuery>
-	void count(tQuery& aQuery)
-	{
-		const vec3f queryPos = aQuery.pos;
-		const vec3f distMin = queryPos - mBBoxMin;
-		const vec3f distMax = mBBoxMax - queryPos;
-		for(int i=0; i<3; i++)
-		{
-			if(distMin[i] < 0.f) return;
-			if(distMax[i] < 0.f) return;
-		}
-
-		const vec3f cellPt = mInvCellSize * distMin;
-		const vec3f coordF(
-			std::floor(cellPt.x),
-			std::floor(cellPt.y),
-			std::floor(cellPt.z));
-
-		const int px = int(coordF.x);
-		const int py = int(coordF.y);
-		const int pz = int(coordF.z);
-
-		const vec3f fractCoord = cellPt - coordF;
-
-		const int pxo = px + (fractCoord.x < 0.5f ? -1 : +1);
-		const int pyo = py + (fractCoord.y < 0.5f ? -1 : +1);
-		const int pzo = pz + (fractCoord.z < 0.5f ? -1 : +1);
-
-		int N = 1;
-		for(int j=0; j<N; j++)
-		{
-			int cellIndex;
-			switch(j)
-			{
-				case 0: cellIndex = (GetCellIndex(vec3i(px , py , pz ))); break;
-				case 1: cellIndex = (GetCellIndex(vec3i(px , py , pzo))); break;
-				case 2: cellIndex = (GetCellIndex(vec3i(px , pyo, pz ))); break;
-				case 3: cellIndex = (GetCellIndex(vec3i(px , pyo, pzo))); break;
-				case 4: cellIndex = (GetCellIndex(vec3i(pxo, py , pz ))); break;
-				case 5: cellIndex = (GetCellIndex(vec3i(pxo, py , pzo))); break;
-				case 6: cellIndex = (GetCellIndex(vec3i(pxo, pyo, pz ))); break;
-				case 7: cellIndex = (GetCellIndex(vec3i(pxo, pyo, pzo))); break;
-			}
-			if (cellIndex == -1)
-				continue;
-			aQuery.count += weights[cellIndex] / (float)N;
-		}
 	}
 
 public:
@@ -228,9 +119,9 @@ public:
 		const vec3f distMin = aPoint - mBBoxMin;
 
 		vec3f coordF(
-			std::floor(mInvCellSize * distMin.x),
-			std::floor(mInvCellSize * distMin.y),
-			std::floor(mInvCellSize * distMin.z));
+			std::floor(mInvCellSize.x * distMin.x),
+			std::floor(mInvCellSize.y * distMin.y),
+			std::floor(mInvCellSize.z * distMin.z));
 
 		for (int i = 0; i < 3; i++)
 			coordF[i] = clamp(coordF[i] , 0 , sizeNum - 1);
@@ -247,10 +138,9 @@ public:
 		int y = index / sizeNum % sizeNum;
 		int z = index % sizeNum;
 
-		vec3f corner = mBBoxMin + vec3f(mCellSize , 0 , 0) * x + 
-			vec3f(0 , mCellSize , 0) * y + vec3f(0 , 0 , mCellSize) * z;
+		vec3f corner = mBBoxMin + mCellSize * vec3f(x , y , z);
 
-		vec3f res = corner + vec3f(mCellSize , mCellSize , mCellSize) * offset;
+		vec3f res = corner + mCellSize * offset;
 
 		return res;
 	}
@@ -276,7 +166,7 @@ public:
 		return res;
 	}
 
-	Ray volumeEmit(Scene *scene , int *givenIndex = NULL)
+	Ray emitVolume(Scene *scene , int *givenIndex = NULL)
 	{
 		for (;;)
 		{
@@ -290,18 +180,19 @@ public:
 			ray.origin = getRandomPosition(ray.originProb , givenIndex);
 
 		// not sure
-		ray.originProb *= mInvCellSize * mInvCellSize * mInvCellSize;
-		//ray.originProb = 1.f / scene->getTotalVolume();
+		//ray.originProb /= cellVolume;
+		ray.originProb = 1.f / totVolume;
 
 		//printf("%.8f , %.8f\n" , ray.originProb , 1.f / scene->getTotalVolume());
 
 		ray.direction = RandGenerator::genSphericalDirection();
-		ray.insideObject = scene->findInsideObject(ray, ray.contactObject);
-		if (ray.insideObject == NULL)
+		
+		if (!scene->checkInsideObject(ray , objectIndex))
 		{
 			//printf("weird! It should always have insideObject\n");
 			continue;
 		}
+		ray.insideObject = scene->objects[objectIndex];
 
 		HGPhaseSampler hgSampler(ray.insideObject->getG());
 		LocalFrame lf;
@@ -332,12 +223,13 @@ public:
 				ray.intersectObject = scene->objects[osi.objID];
 				ray.intersectObjectTriangleID = osi.triangleID;
 			}
-		}
 
-		if (ray.insideObject && !ray.intersectObject)
-		{
-			printf("weird! It has insideObject but no intersectObject\n");
-			continue;
+			if (ray.insideObject && !ray.intersectObject)
+			{
+				printf("%.8f\n" , dist);
+				printf("weird! It has insideObject but no intersectObject\n");
+				continue;
+			}
 		}
 
 		return ray;
@@ -350,7 +242,7 @@ public:
 		
 		for (int i = 0; i < effectiveWeights.size(); i++)
 		{
-			Ray ray = volumeEmit(scene , &i);
+			Ray ray = emitVolume(scene , &i);
 			fprintf(fp , "=====================\n");
 			fprintf(fp , "pos = (%.8f, %.8f, %.8f) , dir = (%.8f, %.8f, %.8f)\n" , ray.origin.x , ray.origin.y , ray.origin.z ,
 				ray.direction.x , ray.direction.y , ray.direction.z);
@@ -363,18 +255,17 @@ public:
 public:
 	vec3f mBBoxMin;
 	vec3f mBBoxMax;
-	std::vector<double> weights;
 
 	std::vector<double> effectiveWeights;
 	std::vector<int> effectiveIndex;
 
-	float mCellSize;
-	float mInvCellSize;
+	vec3f mCellSize;
+	vec3f mInvCellSize;
 
-	double sumContribs;
-	double cellArea;
-	double cellVolume;
-	double totVolume;
+	float sumWeights;
+	float cellVolume;
+	float totVolume;
 	int sizeNum;
+	int objectIndex;
 };
 

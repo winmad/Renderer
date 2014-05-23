@@ -469,6 +469,10 @@ void MCRenderer::preprocessEmissionSampler(){ renderer->scene.preprocessEmission
 
 void MCRenderer::preprocessOtherSampler() { renderer->scene.preprocessOtherSampler(); }
 
-Ray MCRenderer::genEmissiveSurfaceSample() const { return renderer->scene.genEmissionSample(); }
+void MCRenderer::preprocessVolumeSampler() { renderer->scene.preprocessVolumeSampler(); }
 
-Ray MCRenderer::genOtherSurfaceSample() const { return renderer->scene.genOtherSample(); }
+Ray MCRenderer::genEmissiveSurfaceSample(bool isUniform) const { return renderer->scene.genEmissionSample(isUniform); }
+
+Ray MCRenderer::genOtherSurfaceSample(bool isUniform) const { return renderer->scene.genOtherSample(isUniform); }
+
+Ray MCRenderer::genVolumeSample(bool isUniform) const { return renderer->scene.genVolumeSample(isUniform); }

@@ -64,9 +64,13 @@ protected:
 
 	void preprocessOtherSampler();
 
-	Ray genEmissiveSurfaceSample() const;
+	void preprocessVolumeSampler();
 
-	Ray genOtherSurfaceSample() const;
+	Ray genEmissiveSurfaceSample(bool isUniform = false) const;
+
+	Ray genOtherSurfaceSample(bool isUniform = false) const;
+
+	Ray genVolumeSample(bool isUniform = false) const;
 
 	void resetInsideObject(Ray& ray);
 

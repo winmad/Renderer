@@ -15,7 +15,7 @@ public:
 	float stepSize;
 	float IOR;
 	Ray scatter(const Ray& inRay, const bool russian = true) const;
-	bool isVolumetric() { return true; }
+	bool isVolumeric() { return true; }
 	bool hasCosineTerm() { return false; }
 	bool isHomogeneous() { return true; }
  protected:
@@ -61,8 +61,7 @@ public:
 	SceneVPMObject(Scene* scene) : SceneObject(scene)
 	{
 		canMerge = true;
-		//stepSize = 0.0005;
-		stepSize = 0.005;
+		stepSize = 0.0005;
 	}
 	~SceneVPMObject()
 	{

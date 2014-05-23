@@ -43,13 +43,30 @@ private:
 		void print();
 	};
 
+	struct VolumeSampler
+	{
+		Scene* scene;
+		VolumeSampler(Scene* scene) { this->scene = scene; }
+		float totalWeight;
+		vector<float> weightValues;
+		vector<SceneObject*> targetObjects;
+
+		float totalVolume;
+
+		void preprocess();
+		Ray genSample(bool isUniform = false) const;
+		void print();
+	};
+
 public:
 	SurfaceSampler *emissiveSurfaceSampler;
 	SurfaceSampler *otherSurfaceSampler;
+	VolumeSampler *volumeSampler;
 
 	Scene()
 	{
 		emissiveSurfaceSampler = otherSurfaceSampler = NULL;
+		volumeSampler = NULL;
 		//useGPU = true;
 		useGPU = false;
 	}
@@ -59,14 +76,19 @@ public:
 	vector<SceneObject*> objects;
 	void buildKDTree();
 	void buildObjKDTrees();
+
 	void preprocessAllSamplers();
 	void preprocessEmissionSampler();
 	void preprocessOtherSampler();
+	void preprocessVolumeSampler();
 	Ray genEmissionSample(bool isUniform = false) const;
 	Ray genOtherSample(bool isUniform = false) const;
+	Ray genVolumeSample(bool isUniform = false) const;
+
 	float intersect(const Ray& ray, ObjSourceInformation& objSource, const KDTree::Condition* condition = NULL);
 	void fillIntersectObject(vector<Ray>& rays);
 	SceneObject* findInsideObject(const Ray& ray, const SceneObject* currentObject = NULL);
+	bool checkInsideObject(const Ray& ray, const int insideObjectIndex);
 	vector<bool> testVisibility(const vector<Ray>& rays);
 	void clear();
 	float getTotalArea();

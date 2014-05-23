@@ -1,6 +1,7 @@
 #include "StdAfx.h"
 #include "SceneObject.h"
 #include "UniformSphericalSampler.h"
+#include "CountHashGrid.h"
 
 SceneObject* SceneObject::findInsideObject(const Ray& ray) const
 { 
@@ -9,7 +10,7 @@ SceneObject* SceneObject::findInsideObject(const Ray& ray) const
 
 void SceneObject::preprocessEmissionSampler()
 {
-	totalArea = 0;
+	totalArea = weight = 0.f;
 	for(unsigned k=0; k<getTriangleNum(); k++)
 	{
 		totalArea += getTriangleArea(k);
@@ -18,6 +19,16 @@ void SceneObject::preprocessEmissionSampler()
 	weight = totalArea;
 }
 
+void SceneObject::preprocessVolumeSampler()
+{
+	totalVolume = volumeWeight = 0.f;
+	if (!isVolumetric())
+		return;
+	countHashGrid = new CountHashGrid();
+	countHashGrid->init(scene , objectIndex);
+	countHashGrid->preprocess(scene , objectIndex);
+	totalVolume = volumeWeight = countHashGrid->totVolume;
+}
 Ray SceneObject::emit(bool isUniform) const
 {
 	Ray ray;
@@ -76,6 +87,14 @@ Ray SceneObject::emit(bool isUniform) const
 			ray.intersectObjectTriangleID = osi.triangleID;
 		}
 	}
+	return ray;
+}
+
+Ray SceneObject::emitVolume(bool isUniform /* = false */) const
+{
+	Ray ray = countHashGrid->emitVolume(scene);
+	//printf("%.8f , %.8f\n" , volumeWeight , ray.originProb);
+	ray.originProb *= volumeWeight;
 	return ray;
 }
 

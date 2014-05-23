@@ -9,19 +9,16 @@
 float Scene::getTotalArea()
 {
 	return otherSurfaceSampler->totalArea;
-	// return 0;
-	// to be filled
 }
 
 float Scene::getTotalVolume()
 {
-	return totalVolume;
+	return volumeSampler->totalVolume;
 }
 
 void Scene::SurfaceSampler::preprocess()
 {
-	totalWeight = 0;
-	totalArea = 0;
+	totalWeight = totalArea = 0.f;
 	for(unsigned i=0; i<targetObjects.size(); i++)
 	{
 		targetObjects[i]->preprocessEmissionSampler();
@@ -35,6 +32,20 @@ void Scene::SurfaceSampler::preprocess()
 		targetObjects[i]->normalizeEmissionWeight(totalWeight);
 }
 
+void Scene::VolumeSampler::preprocess()
+{
+	totalWeight = totalVolume = 0.f;
+	for(unsigned i=0; i<targetObjects.size(); i++)
+	{
+		targetObjects[i]->preprocessVolumeSampler();
+		totalWeight += targetObjects[i]->totalVolume;
+		weightValues.push_back(totalWeight);
+	}
+	totalVolume = totalWeight;
+	for(unsigned i=0; i<targetObjects.size(); i++)
+		targetObjects[i]->normalizeVolumeWeight(totalWeight);
+}
+
 Ray Scene::SurfaceSampler::genSample(bool isUniform) const
 {
 	float rnd = RandGenerator::genFloat()*totalWeight;
@@ -42,6 +53,15 @@ Ray Scene::SurfaceSampler::genSample(bool isUniform) const
 	if(index >= weightValues.size())
 		index = weightValues.size()-1;
 	return targetObjects[index]->emit(isUniform);
+}
+
+Ray Scene::VolumeSampler::genSample(bool isUniform /* = false */) const
+{
+	float rnd = RandGenerator::genFloat()*totalWeight;
+	unsigned index = (lower_bound(weightValues.begin(), weightValues.end(), rnd)-weightValues.begin());
+	if (index >= weightValues.size())
+		index = weightValues.size()-1;
+	return targetObjects[index]->emitVolume(isUniform);
 }
 
 void Scene::SurfaceSampler::print()
@@ -58,6 +78,22 @@ void Scene::SurfaceSampler::print()
 	printf("%.8f\n" , totalWeight);
 }
 
+void Scene::VolumeSampler::print()
+{
+	for (int i = 0; i < targetObjects.size(); i++)
+	{
+		printf("%.8f %.8f\n" , targetObjects[i]->weight , targetObjects[i]->totalVolume);
+	}
+	for (int i = 0; i < weightValues.size(); i++)
+	{
+		printf("%.8f\n" , weightValues[i]);
+	}
+	printf("%d\n" , lower_bound(weightValues.begin(), weightValues.end(), 2)-weightValues.begin());
+	printf("%d\n" , lower_bound(weightValues.begin(), weightValues.end(), 4)-weightValues.begin());
+	printf("%d\n" , lower_bound(weightValues.begin(), weightValues.end(), 6)-weightValues.begin());
+	printf("%.8f\n" , totalWeight);
+}
+
 Ray Scene::genEmissionSample(bool isUniform) const
 {
 	return emissiveSurfaceSampler->genSample(isUniform);
@@ -66,6 +102,11 @@ Ray Scene::genEmissionSample(bool isUniform) const
 Ray Scene::genOtherSample(bool isUniform) const
 {
 	return otherSurfaceSampler->genSample(isUniform);
+}
+
+Ray Scene::genVolumeSample(bool isUniform /* = false */) const
+{
+	return volumeSampler->genSample(isUniform);
 }
 
 float Scene::SurfaceSampler::getDirectionProbDensity(const Ray& ray) const
@@ -85,8 +126,11 @@ void Scene::preprocessAllSamplers()
 		delete emissiveSurfaceSampler;
 	if(otherSurfaceSampler)
 		delete otherSurfaceSampler;
+	if (volumeSampler)
+		delete volumeSampler;
 	emissiveSurfaceSampler = new SurfaceSampler(this);
 	otherSurfaceSampler = new SurfaceSampler(this);
+	volumeSampler = new VolumeSampler(this);
 	for(unsigned i=0; i<objects.size(); i++)
 	{
 		if(objects[i]->emissive())
@@ -96,9 +140,12 @@ void Scene::preprocessAllSamplers()
 			if (objects[i]->canMerge && !objects[i]->isVolumetric() && !objects[i]->emissive())
 				otherSurfaceSampler->targetObjects.push_back(objects[i]);
 		}
+		if(objects[i]->isVolumetric())
+			volumeSampler->targetObjects.push_back(objects[i]);
 	}
 	emissiveSurfaceSampler->preprocess();
 	otherSurfaceSampler->preprocess();
+	volumeSampler->preprocess();
 }
 
 void Scene::preprocessEmissionSampler()
@@ -125,6 +172,19 @@ void Scene::preprocessOtherSampler()
 			otherSurfaceSampler->targetObjects.push_back(objects[i]);
 	}
 	otherSurfaceSampler->preprocess();
+}
+
+void Scene::preprocessVolumeSampler()
+{
+	if(volumeSampler)
+		delete volumeSampler;
+	volumeSampler = new VolumeSampler(this);
+	for(unsigned i=0; i<objects.size(); i++)
+	{
+		if (objects[i]->isVolumetric())
+			volumeSampler->targetObjects.push_back(objects[i]);
+	}
+	volumeSampler->preprocess();
 }
 
 vec3f Scene::getDiagonal()
@@ -182,6 +242,7 @@ void Scene::buildObjKDTrees()
 	for(unsigned oi=0; oi<objects.size(); oi++)
 	{
 		SceneObject* obj = objects[oi];
+		obj->objectIndex = oi;
 		for(unsigned i=0; i<obj->getVertexNum(); i++)
 		{
 			objKDTrees[oi].vertexPositionList.push_back(obj->getWorldVertexPosition(i));
@@ -261,17 +322,17 @@ SceneObject* Scene::findInsideObject(const Ray& ray, const SceneObject* currentO
 			if(currentObject == objects[i])
 				continue;
 			dist = objKDTrees[i].intersect(kdray_back, tid);
-			if(dist<0)
+			if(dist<1e-6f)
 				continue;
 			normal = objects[i]->getWorldNormal(tid, kdray_back.origin + kdray_back.direction*dist);
-			if(normal.dot(kdray_back.direction) < 0)
+			if(normal.dot(kdray_back.direction) < 1e-6f)
 				continue;
 
 			dist = objKDTrees[i].intersect(kdray_front, tid);
-			if(dist<0)
+			if(dist<1e-6f)
 				continue;
 			normal = objects[i]->getWorldNormal(tid, kdray_front.origin + kdray_front.direction*dist);
-			if(normal.dot(kdray_front.direction) < 0)
+			if(normal.dot(kdray_front.direction) < 1e-6f)
 				continue;
 
 			return objects[i];
@@ -279,6 +340,34 @@ SceneObject* Scene::findInsideObject(const Ray& ray, const SceneObject* currentO
 	}
 
 	return NULL;
+}
+
+bool Scene::checkInsideObject(const Ray& ray, const int insideObjectIndex)
+{
+	KDTree::Ray kdray_front, kdray_back;
+	kdray_front.direction = ray.direction;
+	kdray_front.origin = ray.origin;
+	kdray_back.direction = -ray.direction;
+	kdray_back.origin = ray.origin;
+
+	unsigned tid;
+	vec3f normal;
+	float dist;
+	dist = objKDTrees[insideObjectIndex].intersect(kdray_back, tid);
+	if(dist<1e-6f)
+		return 0;
+	normal = objects[insideObjectIndex]->getWorldNormal(tid, kdray_back.origin + kdray_back.direction*dist);
+	if(normal.dot(kdray_back.direction) < 1e-6f)
+		return 0;
+
+	dist = objKDTrees[insideObjectIndex].intersect(kdray_front, tid);
+	if(dist<1e-6f)
+		return 0;
+	normal = objects[insideObjectIndex]->getWorldNormal(tid, kdray_front.origin + kdray_front.direction*dist);
+	if(normal.dot(kdray_front.direction) < 1e-6f)
+		return 0;
+
+	return 1;
 }
 
 int Scene::getContactTreeTid(const Ray& ray)

@@ -649,7 +649,7 @@ Ray IptTracer::genIntermediateSamples(Scene& scene)
 
 void IptTracer::genIntermediatePaths(omp_lock_t& cmdLock , vector<Path*>& interPathList)
 {
-#pragma omp parallel for
+//#pragma omp parallel for
 	for(int p=0; p<interPathNum; p++)
 	{
 		if (!renderer->scene.usingGPU())
@@ -674,18 +674,15 @@ void IptTracer::genIntermediatePaths(omp_lock_t& cmdLock , vector<Path*>& interP
 		interState.throughput = vec3f(1.f) * interPath[0].getCosineTerm() / 
 			(interPath[0].originProb * interPath[0].directionProb * interPath[1].originProb);
 
-		if (interPath[1].originProb < 0.1f)
-		{
-			//fprintf(fp , "%.8f, %.8f, %.8f, %.8f\n" , interPath[0].originProb , interPath[0].directionProb , interPath[1].originProb ,
-			//	interPath[0].getCosineTerm());
-			continue;
-		}
+		//if (intensity(interState.throughput) > 30.f)
+		//	continue;
 
-		//interState.dirContrib = interPath[0].color * interPath[0].getCosineTerm() /
-		//	(interPath[1].originProb * interPath[0].directionProb);
-		//fprintf(fp , "color = (%.8f,%.8f,%.8f) , cosine = %.8f , pdf = %.8f\n" , 
-		//	interPath[0].color[0] , interPath[0].color[1] , interPath[0].color[2] ,
-		//	interPath[0].getCosineTerm() , interPath[0].directionProb);
+		
+		fprintf(fp , "l = 0 , thr = (%.8f , %.8f , %.8f) , color = (%.8f,%.8f,%.8f) , cosine = %.8f , dirPdf = %.8f , oPdf = %.8f\n" , 
+			interState.throughput.x , interState.throughput.y , interState.throughput.z ,
+			interPath[0].color[0] , interPath[0].color[1] , interPath[0].color[2] ,
+			interPath[0].getCosineTerm() , interPath[0].directionProb , interPath[1].originProb);
+		
 
 		for(unsigned i = 1; i < interPath.size(); i++)
 		//for (unsigned i = 1; i < 2; i++)
@@ -725,15 +722,12 @@ void IptTracer::genIntermediatePaths(omp_lock_t& cmdLock , vector<Path*>& interP
 				(interPath[i + 1].originProb * interPath[i].directionProb));
 
 			interState.throughput *= scatterFactor;
-			/*
-			if (interPath[i + 1].originProb < 0.1f)
-			{
-				fprintf(fp , "========== light len = %d ===========\n" , i);
-				fprintf(fp , "bsdf = (%.8f,%.8f,%.8f), originPdf = %.8f, cos = %.8f, dist = %.8f\n" , 
-					interPath[i].color[0] , interPath[i].color[1] , interPath[i].color[2] , interPath[i + 1].originProb ,
-					interPath[i].getCosineTerm() , (interPath[i].origin - interPath[i + 1].origin).length());
-			}
-			*/
+			
+			fprintf(fp , "l = %d , thr = (%.8f , %.8f , %.8f) , color = (%.8f,%.8f,%.8f)\ncosine = %.8f , dirPdf = %.8f , oPdf = %.8f\n" , 
+				i , interState.throughput.x , interState.throughput.y , interState.throughput.z ,
+				interPath[i].color[0] , interPath[i].color[1] , interPath[i].color[2] ,
+				interPath[i].getCosineTerm() , interPath[i].directionProb , interPath[i + 1].originProb);
+			
 			if (interPath[i].directionSampleType != Ray::DEFINITE && useWeight)
 			{
 				Real pdf = interPath[i].directionProb;

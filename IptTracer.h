@@ -41,7 +41,7 @@ protected:
 
 	void mergePartialPaths(omp_lock_t& cmdLock);
 
-	Ray genIntermediateSamples(vector<IptPathState>& partialSubPathList , Scene& scene , int *index = NULL);
+	Ray genIntermediateSamples(Scene& scene);
 
 	Ray link(const Path& path, int i, int j);
 

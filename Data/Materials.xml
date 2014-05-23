@@ -55,7 +55,7 @@
 	<type>GridVolume</type>
 	<volume_data_s>data/BW_scatter.txt</volume_data_s>
 	<volume_data_a>data/BW_absorb.txt</volume_data_a>
-	<stepsize>0.01</stepsize>
+	<stepsize>0.1</stepsize>
 	<scattering_scale>1</scattering_scale>
 	<absorption_scale>0.2</absorption_scale>
 	<subsurface>1</subsurface>
@@ -273,34 +273,25 @@
 </Material>
 
 <Material Name = "SubA"> <!-- skin -->
-	<type>GridVolume</type>
-	<density_file>data/sinXYZ.xml</density_file>
+	<type>VPM</type>
 	<sigma_s>(7.4, 8.8, 10.1)</sigma_s> 
 	<sigma_a>(0.32, 1.7, 4.8)</sigma_a>
-	<IOR>1.2</IOR>
-	<stepsize>0.0005</stepsize>
-	<density_scale>1</density_scale>
+	<inrate>1.2</inrate>
 	<g>0</g>
 </Material>
  
 <Material Name = "SubB"> <!-- Lemon tea -->
-	<type>GridVolume</type>
-	<density_file>data/sinXYZ.xml</density_file>
+	<type>VPM</type>
 	<sigma_s>(3.4, 5.8, 8.8)</sigma_s> 
 	<sigma_a>(2.6, 4.9, 7.7)</sigma_a>
-	<IOR>1.2</IOR>
-	<stepsize>0.0005</stepsize>
-	<density_scale>1</density_scale>
+	<inrate>1.2</inrate>
 	<g>0</g>
 </Material>
 
 <Material Name = "SubC"> <!-- milk -->
-	<type>GridVolume</type>
-	<density_file>data/sinXYZ.xml</density_file>
+	<type>VPM</type>
 	<sigma_s>(2.4, 2.7, 4.5)</sigma_s> 
 	<sigma_a>(0.001, 0.005, 0.034)</sigma_a>
-	<IOR>1.5</IOR>
-	<stepsize>0.0005</stepsize>
-	<density_scale>1</density_scale>
+	<inrate>1.5</inrate>
 	<g>0</g>
 </Material>

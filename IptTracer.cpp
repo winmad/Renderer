@@ -6,7 +6,7 @@
 #include "SceneVPMObject.h"
 #include "SceneHeteroGeneousVolume.h"
 
-static FILE *fp = fopen("debug_ipt.txt" , "w");
+static FILE *fp = fopen("debug_ipt_x.txt" , "w");
 
 float INV_2_PI = 0.5 / M_PI;
 
@@ -542,8 +542,6 @@ void IptTracer::genLightPaths(omp_lock_t& cmdLock , vector<Path*>& lightPathList
 
 		int nonSpecPathLength = 0;
 
-		//fprintf(fp , "=============\n");
-
 		for(unsigned i = 1; i < lightPath.size(); i++)
 		//for (unsigned i = 1; i < 2; i++)
 		{
@@ -581,13 +579,12 @@ void IptTracer::genLightPaths(omp_lock_t& cmdLock , vector<Path*>& lightPathList
 
 			lightState.throughput *= scatterFactor;
 			/*
-			if (lightState.isSpecularPath)
+			if (lightPath[i + 1].originProb < 0.1f)
 			{
-				fprintf(fp , "==========light path===========\n");
-				fprintf(fp , "bsdf = (%.8f,%.8f,%.8f), pdf = %.8f, cos = %.8f, dirContrib = (%.8f,%.8f,%.8f), thr = (%.8f,%.8f,%.8f)\n" , 
-					lightPath[i].color[0] , lightPath[i].color[1] , lightPath[i].color[2] , lightPath[i].directionProb ,
-					lightPath[i].getCosineTerm() , lightState.dirContrib[0] , lightState.dirContrib[1] , lightState.dirContrib[2] ,
-					lightState.throughput[0] , lightState.throughput[1] , lightState.throughput[2]);
+				fprintf(fp , "========== light len = %d ===========\n" , i);
+				fprintf(fp , "bsdf = (%.8f,%.8f,%.8f), originPdf = %.8f, cos = %.8f, dist = %.8f\n" , 
+					lightPath[i].color[0] , lightPath[i].color[1] , lightPath[i].color[2] , lightPath[i + 1].originProb ,
+					lightPath[i].getCosineTerm() , (lightPath[i].origin - lightPath[i + 1].origin).length());
 			}
 			*/
 			if (lightPath[i].directionSampleType == Ray::RANDOM && useWeight)
@@ -619,7 +616,7 @@ void IptTracer::genLightPaths(omp_lock_t& cmdLock , vector<Path*>& lightPathList
 	lightPhotonNum = partialPhotonNum = partialSubPathList.size();
 }
 
-Ray IptTracer::genIntermediateSamples(vector<IptPathState>& partialSubPathList , Scene& scene , int *index)
+Ray IptTracer::genIntermediateSamples(Scene& scene)
 {
 	if (totVol > 1e-7f)
 	{
@@ -648,150 +645,16 @@ Ray IptTracer::genIntermediateSamples(vector<IptPathState>& partialSubPathList ,
 		//printf("%.8f , %.8f\n" , ray.originProb , ray.directionProb);
 		return ray;
 	}
-	/*
-	for (;;) {
-	float randWeight = RandGenerator::genFloat();
-	int pathId = (lower_bound(weights.begin() , weights.end() , randWeight) - weights.begin()) - 1;
-	pathId = clamp(pathId , 0 , partialSubPathList.size() - 1);
-	IptPathState& lightState = partialSubPathList[pathId];
-	while (lightState.ray == NULL ||
-		(lightState.ray->insideObject && !lightState.ray->insideObject->canMerge) ||
-		(!lightState.ray->insideObject && lightState.ray->contactObject && !lightState.ray->contactObject->canMerge))
-	{
-		randWeight = RandGenerator::genFloat();
-		pathId = (lower_bound(weights.begin() , weights.end() , randWeight) - weights.begin()) - 1;
-		pathId = clamp(pathId , 0 , partialSubPathList.size() - 1);
-		lightState = partialSubPathList[pathId];
-	}
-	
-	if (index && partPathMergeIndex[*index].size() > 0)
-		lightState = partialSubPathList[partPathMergeIndex[*index][0]];
-
-	//fprintf(fp , "path length = %d, dirContrib = (%.8f,%.8f,%.8f)\n" , 
-	//	0 , lightState.dirContrib[0] , lightState.dirContrib[1] , lightState.dirContrib[2]);
-
-	Ray ray;
-	ray.originSampleType = Ray::SampleType::RANDOM;
-	ray.directionSampleType = Ray::SampleType::RANDOM;
-
-	ray.insideObject = lightState.ray->insideObject;
-	ray.contactObject = lightState.ray->contactObject;
-	ray.contactObjectTriangleID = lightState.ray->contactObjectTriangleID;
-
-	RandGenerator rng;
-	Ray inRay(*(lightState.lastRay)) , outRay(ray);
-
-	vec3f o = lightState.pos;
-	vec3f dir(0.f);
-	Real originProb = 1.f;
-
-	if (lightState.ray->contactObject)
-	{
-		outRay = lightState.ray->contactObject->scatter(inRay , false);
-		dir = outRay.direction;
-		//originProb = (weights[pathId + 1] - weights[pathId]) / 
-		//	totArea;
-		//originProb = getOriginProb(countHashGrid , o , false);
-	}
-	else if (lightState.ray->insideObject)
-	{
-		outRay = lightState.ray->insideObject->scatter(inRay , false);
-		dir = outRay.direction;
-		//originProb = (weights[pathId + 1] - weights[pathId]) / 
-		//	totVol;
-		//originProb = getOriginProb(countHashGrid , o , true);
-	}
-	
-	if (dir.length() < 1e-7f || originProb < 1e-7f)
-		continue;
-
-	dir.normalize();
-	ray.origin = o + (dir * mergeRadius * rng.genFloat());
-
-	ray.direction = dir;
-
-	ray.color = vec3f(1.0);
-
-	ray.originProb = originProb;
-	//ray.originProb = 1.f / totVol;
-	//ray.originProb = getOriginProb(countHashGrid , ray.origin , true); // only volume
-
-	ray.directionProb = outRay.directionProb;
-
-	vec3f bsdfFactor = inRay.getBSDF(outRay);
-	if (y(bsdfFactor) < 1e-5)
-		continue;
-
-	//ray.origin = o;
-	//ray.color = lightState.dirContrib * bsdfFactor;
-
-	//fprintf(fp , "bsdf = (%.8f , %.8f , %.8f) , rayColor = (%.8f , %.8f , %.8f) , contProb = %.8f\n" , 
-	//	bsdfFactor[0] , bsdfFactor[1] , bsdfFactor[2] ,
-	//	ray.color[0] , ray.color[1] , ray.color[2] ,
-	//	maxVecComp(bsdfFactor));
-
-	ray.current_tid = scene.getContactTreeTid(ray);
-	Scene::ObjSourceInformation osi;
-	NoSelfIntersectionCondition condition(&scene , ray);
-	Real dist = scene.intersect(ray, osi, &condition);
-
-	if (dist > 0)
-	{
-		ray.intersectDist = dist;
-		ray.intersectObject = scene.objects[osi.objID];
-		ray.intersectObjectTriangleID = osi.triangleID;
-	}
-	if (ray.intersectObject == NULL)
-		continue;
-
-	SceneObject *insideObj = scene.findInsideObject(ray , ray.contactObject);
-
-	if (insideObj != ray.insideObject)
-		continue;
-	
-	//fprintf(fp , "===============\n");
-	//fprintf(fp , "lightState: pos=(%.3f,%.3f,%.3f), c=(%.6f,%.6f,%.6f), bsdf=(%.6f,%.6f,%.6f)\n" , lightState.pos[0] , lightState.pos[1] ,
-	//	lightState.pos[2] , lightState.dirContrib[0] , lightState.dirContrib[1] , lightState.dirContrib[2] , bsdfFactor[0] , bsdfFactor[1] , bsdfFactor[2]);
-	//fprintf(fp , "--------------\n");
-	//fprintf(fp , "interState: pos=(%.3f,%.3f,%.3f), dir=(%.3f,%.3f,%.3f), dirProb = %.6f, %.6f\n" , ray.origin[0] , ray.origin[1] , ray.origin[2] ,
-	//	ray.direction[0] , ray.direction[1] , ray.direction[2] , ray.directionProb , inRay.getDirectionSampleProbDensity(outRay));
-	//fprintf(fp , "color=(%.8f,%.8f,%.8f)\n" , ray.color[0] , ray.color[1] , ray.color[2]);
-	
-	return ray;
-	}
-	*/
 }
 
 void IptTracer::genIntermediatePaths(omp_lock_t& cmdLock , vector<Path*>& interPathList)
 {
-	vector<IptPathState> lightSubPathList(partialSubPathList);
-	/*
-	// preprocess
-	int N = lightSubPathList.size();
-	weights.resize(N + 1 , 0);
-	for (int i = 0; i < N; i++)
-	{
-		float intensity = y(lightSubPathList[i].dirContrib);
-		
-		float volScale = 1.f;
-		if ((lightSubPathList[i].ray->insideObject && !lightSubPathList[i].ray->contactObject && totVol > 0) ||
-			totVol < 1e-7f)
-			volScale = 1.f;
-
-		weights[i + 1] = weights[i] + intensity * intensity * volScale;
-		//weights[i + 1] = weights[i] + volScale;
-	}
-	float sum = weights[N];
-	for (int i = 0; i <= N; i++)
-		weights[i] /= sum;
-	*/
 #pragma omp parallel for
 	for(int p=0; p<interPathNum; p++)
 	{
 		if (!renderer->scene.usingGPU())
 		{
-			Ray interRay = genIntermediateSamples(lightSubPathList ,
-				renderer->scene);
+			Ray interRay = genIntermediateSamples(renderer->scene);
 			interPathList[p] = new Path;
 			samplePath(*interPathList[p] , interRay);
 		}
@@ -811,7 +674,12 @@ void IptTracer::genIntermediatePaths(omp_lock_t& cmdLock , vector<Path*>& interP
 		interState.throughput = vec3f(1.f) * interPath[0].getCosineTerm() / 
 			(interPath[0].originProb * interPath[0].directionProb * interPath[1].originProb);
 
-		//printf("%.8f %.8f\n" , interPath[0].originProb , interPath[0].directionProb);
+		if (interPath[1].originProb < 0.1f)
+		{
+			//fprintf(fp , "%.8f, %.8f, %.8f, %.8f\n" , interPath[0].originProb , interPath[0].directionProb , interPath[1].originProb ,
+			//	interPath[0].getCosineTerm());
+			continue;
+		}
 
 		//interState.dirContrib = interPath[0].color * interPath[0].getCosineTerm() /
 		//	(interPath[1].originProb * interPath[0].directionProb);
@@ -857,7 +725,15 @@ void IptTracer::genIntermediatePaths(omp_lock_t& cmdLock , vector<Path*>& interP
 				(interPath[i + 1].originProb * interPath[i].directionProb));
 
 			interState.throughput *= scatterFactor;
-
+			/*
+			if (interPath[i + 1].originProb < 0.1f)
+			{
+				fprintf(fp , "========== light len = %d ===========\n" , i);
+				fprintf(fp , "bsdf = (%.8f,%.8f,%.8f), originPdf = %.8f, cos = %.8f, dist = %.8f\n" , 
+					interPath[i].color[0] , interPath[i].color[1] , interPath[i].color[2] , interPath[i + 1].originProb ,
+					interPath[i].getCosineTerm() , (interPath[i].origin - interPath[i + 1].origin).length());
+			}
+			*/
 			if (interPath[i].directionSampleType != Ray::DEFINITE && useWeight)
 			{
 				Real pdf = interPath[i].directionProb;

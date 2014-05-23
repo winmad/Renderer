@@ -182,7 +182,9 @@ void Scene::preprocessVolumeSampler()
 	for(unsigned i=0; i<objects.size(); i++)
 	{
 		if (objects[i]->isVolumetric())
+		{
 			volumeSampler->targetObjects.push_back(objects[i]);
+		}
 	}
 	volumeSampler->preprocess();
 }

@@ -1,5 +1,18 @@
 <Config>
 	<Scene>
+		<path>Scene_sss.xml</path>
+		<name>SSS</name>
+		<camera>c1</camera>
+	</Scene>
+	<Renderer>
+		<type>IPT</type>
+		<radius>0.005</radius>
+	</Renderer>
+	<savePath>results/debug.pfm</savePath>
+</Config>
+
+<Config>
+	<Scene>
 		<path>Scene_CornellBox.xml</path>
 		<name>HeteroDragon</name>
 		<camera>c1</camera>
@@ -9,19 +22,6 @@
 		<radius>0.005</radius>
 	</Renderer>
 	<savePath>results/heterogeneousSSS_pm_5_21.pfm</savePath>
-</Config>
-
-<Config>
-	<Scene>
-		<path>Scene_sss.xml</path>
-		<name>SSS</name>
-		<camera>c1</camera>
-	</Scene>
-	<Renderer>
-		<type>VCM</type>
-		<radius>0.005</radius>
-	</Renderer>
-	<savePath>heterogeneousSSS.pfm</savePath>
 </Config>
 
 <Config>

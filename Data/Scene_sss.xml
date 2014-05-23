@@ -46,7 +46,7 @@
 			<path>Materials.xml</path>
 			<name>SubC</name>
 		</Material>
-	</Object-->
+	</Object>
 	<Object>
 		<filePath>objs/plane.obj</filePath>
 		<transform>[0, 1, 0, -1][1, 0, 0, 0][0, 0, 1, 0][0, 0, 0, 1]</transform>

@@ -34,7 +34,7 @@ public:
 		mBBoxMin = scene->objKDTrees[objIndex].root->boundingBox.minCoord;
 		mBBoxMax = scene->objKDTrees[objIndex].root->boundingBox.maxCoord;
 
-		sizeNum = 50;
+		sizeNum = 100;
 
 		mCellSize = diag / sizeNum;
 		mInvCellSize = 1.f / mCellSize;
@@ -62,7 +62,7 @@ public:
 		{
 			Ray ray;
 			float insideCnt = 0.f;
-			int N = 8;
+			int N = 1;
 			for (int j = 0; j < N; j++)
 			{
 				vec3f offset;

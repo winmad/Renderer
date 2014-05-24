@@ -10,6 +10,8 @@ Ray RefractiveMaterial::scatter(const SceneObject* object, const Ray& inRay, con
 	if (inRay.intersectObject == NULL)
 	{
 		outRay.direction = vec3f(0.f);
+		outRay.contactObject = NULL;
+		outRay.contactObjectTriangleID = -1;
 		outRay.directionSampleType = Ray::DEFINITE;
 		return outRay;
 	}

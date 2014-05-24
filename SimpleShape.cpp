@@ -279,6 +279,9 @@ vec3f SimpleShape::getWorldNormal(unsigned fi, const vec3f& position, bool flat)
 	vec3f vps[3], vns[3];
 	for(unsigned i=0; i<3; i++)
 	{
+		if (fi >= faceVertexIndexList.size())
+			printf("get world normal error , %d , %d\n" , fi , faceVertexIndexList.size());
+
 		vps[i] = getWorldVertexPosition(faceVertexIndexList[fi][i]);
 	}
 	matrix4<float> normalMat = transpose(inverse(transform));

@@ -30,7 +30,8 @@ vector<vec3f> PhotonMap::renderPixels(const Camera& camera){
 		
 		std::vector<vec3f> oneIterColors(pixelColors.size(), vec3f(0,0,0));
 #ifdef PPM
-		if (renderer->scene.getTotalVolume() > 1e-6f)
+		//if (renderer->scene.getTotalVolume() > 1e-6f)
+		if (true)
 		{
 			rayMarching = true;
 			mRadius = MAX(mBaseRadius * powf(powf(s + 1 , mAlpha - 1) , 1.f / 3.f) , EPSILON);
@@ -310,6 +311,11 @@ void PhotonMap::throughputByDensityEstimation(vec3f &color, Path &eyeMergePath,
 				}
 			}
 			
+		}
+		else
+		{
+			if (eyeMergePath[i - 1].insideObject)
+				Tr *= eyeMergePath[i - 1].getRadianceDecay(dist);
 		}
 
 		if(eyeMergePath[i].contactObject && eyeMergePath[i].contactObject->emissive()){

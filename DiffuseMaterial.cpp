@@ -10,6 +10,8 @@ Ray DiffuseMaterial::scatter(const SceneObject* object, const Ray& inRay, const 
 	if (inRay.intersectObject == NULL)
 	{
 		outRay.direction = vec3f(0.f);
+		outRay.contactObject = NULL;
+		outRay.contactObjectTriangleID = -1;
 		outRay.directionSampleType = Ray::DEFINITE;
 		printf("error in diffuse scatter\n");
 		return outRay;

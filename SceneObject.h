@@ -39,6 +39,7 @@ public:
 		bumpTex.setColor(vec3f(1, 1, 1));
 		this->scene = scene;
 		countHashGrid = NULL;
+		canMerge = false;
 		unitize();
 	}
 	SceneObject(Scene* scene, const string &fileName, bool normalize = true) : SimpleShape(fileName, normalize)

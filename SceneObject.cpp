@@ -42,7 +42,7 @@ Ray SceneObject::emit(bool isUniform) const
 	}
 	unsigned index = (lower_bound(areaValues.begin(), areaValues.end(), rnd)-areaValues.begin());
 	if(index >= areaValues.size())
-		index --; 
+		index = areaValues.size() - 1; 
 	ray.contactObject = (SceneObject*)this;
 	ray.contactObjectTriangleID = index;
 	ray.origin = genRandTrianglePosition(ray.contactObjectTriangleID);

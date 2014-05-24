@@ -96,7 +96,7 @@ public:
 		}
 		else
 		{
-			mergeIterations = 5;
+			mergeIterations = 1;
 			useWeight = true;
 		}
 	}
@@ -145,7 +145,7 @@ struct GatherQuery
 		Real volMergeScale = 1;
 		if (cameraState->ray->insideObject && !cameraState->ray->contactObject)
 			volMergeScale = 4.f / 3.f * tracer->mergeRadius;
-		
+		/*
 		Real originProb = 1.f / tracer->totArea;
 		if (cameraState->ray->insideObject && cameraState->ray->contactObject == NULL)
 		{
@@ -157,7 +157,7 @@ struct GatherQuery
 			{
 				return;
 			}
-			volMergeScale = 4.0 / 3.0 * tracer->mergeRadius;
+			volMergeScale = 4.f / 3.f * tracer->mergeRadius;
 			originProb = 1.f / tracer->totVol;
 		}
 		else if (cameraState->ray->contactObject)
@@ -173,7 +173,7 @@ struct GatherQuery
 		{
 			return;
 		}
-		
+		*/
 		Ray outRay;
 		vec3f bsdfFactor;
 		

@@ -202,6 +202,8 @@ public:
 		ray.directionProb = 0.25f / M_PI;
 		*/
 		
+		float albedo = ray.insideObject->getContinueProbability(ray , ray);
+
 		ray.direction = hgSampler.genSample(lf);
 		ray.directionProb = hgSampler.getProbDensity(lf , ray.direction);
 		

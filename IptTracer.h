@@ -1,6 +1,7 @@
 #pragma once
 #include "mcrenderer.h"
 #include <omp.h>
+#include <stack>
 #include "PointKDTree.h"
 #include "CountHashGrid.h"
 #include "macros.h"
@@ -31,7 +32,11 @@ protected:
 
 	vector<IptPathState> partialSubPathList;
 
-	CountHashGrid countHashGrid;
+	vector<int> vis;
+
+	stack<int> cycle;
+
+	bool dfs(int cur , int col);
 
 	void movePaths(omp_lock_t& cmdLock , vector<Path>& , vector<Path*>&);
 
@@ -47,7 +52,7 @@ protected:
 
 	void calcEyePathProbs(Path& eyePath , vector<double>& probDir , vector<double>& probRev);
 
-	void mergePartialPaths(vector<vec3f>& contribs , const IptPathState& lightState , const int mergeIters);
+	void mergePartialPaths(vector<vec3f>& contribs , const IptPathState& interState);
 
 	vec3f colorByMergingPaths(IptPathState& cameraState, PointKDTree<IptPathState>& partialSubPaths);
 
@@ -96,7 +101,7 @@ public:
 		}
 		else
 		{
-			mergeIterations = 1;
+			mergeIterations = 10;
 			useWeight = true;
 		}
 	}
@@ -145,7 +150,7 @@ struct GatherQuery
 		Real volMergeScale = 1;
 		if (cameraState->ray->insideObject && !cameraState->ray->contactObject)
 			volMergeScale = 4.f / 3.f * tracer->mergeRadius;
-		/*
+		
 		Real originProb = 1.f / tracer->totArea;
 		if (cameraState->ray->insideObject && cameraState->ray->contactObject == NULL)
 		{
@@ -173,7 +178,7 @@ struct GatherQuery
 		{
 			return;
 		}
-		*/
+		
 		Ray outRay;
 		vec3f bsdfFactor;
 		
@@ -227,20 +232,16 @@ struct GatherQuery
 
 		color += res;
 		/*
-		vec3f resx = tracer->renderer->camera.eliminateVignetting(res , cameraState->index) *
-			tracer->pixelNum;	
-		if (y(res) > 1)
+		if (cameraState->ray->insideObject)
 		{
 			fprintf(fp , "=====================\n");
 			if (volMergeScale == 1)
 				fprintf(fp , "surface\n");
 			else 
 				fprintf(fp , "volume\n");
-			fprintf(fp , "res = (%.8f,%.8f,%.8f) \ntotContrib = (%.8f,%.8f,%.8f), bsdf = (%.8f,%.8f,%.8f),\n cameraThr = (%.8f,%.8f,%.8f) \nweightFactor = %.8f, originProb = %.8f, lastpdf = %.8f\n" ,
+			fprintf(fp , "res = (%.8f,%.8f,%.8f) \ntotContrib = (%.8f,%.8f,%.8f), bsdf = (%.8f,%.8f,%.8f),\n" ,
 				res[0] , res[1] , res[2] ,
-				totContrib[0] , totContrib[1] , totContrib[2] , bsdfFactor[0] , bsdfFactor[1] , bsdfFactor[2] , 
-				cameraState->throughput[0] , cameraState->throughput[1] , cameraState->throughput[2] , 
-				weightFactor , originProb , lastPdf);
+				totContrib[0] , totContrib[1] , totContrib[2] , bsdfFactor[0] , bsdfFactor[1] , bsdfFactor[2]);
 		}
 		*/
 	}

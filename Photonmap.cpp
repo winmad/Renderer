@@ -214,8 +214,21 @@ void PhotonMap::throughputByDensityEstimation(vec3f &color, Path &eyeMergePath,
 		void Process(const LightPoint &lightPoint){
 			if(volumeMedia && lightPoint.photonType != Ray::INVOL)		return ;
 			if(!volumeMedia && lightPoint.photonType != Ray::OUTVOL)	return ;	
+
 			Path &lightPath = *lightPoint.pathThePointIn;
 			int index = lightPoint.indexInThePath;
+			/*
+			if (volumeMedia && lightPath[index].insideObject != outRay.insideObject)
+			{
+				printf("aye\n");
+				return;
+			}
+			if (!volumeMedia && lightPath[index].contactObject != outRay.contactObject)
+			{
+				printf("aye\n");
+				return;
+			}
+			*/
 			vec3f photonThroughput(1,1,1);
 			for(int i = 0; i < index; i++){
 				photonThroughput *= lightPath[i].color / lightPath[i].directionProb / lightPath[i].originProb;

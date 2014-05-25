@@ -12,7 +12,7 @@ struct IptPathState
 	vec3f throughput , indirContrib;
 	//vec3f contribs[4]; 
 	Ray *ray , *lastRay , *originRay;
-	bool isSpecularPath;
+	int pathLen;
 	vec3f pos;
 	int index;
 	//double accuProb;
@@ -50,23 +50,11 @@ protected:
 
 	Ray genIntermediateSamples(Scene& scene);
 
-	Ray link(const Path& path, int i, int j);
-
-	void calcEyePathProbs(Path& eyePath , vector<double>& probDir , vector<double>& probRev);
-
 	void mergePartialPaths(vector<vec3f>& contribs , const IptPathState& interState);
-
-	vec3f colorByMergingPaths(IptPathState& cameraState, PointKDTree<IptPathState>& partialSubPaths);
-
-	vec3f colorByMergingSurface(IptPathState& cameraState, PointKDTree<IptPathState>& partialSubPaths);
-
-	vec3f colorByMergingVolume(IptPathState& cameraState, PointKDTree<IptPathState>& partialSubPaths , vec3f& tr);
 
 	vec3f colorByRayMarching(Path& eyeMergePath , PointKDTree<IptPathState>& partialSubPaths);
 
-	vec3f colorByConnectingLights(const Camera& camera, const IptPathState& cameraState);
-
-	vec3f colorByConnectingCamera(const Camera& camera, const IptPathState& lightState , int& _x , int& _y);
+	vec3f colorByConnectingLights(Ray lastRay , Ray ray);
 
 	void sampleMergePath(Path &path, Ray &prevRay, uint depth);
 
@@ -213,15 +201,16 @@ struct GatherQuery
 		//mergeNum++;
 
 		vec3f res;
+		float mergeKernel = tracer->mergeKernel / volMergeScale;
 		if (constKernel)
 		{
-			res = tmp * (tracer->mergeKernel / volMergeScale);
+			res = tmp * mergeKernel;
 		}
 		else
 		{
 			float distSqr = (cameraState->pos - lightState.pos).length();
 			distSqr = distSqr * distSqr;
-			float mergeKernel = tracer->kernel(distSqr , tracer->mergeRadius * tracer->mergeRadius);
+			mergeKernel = tracer->kernel(distSqr , tracer->mergeRadius * tracer->mergeRadius);
 			if (abs(volMergeScale - 1.f) > 1e-6f)
 				mergeKernel /= (float)tracer->partialPathNum * tracer->mergeRadius * tracer->mergeRadius * tracer->mergeRadius;
 			else 
@@ -231,6 +220,21 @@ struct GatherQuery
 		}
 			
 		//res *= weightFactor;
+
+		if (!tracer->usePPM && lightState.index < tracer->lightPhotonNum && 
+			lightState.pathLen == 1 && lightState.ray->contactObject && !lightState.ray->contactObject->isVolumetric())
+		{
+			float dist = (lightState.lastRay->origin - lightState.ray->origin).length();
+			float cosToLight = clampf(lightState.ray->getContactNormal().dot(-lightState.lastRay->direction) , 0.f , 1.f);
+			float p1 = lightState.lastRay->originProb;
+			float p2 = lightState.lastRay->originProb * lightState.lastRay->directionProb * cosToLight / (dist * dist) *
+				M_PI * tracer->mergeRadius * tracer->mergeRadius * tracer->partialPathNum;
+			float weightFactor = p2 / (p1 + p2);
+
+			//printf("merge weight = %.8f\n" , weightFactor);
+
+			res *= weightFactor;
+		}
 
 		color += res;
 		/*

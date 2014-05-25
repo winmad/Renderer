@@ -75,7 +75,6 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 
 			PointKDTree<IptPathState> partialSubPaths(partialSubPathList);
 			
-			printf("merge done... tracing eye paths...\n");
 			/*
 #pragma omp parallel for
 			for (int i = 0; i < partialPhotonNum; i++)
@@ -984,7 +983,6 @@ void IptTracer::mergePartialPaths(omp_lock_t& cmdLock)
 	*/
 
 	// check cycle
-	/*
 	vis.resize(partialPhotonNum - lightPhotonNum);
 	for (int i = 0; i < vis.size(); i++)
 		vis[i] = 0;
@@ -996,34 +994,52 @@ void IptTracer::mergePartialPaths(omp_lock_t& cmdLock)
 		totColor++;
 		while (!cycle.empty())
 			cycle.pop();
-		if (dfs(st , totColor))
-		{
-			printf("!!!!!!!!!!!!!!!! CYCLE !!!!!!!!!!!!!!!\n");
-			while (!cycle.empty())
-			{
-				printf("%d " , cycle.top());
-				cycle.pop();
-			}
-			printf("\n");
-		}
+		dfs(st , totColor);
 	}
-	printf("%d\n" , totColor);
-	*/
-
-	for (int mergeIter = 0; mergeIter < mergeIterations; mergeIter++)
+	// eliminate cycle
+	for (int i = 0; i < edgeToRemove.size(); i++)
 	{
+		int child = edgeToRemove[i].second;
+		int pa = edgeToRemove[i].first;
+		int k = revIndex[child - lightPhotonNum];
+		int index = -1;
+		for (int j = 0; j < partPathMergeIndex[k].size(); j++)
+		{
+			if (partPathMergeIndex[k][j] == pa)
+				index = j;
+		}
+		if (index != -1)
+			partPathMergeIndex[k].erase(partPathMergeIndex[k].begin() + index);
+	}
+
+	printf("check & eliminate cycles\n");
+	
+	bool f = true;
+	int totMergeIter = 0;
+	//for (int mergeIter = 0; mergeIter < mergeIterations; mergeIter++)
+	while (f)
+	{
+		++totMergeIter;
 #pragma omp parallel for
 		for (int i = lightPhotonNum; i < partialPhotonNum; i++)
 		{
 			mergePartialPaths(contribs , partialSubPathList[i]);
 		}
 
+		f = false;
 		for (int i = lightPhotonNum; i < partialPhotonNum; i++)
 		{
+			if (!f && abs(intensity(partialSubPathList[i].indirContrib) - 
+				intensity(contribs[i - lightPhotonNum])) > 1e-6f)
+				f = true;
 			partialSubPathList[i].indirContrib = contribs[i - lightPhotonNum];
 		}
 	}
 
+	printf("merge done... totMergeIter = %d... tracing eye paths...\n" , totMergeIter);
+
+	edgeToRemove.clear();
+	vis.clear();
 	for (int i = 0; i < partPathMergeIndex.size(); i++)
 	{
 		partPathMergeIndex[i].clear();
@@ -1037,7 +1053,43 @@ void IptTracer::mergePartialPaths(omp_lock_t& cmdLock)
 bool IptTracer::dfs(int cur , int col)
 {
 	if (vis[cur - lightPhotonNum] == col)
-		return true;
+	{
+		stack<int> tmp(cycle);
+		while (!tmp.empty())
+		{
+			if (cur == tmp.top())
+			{
+				// mark cycle edges
+				edgeToRemove.push_back(pair<int , int>(cur , cycle.top()));
+				// end of mark
+
+				// print cycle
+				/*
+				cycle.push(cur);
+				fprintf(fp , "!!!!!!!!!!!!!!!! CYCLE !!!!!!!!!!!!!!!\n");
+				while (!cycle.empty())
+				{
+					fprintf(fp , "%d " , cycle.top());
+					int x = cycle.top();
+					cycle.pop();
+					int y;
+					if (cycle.empty())
+						break;
+					else
+						y = cycle.top();
+					fprintf(fp , "%.8f " , (partialSubPathList[x].pos - 
+						partialSubPathList[y].originRay->origin).length());
+				}
+				fprintf(fp , "\n");
+				*/
+				// end of print
+
+				return true;
+			}
+			tmp.pop();
+		}
+		return false;
+	}
 	cycle.push(cur);
 	vis[cur - lightPhotonNum] = col;
 	int k = revIndex[cur - lightPhotonNum];
@@ -1047,9 +1099,6 @@ bool IptTracer::dfs(int cur , int col)
 		int pa = partPathMergeIndex[k][j];
 		if (pa < lightPhotonNum)
 			continue;
-
-		if (pa == cur)
-			printf("error\n");
 
 		isCycle |= dfs(pa , col);
 		if (isCycle)

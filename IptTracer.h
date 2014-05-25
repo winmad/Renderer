@@ -2,6 +2,7 @@
 #include "mcrenderer.h"
 #include <omp.h>
 #include <stack>
+#include <utility>
 #include "PointKDTree.h"
 #include "CountHashGrid.h"
 #include "macros.h"
@@ -35,6 +36,7 @@ protected:
 	vector<int> vis;
 
 	stack<int> cycle;
+	vector<pair<int , int> > edgeToRemove;
 
 	bool dfs(int cur , int col);
 

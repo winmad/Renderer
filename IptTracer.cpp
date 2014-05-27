@@ -7,6 +7,7 @@
 #include "SceneHeteroGeneousVolume.h"
 
 static FILE *fp = fopen("debug_ipt_y.txt" , "w");
+static FILE *err = fopen("error_report.txt" , "w");
 
 float INV_2_PI = 0.5 / M_PI;
 
@@ -32,6 +33,11 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 	totArea = renderer->scene.getTotalArea();
 	totVol = renderer->scene.getTotalVolume();
 	printf("scene: totArea = %.8f, totVol = %.8f\n" , totArea , totVol);
+
+	if (totVol > 1e-6f && totArea > 1e-6f)
+		partialPathNum = interPathNum / 2;
+
+	unsigned startTime = clock();
 
 	for(unsigned s=0; s<spp; s++)
 	{
@@ -59,6 +65,11 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 		vector<Path*> lightPathList(lightPathNum , NULL);
 		vector<Path*> interPathList(interPathNum, NULL);
 
+		interMergeKernel = 1.f / (M_PI * mergeRadius * 
+			mergeRadius * (Real)partialPathNum);
+		lightMergeKernel = 1.f / (M_PI * mergeRadius *
+			mergeRadius * (Real)lightPathNum);
+
 		if (!renderer->scene.usingGPU())
 		{
 			genLightPaths(cmdLock , lightPathList);
@@ -67,9 +78,6 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 				genIntermediatePaths(cmdLock , interPathList);
 			
 			printf("lightPhotonNum = %d, partialPhotonNum = %d\n" , lightPhotonNum , partialPhotonNum);
-
-			mergeKernel = 1.f / (M_PI * mergeRadius * 
-				mergeRadius * (Real)partialPathNum);
 
 			mergePartialPaths(cmdLock);
 
@@ -264,7 +272,6 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 
 			if (!usePPM)
 			{
-				vector<IptPathState> lightSubPathList(partialSubPathList);
 #pragma omp parallel for
 				for (int p = 0; p < interPathNum; p++)
 					interRayList[p] = genIntermediateSamples(renderer->scene);
@@ -276,23 +283,31 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 			
 			printf("lightPhotonNum = %d, partialPhotonNum = %d\n" , lightPhotonNum , partialPhotonNum);
 
-			mergeKernel = 1.f / (M_PI * mergeRadius * 
-				mergeRadius * (Real)partialPathNum);
-
 			mergePartialPaths(cmdLock);
 
 			PointKDTree<IptPathState> partialSubPaths(partialSubPathList);
 
-//#pragma omp parallel for
-//			for (int p = 0; p < cameraPathNum; p++)
-//				eyeRayList[p] = camera.generateRay(p);
-//			eyePathListGPU = samplePathList(eyeRayList);
+#pragma omp parallel for
+			for (int p = 0; p < cameraPathNum; p++)
+				eyeRayList[p] = camera.generateRay(p);
+			eyePathListGPU = sampleMergePathList(eyeRayList);
 
 #pragma omp parallel for
 			for(int p=0; p<cameraPathNum; p++)
 			{
 				Path eyePath;
-				sampleMergePath(eyePath , camera.generateRay(p) , 0);
+				eyePath = eyePathListGPU[p];
+				/*
+				fprintf(fp , "==================\n");
+				for (int i = 0; i < eyePath.size(); i++)
+				{
+					fprintf(fp , "c = (%.8f,%.8f,%.8f), dir = (%.8f,%.8f,%.8f), cos = %.8f, dirPdf = %.8f, oriPdf = %.8f\n" ,
+						eyePath[i].color.x , eyePath[i].color.y , eyePath[i].color.z ,
+						eyePath[i].direction.x , eyePath[i].direction.y , eyePath[i].direction.z ,
+						eyePath[i].getCosineTerm() , eyePath[i].directionProb , eyePath[i].originProb);
+				}
+				*/
+				//sampleMergePath(eyePath , camera.generateRay(p , true) , 0);
 				singleImageColors[p] += colorByRayMarching(eyePath , partialSubPaths);
 			}
 		}
@@ -304,8 +319,18 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 
 		for(int i=0; i<pixelColors.size(); i++)
 		{
-			pixelColors[i] *= (Real)s / ((Real)s + 1.f);
-			pixelColors[i] += singleImageColors[i] / ((Real)s + 1.f); 
+			if (!isIllegal(singleImageColors[i]))
+			{
+				pixelColors[i] *= (Real)s / ((Real)s + 1.f);
+				pixelColors[i] += singleImageColors[i] / ((Real)s + 1.f); 
+			}
+			else
+			{
+
+				fprintf(err , "(%.8f,%.8f,%.8f) occurs in iter %d\n" , singleImageColors[i].x ,
+					singleImageColors[i].y , singleImageColors[i].z , s);
+				continue;
+			}
 		}
 
 		if (!renderer->scene.usingGPU())
@@ -332,10 +357,13 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 
 		printf("Iter: %d  IterTime: %ds  TotalTime: %ds\n", s+1, (clock()-t)/1000, clock()/1000);
 
-		if (clock() / 1000 >= lastTime)
+		//if (clock() / 1000 >= lastTime)
+		if (s % outputIter == 0)
 		{
-			showCurrentResult(pixelColors , &lastTime);
-			lastTime += timeInterval;
+			unsigned nowTime = (clock() - startTime) / 1000;
+			showCurrentResult(pixelColors , &nowTime , &s);
+			//showCurrentResult(pixelColors , &lastTime , &s);
+			//lastTime += timeInterval;
 		}
 		else
 			showCurrentResult(pixelColors);
@@ -460,7 +488,7 @@ void IptTracer::genLightPaths(omp_lock_t& cmdLock , vector<Path*>& lightPathList
 
 				if (_isnan(weightFactor) || abs(pdf) < 1e-6f || abs(mergeFactor(&volMergeScale , &originProb , &dirProb)) < 1e-6f)
 				{
-					printf("sample light path error, %.8f , %.8f\n" , connectFactor(pdf) , 
+					fprintf(err , "sample light path error, %.8f , %.8f\n" , connectFactor(pdf) , 
 						mergeFactor(&volMergeScale , &originProb , &dirProb));
 				}
 				/*
@@ -481,7 +509,7 @@ Ray IptTracer::genIntermediateSamples(Scene& scene)
 {
 	if (totVol > 1e-7f)
 	{
-		float volProb = 0.6f , surProb = 1 - volProb;
+		float volProb = 0.5f , surProb = 1 - volProb;
 		if (totArea < 1e-7f)
 		{
 			volProb = 1.f; surProb = 0.f;
@@ -489,13 +517,11 @@ Ray IptTracer::genIntermediateSamples(Scene& scene)
 		if (RandGenerator::genFloat() < volProb)
 		{
 			Ray ray = genVolumeSample();
-			ray.originProb *= volProb;
 			return ray;
 		}
 		else
 		{
 			Ray ray = genOtherSurfaceSample();
-			ray.originProb *= surProb;
 			return ray;
 		}
 	}
@@ -634,7 +660,7 @@ void IptTracer::genIntermediatePaths(omp_lock_t& cmdLock , vector<Path*>& interP
 
 				if (_isnan(weightFactor) || abs(pdf) < 1e-6f || abs(mergeFactor(&volMergeScale , &originProb , &dirProb)) < 1e-6f)
 				{
-					printf("sample inter path error, %.8f , %.8f\n" , connectFactor(pdf) , 
+					fprintf(err , "sample inter path error, %.8f , %.8f\n" , connectFactor(pdf) , 
 						mergeFactor(&volMergeScale , &originProb , &dirProb));
 				}
 
@@ -774,7 +800,7 @@ void IptTracer::mergePartialPaths(omp_lock_t& cmdLock)
 			partialSubPathList[i].indirContrib = contribs[i - lightPhotonNum];
 		}
 
-		//if (totMergeIter > mergeIterations) break;
+		if (totMergeIter > mergeIterations) break;
 	}
 
 	printf("merge done... totMergeIter = %d... tracing eye paths...\n" , totMergeIter);
@@ -792,8 +818,8 @@ void IptTracer::mergePartialPaths(omp_lock_t& cmdLock)
 
 bool IptTracer::dfs(int cur , int col)
 {
-	if (partialSubPathList[cur].ray->contactObject)
-		return false;
+	//if (partialSubPathList[cur].ray->contactObject)
+	//	return false;
 	if (vis[cur - lightPhotonNum] == col)
 	{
 		stack<int> tmp(cycle);
@@ -855,6 +881,7 @@ vec3f IptTracer::colorByConnectingLights(Ray lastRay , Ray ray)
 	Ray lightRay = genEmissiveSurfaceSample();
 	lightRay.direction = (ray.origin - lightRay.origin);
 	Real dist = lightRay.direction.length();
+	dist = max(dist , 1e-6f);
 	Real dist2 = dist * dist;
 	lightRay.direction.normalize();
 	Ray outRay = ray;
@@ -1038,7 +1065,7 @@ vec3f IptTracer::colorByRayMarching(Path& eyeMergePath , PointKDTree<IptPathStat
 
 			surfaceRes = query.color;
 
-			if (!usePPM)
+			if (!usePPM && useDirIllu)
 			{
 				vec3f dirIllu = colorByConnectingLights(eyeMergePath[i - 1] , eyeMergePath[i]);
 				surfaceRes += dirIllu;
@@ -1162,12 +1189,16 @@ void IptTracer::mergePartialPaths(vector<vec3f>& contribs , const IptPathState& 
 			if (_isnan(weightFactor) || abs(lastPdf) < 1e-6f || 
 				abs(tracer->mergeFactor(&volMergeScale , &interState->originRay->originProb , &interState->originRay->directionProb)) < 1e-6f)
 			{
-				printf("merge partial path error, %.8f , %.8f\n" , tracer->connectFactor(lastPdf) , 
+				fprintf(err , "merge partial path error, %.8f , %.8f\n" , tracer->connectFactor(lastPdf) , 
 					tracer->mergeFactor(&volMergeScale , &interState->originRay->originProb , &interState->originRay->directionProb));
 			}
 
 			vec3f res;
-			res = tmp * (tracer->mergeKernel / volMergeScale);
+
+			if (lightState.index < tracer->lightPhotonNum)
+				res = tmp * (tracer->lightMergeKernel / volMergeScale);
+			else
+				res = tmp * (tracer->interMergeKernel / volMergeScale);
 
 			//printf("%.8f , %.8f\n" , interState->originRay->originProb , interState->originRay->directionProb);
 			

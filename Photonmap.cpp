@@ -121,14 +121,17 @@ vector<vec3f> PhotonMap::renderPixels(const Camera& camera){
 			pixelColors[i] += camera.eliminateVignetting(oneIterColors[i], i) / (s + 1);
 			delete pixelLightPaths[i];
 		}
-		float time = (float)(clock() - startTime) / 1000;
 
-		if (time > recordTime)
+		unsigned nowTime = (float)(clock() - startTime) / 1000;
+		//if (nowTime > recordTime)
+		if (s % outputIter == 0)
 		{
-			showCurrentResult(pixelColors , &recordTime);
-			recordTime += timeInterval;
+			showCurrentResult(pixelColors , &nowTime , &s);
+			//showCurrentResult(pixelColors , &lastTime , &s);
+			//recordTime += timeInterval;
 		}
-		showCurrentResult(pixelColors);
+		else
+			showCurrentResult(pixelColors);
 	}
 	return pixelColors;
 }

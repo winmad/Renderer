@@ -6,8 +6,6 @@
 #include "smallFuncs.h"
 #include "macros.h"
 
-#define M_PI 3.14159265358978
-
 using namespace nv;
 using namespace std;
 

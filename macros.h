@@ -2,8 +2,8 @@
 
 using namespace nv;
 
-#define EPSILON (1e-5)
-#define EPS_RAY (1e-5)
+#define EPSILON (1e-5f)
+#define EPS_RAY (1e-5f)
 #define COS_TERM_MIN (1e-6f)
 
 #define M_PI 3.14159265358979

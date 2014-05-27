@@ -11,7 +11,7 @@ vector<vec3f> PathTracer::renderPixels(const Camera& camera)
 
 	if(!renderer->scene.usingGPU())
 	{
-		for(int s=0; s<spp; s++)
+		for(unsigned s=0; s<spp; s++)
 		{
 			int t = clock();
 #pragma omp parallel for
@@ -43,14 +43,23 @@ vector<vec3f> PathTracer::renderPixels(const Camera& camera)
 				//pixelColors[p] += color * eyePath[0].directionProb / (s+1);
 			}
 
-			showCurrentResult(pixelColors);
+			//if (clock() / 1000 >= lastTime)
+			if (s % outputIter == 0)
+			{
+				unsigned nowTime = (clock()) / 1000;
+				showCurrentResult(pixelColors , &nowTime , &s);
+				//showCurrentResult(pixelColors , &lastTime , &s);
+				//lastTime += timeInterval;
+			}
+			else
+				showCurrentResult(pixelColors);
 			printf("Iter: %d  IterTime: %ds  TotalTime: %ds\n", s+1, (clock()-t)/1000, (clock()-t_start)/1000);
 		}
 	}
 	else
 	{
 		
-		for(int s=0; s<spp; s++)
+		for(unsigned s=0; s<spp; s++)
 		{
 			int t = clock();
 			vector<Ray> eyeRays(pixelColors.size());
@@ -131,7 +140,16 @@ vector<vec3f> PathTracer::renderPixels(const Camera& camera)
 				//pixelColors[p] += color / (s+1);
 			}
 
-			showCurrentResult(pixelColors);
+			//if (clock() / 1000 >= lastTime)
+			if (s % outputIter == 0)
+			{
+				unsigned nowTime = (clock()) / 1000;
+				showCurrentResult(pixelColors , &nowTime , &s);
+				//showCurrentResult(pixelColors , &lastTime , &s);
+				//lastTime += timeInterval;
+			}
+			else
+				showCurrentResult(pixelColors);
 			printf("Iter: %d  IterTime: %ds  TotalTime: %ds\n", s+1, (clock()-t)/1000, (clock()-t_start)/1000);
 		}
 	}

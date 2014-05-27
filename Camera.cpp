@@ -1,7 +1,7 @@
 #include "StdAfx.h"
 #include "Camera.h"
 
-Ray Camera::generateRay(unsigned pixelID) const
+Ray Camera::generateRay(unsigned pixelID , bool flag) const
 {
 	vec3f front = focus - position;
 	front.normalize();
@@ -24,7 +24,7 @@ Ray Camera::generateRay(unsigned pixelID) const
 	ray.origin = position;
 	ray.contactObject = (SceneObject*)this;
 
-	if(!scene->usingGPU())
+	if(!scene->usingGPU() || flag)
 	{
 		Scene::ObjSourceInformation osi;
 		ray.intersectDist = scene->intersect(ray, osi);
@@ -125,7 +125,7 @@ vec2<float> Camera::transToPixel(const vec3f& point) const
 	float ratio = sightDist / frontDist;
 	pixel.x = v.dot(right) * ratio;
 	pixel.y = v.dot(orthoUp) * ratio;
-	pixel.x += width/2.0 - 0.5;
-	pixel.y = height/2.0 - pixel.y - 0.5;
+	pixel.x += width/2.f - 0.5f;
+	pixel.y = height/2.f - pixel.y - 0.5f;
 	return pixel;
 }

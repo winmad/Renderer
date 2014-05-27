@@ -297,7 +297,101 @@ vector<Path> MCRenderer::samplePathList(const vector<Ray>& startRayList) const
 	return pathList;
 }
 
-void MCRenderer::showCurrentResult(const vector<vec3f>& pixelColors , unsigned* time)
+vector<Path> MCRenderer::sampleMergePathList(const vector<Ray>& startRayList) const
+{
+	Ray termRay;
+	termRay.origin = vec3f(0, 0, 0);
+	termRay.direction = vec3f(0, 0, 0);
+	termRay.color = vec3f(0, 0, 0);
+	termRay.directionSampleType = Ray::DEFINITE;
+	termRay.directionProb = 1;
+	termRay.insideObject = termRay.contactObject = termRay.intersectObject = NULL;
+
+	vector<Path> pathList(startRayList.size());
+
+	vector<Ray> rays;
+	vector<unsigned> pathIDs;
+
+	vector<Ray> candidateRays = startRayList;
+	vector<unsigned> candidatePathIDs(startRayList.size());
+
+	for(unsigned i=0; i<candidatePathIDs.size(); i++)
+	{
+		candidatePathIDs[i] = i;
+	}
+
+	for(int depth=0; depth<maxDepth && candidateRays.size()>0; depth++)
+	{
+
+		rays.clear();
+		pathIDs.clear();
+		for(int i=0; i<candidateRays.size(); i++)
+		{
+			pathList[candidatePathIDs[i]].push_back(candidateRays[i]);
+
+			if (depth > 0 && candidateRays[i].contactObject && (candidateRays[i].contactObject->emissive() || 
+				candidateRays[i].directionSampleType == Ray::RANDOM))
+			{
+				pathList[candidatePathIDs[i]].push_back(termRay);
+				continue;
+			}
+
+			if(candidateRays[i].direction.length() > 0.5)
+			{
+				rays.push_back(candidateRays[i]);
+				pathIDs.push_back(candidatePathIDs[i]);
+			}
+		}
+
+
+		renderer->scene.fillIntersectObject(rays);
+
+
+		candidateRays.clear();
+		candidateRays.resize(rays.size());
+#pragma omp parallel for
+		for(int i=0; i<rays.size(); i++)
+		{
+
+			if(rays[i].insideObject && !rays[i].insideObject->isVolumetric())
+			{
+				candidateRays[i] = rays[i].insideObject->scatter(rays[i]);
+			}
+			else if(rays[i].intersectObject)
+			{
+				if (rays[i].intersectObject->isVolumetric() &&
+					rays[i].contactObject && rays[i].contactObject->isVolumetric())
+				{
+					rays[i].origin += rays[i].direction * rays[i].intersectDist;
+					rays[i].intersectDist = 0;
+
+				}
+				candidateRays[i] = rays[i].intersectObject->scatter(rays[i]);
+			}
+			else
+			{
+				candidateRays[i] = termRay;
+			}
+
+			candidateRays[i].current_tid = rays[i].intersect_tid;
+
+		}
+		candidatePathIDs = pathIDs;
+
+	}
+
+	for (int i=0; i<rays.size(); i++)
+	{
+		if(rays[i].direction.length() > 0.5)
+		{
+			pathList[pathIDs[i]].push_back(termRay);
+		}
+	}
+
+	return pathList;
+}
+
+void MCRenderer::showCurrentResult(const vector<vec3f>& pixelColors , unsigned* time , unsigned* iter)
 {
 	IplImage* image = cvCreateImage(cvSize(renderer->camera.width, renderer->camera.height), IPL_DEPTH_32F, 3);
 	for(int x=0; x<renderer->camera.width; x++)
@@ -316,11 +410,13 @@ void MCRenderer::showCurrentResult(const vector<vec3f>& pixelColors , unsigned* 
 		saveImagePFM(savePath, image);
 	}
 
-	if (time)
+	if (iter && time)
 	{
-		char timeStr[100];
+		char timeStr[100] , iterStr[100];
 		memset(timeStr , 0 , sizeof(timeStr));
+		memset(iterStr , 0 , sizeof(iterStr));
 		itoa(*time , timeStr , 10);
+		itoa(*iter , iterStr , 10);
 		string fileName("");
 		for (int i = 0; i < savePath.length(); i++)
 		{
@@ -328,7 +424,10 @@ void MCRenderer::showCurrentResult(const vector<vec3f>& pixelColors , unsigned* 
 				break;
 			fileName.push_back(savePath[i]);
 		}
-		fileName.push_back('_');
+		fileName += "_iter_";
+		for (int i = 0; i < strlen(iterStr); i++)
+			fileName.push_back(iterStr[i]);
+		fileName += "_time_";
 		for (int i = 0; i < strlen(timeStr); i++)
 			fileName.push_back(timeStr[i]);
 		fileName += ".pfm";

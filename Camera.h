@@ -20,7 +20,7 @@ public:
 	int height;
 	void setScene(Scene* scene){ this->scene = scene; }
 	float get_dw(unsigned pixelID) const;
-	Ray generateRay(unsigned pixelID) const;
+	Ray generateRay(unsigned pixelID , bool flag = false) const;
 	vec3f eliminateVignetting(const vec3f& color, unsigned pixelID) const;
 	vector<vec3f> generateRays() const;
 	vec2<float> transToPixel(const vec3f& point) const;

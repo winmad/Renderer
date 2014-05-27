@@ -47,3 +47,14 @@ inline float intensity(const vec3f& v)
 {
 	return 0.212671f * v[0] + 0.715160f * v[1] + 0.072169f * v[2];
 }
+
+inline bool isIllegal(const vec3f& v)
+{
+	if (_isnan(v.x) || _isnan(v.y) || _isnan((v.z)))
+		return true;
+	if (v.x > 1e3f || v.y > 1e3f || v.z > 1e3f)
+		return true;
+	if (max(v.x , max(v.y , v.z)) > 100.f * min(v.x , min(v.y , v.z)))
+		return true;
+	return false;
+}

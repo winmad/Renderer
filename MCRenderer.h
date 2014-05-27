@@ -46,13 +46,17 @@ protected:
 
 	unsigned pathPixelID;
 
+	int outputIter;
+
 	vector<Ray> showPath;
 
 	void samplePath(Path& path, Ray& startRay) const;
 
 	vector<Path> samplePathList(const vector<Ray>& startRayList) const;
 
-	void showCurrentResult(const vector<vec3f>& pixelColors , unsigned* time = NULL);
+	vector<Path> sampleMergePathList(const vector<Ray>& startRayList) const;
+
+	void showCurrentResult(const vector<vec3f>& pixelColors , unsigned* time = NULL , unsigned* iter = NULL);
 
 	void eliminateVignetting(vector<vec3f>& pixelColors);
 
@@ -102,6 +106,7 @@ public:
 		maxDepth = 20;
 		pathPixelID = -1;
 		useMerge = false;
+		outputIter = 5;
 	}
 
 	virtual void preprocess(){}

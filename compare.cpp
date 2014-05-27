@@ -3,6 +3,7 @@
 #include <string>
 #include <iostream>
 #include <fstream>
+#include <io.h>
 #include <opencv/cv.h>
 #include <opencv/highgui.h>
 using namespace std;
@@ -29,14 +30,6 @@ void Compare(IplImage *img1, IplImage *img2, IplImage *ref){
 	IplImage *rst2 = cvCreateImage(cvSize(width, height), IPL_DEPTH_32F, 3);
 	std::cout << "run2 " << std::endl;
 
-	/*
-	std::ifstream fin("map.txt");
-	std::vector<int> Map(height*width, 0);
-	for(int p = 0; p < height*width; p++)
-		fin >> Map[p];
-	fin.close();
-	*/
-
 	double TotalVar1 = 0, TotalVar2 = 0;
 	int count = 0;
 	for(int x = 0; x < width; x++){
@@ -45,22 +38,26 @@ void Compare(IplImage *img1, IplImage *img2, IplImage *ref){
 			vec3f bgr_img1 = ((vec3f*)img1->imageData)[y*width + x];
 			vec3f bgr_img2 = ((vec3f*)img2->imageData)[y*width + x];
 			
-			var1[y*width+x] = pow((bgr_ref - bgr_img1).length()/255,2); 
-			var2[y*width+x] = pow((bgr_ref - bgr_img2).length()/255,2); 
-
-			vec3f &var1C = ((vec3f*)rst1->imageData)[y*width + x];
-			vec3f &var2C = ((vec3f*)rst2->imageData)[y*width + x];
+			var1[y*width+x] = pow((bgr_ref - bgr_img1).length(),2); 
+			var2[y*width+x] = pow((bgr_ref - bgr_img2).length(),2); 
 				
 			int index = width * y + x;
-			//if(Map[index]){
-				TotalVar1 += pow((bgr_img1-bgr_ref).length()/255,2);
-				TotalVar2 += pow((bgr_img2-bgr_ref).length()/255,2);
-				vec3f RGB = convertLuminanceToRGB((double)var1[y*width+x]);
-				var1C = vec3f(255*RGB.z, 255*RGB.y, 255*RGB.x);
-				RGB = convertLuminanceToRGB((double)var2[y*width+x]);
-				var2C = vec3f(255*RGB.z, 255*RGB.y, 255*RGB.x);
-				count++;
-			//}
+			
+			TotalVar1 += pow((bgr_img1-bgr_ref).length(),2);
+			TotalVar2 += pow((bgr_img2-bgr_ref).length(),2);
+		}
+	}
+
+	for(int x = 0; x < width; x++){
+		for(int y = 0; y < height; y++){
+			vec3f &var1C = ((vec3f*)rst1->imageData)[y*width + x];
+			vec3f &var2C = ((vec3f*)rst2->imageData)[y*width + x];
+
+			vec3f RGB = convertLuminanceToRGB((double)var1[y*width+x]*5.f);
+			var1C = vec3f(255*RGB.z, 255*RGB.y, 255*RGB.x);
+			RGB = convertLuminanceToRGB((double)var2[y*width+x]*5.f);
+			var2C = vec3f(255*RGB.z, 255*RGB.y, 255*RGB.x);
+			count++;
 			
 		}
 	}
@@ -71,7 +68,7 @@ void Compare(IplImage *img1, IplImage *img2, IplImage *ref){
 	std::cout << "run4 " << std::endl;
 	cvSaveImage("rst2.jpg" , rst2);
 
-	double Var1 = TotalVar1 / (count), Var2 = TotalVar2 / (count);
+	double Var1 = sqrt(TotalVar1 / (count)), Var2 = sqrt(TotalVar2 / (count));
 	std::cout << "Var1 = " << Var1 << " Var2 = " << Var2 << std::endl;
 }
 
@@ -90,17 +87,35 @@ int main(int argc, char* argv[])
 	return 0;
 }
 */
-
+/*
+int main()
+{
+	_finddata_t file;
+	long flag;
+	flag = _findfirst("D:\\Winmad\\RendererGPU\\Release\\Data\\results\\sss_vcm_5_26_gpu\\*.pfm" , &file);
+	for (;;)
+	{
+		printf("%s\n", file.name);
+		string root = "D:\\Winmad\\RendererGPU\\Release\\Data\\results\\sss_vcm_5_26_gpu\\";
+		IplImage *img = convert_to_float32(readImagePFM(root + file.name));
+		saveImagePFM(root + file.name , img);
+		cvReleaseImage(&img);
+		if (_findnext(flag , &file) == -1)
+			break;
+	}
+	_findclose(flag);
+}
+*/
 IplImage *readImagePFM(const string& fileName)
 {
 	FILE* file;
 	int height, width;
 	fopen_s(&file, fileName.c_str(), "rb");
-	
+
 	fscanf(file, "PF\n%d %d\n-1.000000\n" , &width , &height);
-	
+
 	IplImage *img = cvCreateImage(cvSize(width, height), IPL_DEPTH_32F, 3);
-	const float* data = (float*)img->imageData;
+	float* data = (float*)img->imageData;
 	for (int j=img->height-1; j>=0; j--)
 	{
 		for (unsigned i=0; i<img->width; i++)
@@ -108,8 +123,15 @@ IplImage *readImagePFM(const string& fileName)
 			fread((float*)&data[3*(j*img->width+i)+2], sizeof(float), 1, file);
 			fread((float*)&data[3*(j*img->width+i)+1], sizeof(float), 1, file);
 			fread((float*)&data[3*(j*img->width+i)], sizeof(float), 1, file);
+			if (data[3*(j*img->width+i)+2] > 50.f)
+			{
+				data[3*(j*img->width+i)+2] = 50.f;
+				data[3*(j*img->width+i)+1] = 50.f;
+				data[3*(j*img->width+i)] = 50.f;
+			}
 		}
 	}
+
 	fclose(file);
 	return img;
 }

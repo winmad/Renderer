@@ -120,10 +120,14 @@ vector<vec3f> VCMTracer::renderPixels(const Camera& camera)
 				delete lightPathList[i];
 			}
 			printf("Iter: %d  IterTime: %ds  TotalTime: %ds\n", s+1, (clock()-t)/1000, (clock()-t_start)/1000);
-			if (clock() / 1000 >= lastTime)
+
+			//if (clock() / 1000 >= lastTime)
+			if (s % outputIter == 0)
 			{
-				showCurrentResult(pixelColors , &lastTime);
-				lastTime += timeInterval;
+				unsigned nowTime = (clock()) / 1000;
+				showCurrentResult(pixelColors , &nowTime , &s);
+				//showCurrentResult(pixelColors , &lastTime , &s);
+				//lastTime += timeInterval;
 			}
 			else
 				showCurrentResult(pixelColors);
@@ -205,10 +209,13 @@ vector<vec3f> VCMTracer::renderPixels(const Camera& camera)
 			}
 			printf("Iter: %d  IterTime: %ds  TotalTime: %ds\n", s+1, (clock()-t)/1000, (clock()-t_start)/1000);
 
-			if (clock() / 1000 >= lastTime)
+			//if (clock() / 1000 >= lastTime)
+			if (s % outputIter == 0)
 			{
-				showCurrentResult(pixelColors , &lastTime);
-				lastTime += timeInterval;
+				unsigned nowTime = (clock()) / 1000;
+				showCurrentResult(pixelColors , &nowTime , &s);
+				//showCurrentResult(pixelColors , &lastTime , &s);
+				//lastTime += timeInterval;
 			}
 			else
 				showCurrentResult(pixelColors);

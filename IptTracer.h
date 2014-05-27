@@ -60,12 +60,12 @@ protected:
 
 public:
 	Real mergeRadius;
-	Real mergeKernel;
+	Real lightMergeKernel , interMergeKernel;
 	Real alpha;
 	Real totArea , totVol;
 	Real initialProb;
 	unsigned timeInterval , lastTime;
-	bool useWeight , usePPM;
+	bool useWeight , usePPM , useDirIllu;
 
 	int pixelNum , lightPathNum , cameraPathNum , interPathNum , partialPathNum;
 	int lightPhotonNum , partialPhotonNum;
@@ -79,11 +79,12 @@ public:
 
 		pixelNum = renderer->camera.height * renderer->camera.width;
 		cameraPathNum = pixelNum;
-		lightPathNum = pixelNum;
-		interPathNum = pixelNum;
-		partialPathNum = pixelNum;
+		lightPathNum = pixelNum / 2;
+		interPathNum = pixelNum / 2;
+		partialPathNum = interPathNum;
 
 		usePPM = false;
+		useDirIllu = false;
 		if (usePPM)
 		{
 			mergeIterations = 0;
@@ -91,7 +92,7 @@ public:
 		}
 		else
 		{
-			mergeIterations = 10;
+			mergeIterations = 1000;
 			useWeight = true;
 		}
 	}
@@ -201,9 +202,20 @@ struct GatherQuery
 		//mergeNum++;
 
 		vec3f res;
-		float mergeKernel = tracer->mergeKernel / volMergeScale;
-		if (constKernel)
+		float mergeKernel , pathNum;
+		if (lightState.index < tracer->lightPhotonNum)
 		{
+			mergeKernel = tracer->lightMergeKernel / volMergeScale;
+			pathNum = tracer->lightPathNum;
+		}
+		else
+		{
+			mergeKernel = tracer->interMergeKernel / volMergeScale;
+			pathNum = tracer->partialPathNum;
+		}
+
+		if (constKernel)
+		{	
 			res = tmp * mergeKernel;
 		}
 		else
@@ -212,16 +224,16 @@ struct GatherQuery
 			distSqr = distSqr * distSqr;
 			mergeKernel = tracer->kernel(distSqr , tracer->mergeRadius * tracer->mergeRadius);
 			if (abs(volMergeScale - 1.f) > 1e-6f)
-				mergeKernel /= (float)tracer->partialPathNum * tracer->mergeRadius * tracer->mergeRadius * tracer->mergeRadius;
+				mergeKernel /= pathNum * tracer->mergeRadius * tracer->mergeRadius * tracer->mergeRadius;
 			else 
-				mergeKernel /= (float)tracer->partialPathNum * tracer->mergeRadius * tracer->mergeRadius;
+				mergeKernel /= pathNum * tracer->mergeRadius * tracer->mergeRadius;
 
 			res = tmp * mergeKernel;
 		}
 			
 		//res *= weightFactor;
 
-		if (!tracer->usePPM && lightState.index < tracer->lightPhotonNum && 
+		if (!tracer->usePPM && tracer->useDirIllu && lightState.index < tracer->lightPhotonNum && 
 			lightState.pathLen == 1 && lightState.ray->contactObject && !lightState.ray->contactObject->isVolumetric())
 		{
 			float dist = (lightState.lastRay->origin - lightState.ray->origin).length();

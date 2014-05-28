@@ -34,7 +34,7 @@ vector<vec3f> PhotonMap::renderPixels(const Camera& camera){
 		if (true)
 		{
 			rayMarching = true;
-			mRadius = MAX(mBaseRadius * powf(powf(s + 1 , mAlpha - 1) , 1.f / 3.f) , EPSILON);
+			mRadius = MAX(mBaseRadius * powf(powf(s+1 , mAlpha-1) , 1.f / 3.f) , EPSILON);
 		}
 		else
 		{
@@ -42,7 +42,7 @@ vector<vec3f> PhotonMap::renderPixels(const Camera& camera){
 			mRadius = MAX(mBaseRadius * sqrt(powf(s+1, mAlpha-1)), EPSILON);
 		}
 #endif
-		std::vector<Path*> pixelLightPaths(pixelColors.size(), NULL);
+		std::vector<Path*> pixelLightPaths(mPhotonsNum, NULL);
 		std::vector<LightPoint> surfaceLightVertices(0);
 		std::vector<LightPoint> volumeLightVertices(0);
 
@@ -51,7 +51,7 @@ vector<vec3f> PhotonMap::renderPixels(const Camera& camera){
 
 #pragma omp parallel for
 		// step1: sample light paths and build range search struct independently for surface and volume
-		for(int p = 0; p < pixelColors.size(); p++){
+		for(int p = 0; p < mPhotonsNum; p++){
 			Ray lightRay = genEmissiveSurfaceSample();
 			pixelLightPaths[p] = new Path;
 			Path &lightPath = *pixelLightPaths[p];
@@ -217,6 +217,9 @@ void PhotonMap::throughputByDensityEstimation(vec3f &color, Path &eyeMergePath,
 		void Process(const LightPoint &lightPoint){
 			if(volumeMedia && lightPoint.photonType != Ray::INVOL)		return ;
 			if(!volumeMedia && lightPoint.photonType != Ray::OUTVOL)	return ;	
+
+			if(!lightPoint.pathThePointIn || lightPoint.indexInThePath < 0)
+				return;
 
 			Path &lightPath = *lightPoint.pathThePointIn;
 			int index = lightPoint.indexInThePath;

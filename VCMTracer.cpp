@@ -587,6 +587,8 @@ void VCMTracer::colorByMergingPaths(vector<vec3f>& colors, const Path& eyePath, 
 				return;
 			}
 			*/
+			if(!lpp.path || lpp.index < 0)
+				return ;
 			wholePath.assign(lpp.path->begin(), lpp.path->begin()+lpp.index);
 			for(unsigned i=0; i<eyePathLen; i++)
 			{

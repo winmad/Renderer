@@ -44,7 +44,7 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 		partPathMergeIndex.resize(interPathNum);
 
 		partialSubPathList.clear();
-
+		/*
 		float shrinkRatio;
 		if (totVol > 1e-6f)
 			shrinkRatio = powf(((float)s + alpha) / ((float)s + 1.f) , 1.f / 3.f);
@@ -52,8 +52,14 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 			shrinkRatio = powf(((float)s + alpha) / ((float)s + 1.f) , 1.f / 2.f);
 		if (s > 0)
 			mergeRadius *= shrinkRatio;
+		*/
 
+		if (totVol > 1e-6f)
+			mergeRadius = r0 * powf(powf(s + 1.f , alpha - 1.f) , 1.f / 3.f);
+		else
+			mergeRadius = r0 * powf(powf(s + 1.f , alpha - 1.f) , 1.f / 2.f);
 		mergeRadius = std::max(mergeRadius , 1e-7f);
+
 		printf("mergeRadius = %.8f\n" , mergeRadius);
 
 		vector<vec3f> singleImageColors(pixelColors.size(), vec3f(0, 0, 0));
@@ -109,27 +115,25 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 			for(int p=0; p<cameraPathNum; p++)
 			{
 				Path eyePath;
-				//samplePath(eyePath, camera.generateRay(p));
+				
 				sampleMergePath(eyePath , camera.generateRay(p) , 0);
 				singleImageColors[p] += colorByRayMarching(eyePath , partialSubPaths);
 				
 				// abandon all the rest!
 				/*
+				samplePath(eyePath, camera.generateRay(p));
 				if (eyePath.size() <= 1)
 					continue;
 
 				IptPathState cameraState;
-				cameraState.isSpecularPath = 1;
+				bool lastSpecular = 1;
+				Real lastPdfW = 1.f;
 
 				cameraState.throughput = vec3f(1.f) / (eyePath[0].originProb * eyePath[0].directionProb * eyePath[1].originProb);
 	
 				cameraState.index = eyePath.front().pixelID;
 
-				//cameraState.accuProb = 1.f;
-
-				vector<double> probDir , probRev;
 				vector<float> weights;
-				//calcEyePathProbs(eyePath , probDir , probRev);
 
 				//fprintf(fp , "===================\n");
 				//for (int i = 0; i < eyePath.size(); i++)
@@ -140,117 +144,109 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 
 				int nonSpecLength = 0;
 				vector<vec3f> mergeContribs;
-				vec3f mergeContrib(0.f);
-
 				mergeContribs.clear();
-				weights.clear();
 
 				float weightFactor = 1.f;
+				vec3f colorHitLight(0.f);
+
+				for(unsigned i = 1; i < eyePath.size(); i++)
+				{
+					if (eyePath[i].contactObject && eyePath[i].contactObject->emissive())
+						break;
+					if (eyePath[i].directionSampleType == Ray::RANDOM)
+						nonSpecLength++;
+					if (eyePath[i].direction.length() < 0.5f)
+						break;
+				}
+
+				int N = maxDepth;
+				nonSpecLength = 0;
 
 				for(unsigned i = 1; i < eyePath.size(); i++)
 				//for (unsigned i = 1; i < 2; i++)
 				{
-					vec3f colorHitLight(0.f) , colorDirIllu(0.f) , colorGlbIllu(0.f);
+					vec3f colorGlbIllu(0.f) , colorDirIllu(0.f);
 
-					//Real dist = std::max((eyePath[i].origin - eyePath[i - 1].origin).length() , 1e-5f);
-					//cameraState.throughput *= eyePath[i - 1].getRadianceDecay(dist);
+					Real dist = std::max((eyePath[i].origin - eyePath[i - 1].origin).length() , 1e-5f);
+					cameraState.throughput *= eyePath[i - 1].getRadianceDecay(dist);
 
-					if(eyePath[i].contactObject && eyePath[i].contactObject->emissive())
+					if (eyePath[i].contactObject && eyePath[i].contactObject->emissive())
 					{
-						if (cameraState.isSpecularPath)
+						vec3f contrib = ((SceneEmissiveObject*)(eyePath[i].contactObject))->getColor();
+						float dirPdfA = eyePath[i].contactObject->getEmissionWeight() / eyePath[i].contactObject->totalArea;
+						float mis = 1.f;
+						if (i > 1 && !lastSpecular)
 						{
-							if (abs(eyePath[i].getContactNormal().dot(-eyePath[i - 1].direction)) > 1e-6f)
-							{
-								vec3f le = ((SceneEmissiveObject*)(eyePath[i].contactObject))->getColor();
-								colorHitLight = le * cameraState.throughput;
-								singleImageColors[cameraState.index] += colorHitLight;
-							}
-						}	
+							float cosine = eyePath[i].getContactNormal().dot(-eyePath[i - 1].direction);
+							float dist = (eyePath[i].origin - eyePath[i - 1].origin).length();
+							float dirPdfW = dirPdfA * dist * dist / abs(cosine);
+							mis = lastPdfW / (lastPdfW + dirPdfW);
+							
+							//fprintf(fp , "==================\n");
+							//fprintf(fp , "thr=(%.6f,%.6f,%.6f), contrib=(%.6f,%.6f,%.6f), pdfA=%.6f, pdfW=%.6f, lastPdfW=%.6f, cosine=%.6f, mis=%.6f\n" , 
+							//	cameraState.throughput[0] , cameraState.throughput[1] , cameraState.throughput[2] , contrib[0] ,
+							//	contrib[1] , contrib[2] , dirPdfA , dirPdfW , lastPdfW , cosine , mis);
+							
+						}
+						
+						colorHitLight = cameraState.throughput * contrib * mis;
+
+						if (N > 0)
+							weightFactor = 1.f - (Real)nonSpecLength / (Real)N;
+						else
+							weightFactor = 1.f;
+
+						singleImageColors[cameraState.index] += colorHitLight * weightFactor;
+
 						break;
 					}
 
-					if ((eyePath[i].insideObject == NULL && eyePath[i].contactObject == NULL) ||
-						(eyePath[i].origin == eyePath[i - 1].origin))
-						break;
+					//if (N == 0)
+					//	printf("%d , error\n" , i);
 
 					cameraState.pos = eyePath[i].origin;
 					cameraState.lastRay = &eyePath[i - 1];
 					cameraState.ray = &eyePath[i];
 
-					Real eyeWeight;
-					//colorDirIllu = colorByConnectingLights(camera , cameraState);
-					//singleImageColors[cameraState.index] += colorDirIllu;
+					if (eyePath[i].directionSampleType == Ray::RANDOM)
+					{
+						// mis with colorHitLight
+						colorDirIllu = colorByConnectingLights(eyePath[i - 1] , eyePath[i]) * cameraState.throughput;
+						weightFactor = 1.f - ((Real)nonSpecLength + 1.f) / (Real)N;
+						colorDirIllu *= weightFactor;
 
-					colorGlbIllu = colorByMergingPaths(cameraState , partialSubPaths);
-					mergeContribs.push_back(colorGlbIllu);
-					weights.push_back(weightFactor);
-			
-					//weights.push_back(probDir[i] * probRev[i]);
-					//fprintf(fp , "%.8f " , weightFactor);
+						colorGlbIllu = colorByMergingPaths(cameraState , partialSubPaths);
+						mergeContribs.push_back(colorDirIllu + colorGlbIllu / (Real)N);
+					}
+
+					lastSpecular = (eyePath[i].directionSampleType == Ray::DEFINITE);
+					lastPdfW = eyePath[i].directionProb;
 
 					if (eyePath[i].directionSampleType == Ray::RANDOM)
 					{
-						cameraState.isSpecularPath = 0;
 						nonSpecLength++;
 						
-						//if (usePPM)
-						//if (nonSpecLength == 1)
-						//	break; // PPM, eye path length is 1
+						if (nonSpecLength == N)
+							break; // PPM, eye path length is 1
 					}
+
+					if (eyePath[i].direction.length() < 0.5f)
+						break;
 
 					if (i >= eyePath.size() - 1)
 						break;
 				
-					vec3f bsdfFactor;
-					bsdfFactor = eyePath[i].color;
-				
-					//cameraState.throughput *= (bsdfFactor * eyePath[i].getCosineTerm() / 
-					//	(eyePath[i + 1].originProb * eyePath[i].directionProb));
+					cameraState.throughput *= (eyePath[i].color * eyePath[i].getCosineTerm()) / 
+						(eyePath[i + 1].originProb * eyePath[i].directionProb);
 
 					//fprintf(fp , "l=%d, thr=(%.8f,%.8f,%.8f), bsdf=(%.8f,%.8f,%.8f), cos=%.8f, prob=%.8f\n" , 
 					//	i , cameraState.throughput[0] , cameraState.throughput[1] , cameraState.throughput[2] ,
 					//	bsdfFactor[0] , bsdfFactor[1] , bsdfFactor[2] , eyePath[i].getCosineTerm() , eyePath[i].directionProb);
-					
-					if (eyePath[i].directionSampleType != Ray::DEFINITE)
-					{
-						Ray inRay = eyePath[i + 1];
-						inRay.direction = -eyePath[i].direction;
-						Ray outRay = eyePath[i];
-						outRay.direction = -eyePath[i - 1].direction;
-
-						Real dirPdf = eyePath[i].directionProb;
-						Real revPdf = inRay.getDirectionSampleProbDensity(outRay);
-						//printf("%.8f, %.8f\n" , dirPdf , revPdf);
-
-						Real volMergeScale = 1;
-						Real originProb = 1.f / totArea;
-						Real dirProb = eyePath[i].getCosineTerm() / M_PI;
-						if (eyePath[i].insideObject && !eyePath[i].contactObject)
-						{
-							volMergeScale = 4.0 / 3.0 * mergeRadius;
-							originProb = 1.f / totVol;
-							dirProb = 0.25f / M_PI;
-						}
-
-						weightFactor *= connectFactor(revPdf) /
-							(connectFactor(revPdf) + mergeFactor(&volMergeScale , &originProb , &dirProb));
-
-						if (_isnan(weightFactor))
-							printf("error, w = %.8f\n" , weightFactor);
-
-						//cameraState.throughput *= weightFactor;
-						//weights.push_back(weightFactor);
-					}
 				}
 				
-				double sumWeights = 0.f;
-				for (int i = 0; i < weights.size(); i++)
-					sumWeights += weights[i];
 				for (int i = 0; i < mergeContribs.size(); i++)
 				{
-					singleImageColors[cameraState.index] += mergeContribs[i];// * weights[i] / sumWeights;
-					//if (nonSpecLength > 0)
-					//	singleImageColors[cameraState.index] += mergeContribs[i] / (Real)nonSpecLength;		
+					singleImageColors[cameraState.index] += mergeContribs[i];
 				}
 				*/
 			}
@@ -358,7 +354,7 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 		printf("Iter: %d  IterTime: %ds  TotalTime: %ds\n", s+1, (clock()-t)/1000, clock()/1000);
 
 		//if (clock() / 1000 >= lastTime)
-		if (s % outputIter == 0)
+		if (s % outputIter == 0 && !isDebug)
 		{
 			unsigned nowTime = (clock() - startTime) / 1000;
 			showCurrentResult(pixelColors , &nowTime , &s);
@@ -509,7 +505,7 @@ Ray IptTracer::genIntermediateSamples(Scene& scene)
 {
 	if (totVol > 1e-7f)
 	{
-		float volProb = 0.5f , surProb = 1 - volProb;
+		float volProb = 0.2f , surProb = 1 - volProb;
 		if (totArea < 1e-7f)
 		{
 			volProb = 1.f; surProb = 0.f;
@@ -742,6 +738,7 @@ void IptTracer::mergePartialPaths(omp_lock_t& cmdLock)
 	}
 
 	bool f = true;
+	int checkTime = 100;
 	while (f)
 	{
 		f = false;
@@ -749,12 +746,12 @@ void IptTracer::mergePartialPaths(omp_lock_t& cmdLock)
 		vis.resize(partialPhotonNum - lightPhotonNum);
 		for (int i = 0; i < vis.size(); i++)
 			vis[i] = 0;
-		int totColor = 0;
+		int totColor = 1;
 		for (int st = lightPhotonNum; st < partialPhotonNum; st++)
 		{
 			if (vis[st - lightPhotonNum] > 0)
 				continue;
-			totColor++;
+			//totColor++;
 			while (!cycle.empty())
 				cycle.pop();
 			f |= dfs(st , totColor);
@@ -776,6 +773,10 @@ void IptTracer::mergePartialPaths(omp_lock_t& cmdLock)
 				partPathMergeIndex[k].erase(partPathMergeIndex[k].begin() + index);
 		}
 		edgeToRemove.clear();
+
+		checkTime--;
+		if (checkTime == 0)
+			break;
 	}
 
 	printf("check & eliminate cycles\n");
@@ -876,7 +877,7 @@ bool IptTracer::dfs(int cur , int col)
 	return false;
 }
 
-vec3f IptTracer::colorByConnectingLights(Ray lastRay , Ray ray)
+vec3f IptTracer::colorByConnectingLights(Ray lastRay , Ray ray , bool dirIlluWeight)
 {
 	Ray lightRay = genEmissiveSurfaceSample();
 	lightRay.direction = (ray.origin - lightRay.origin);
@@ -903,24 +904,33 @@ vec3f IptTracer::colorByConnectingLights(Ray lastRay , Ray ray)
 
 	Real cosToLight = clampf(ray.getContactNormal().dot(-lightRay.direction) , 0.f , 1.f);
 
-	if (cosAtLight < 1e-6f && cosToLight < 1e-6f)
+	if (cosAtLight < 1e-6f || cosToLight < 1e-6f)
 		return vec3f(0.f);
 
 	vec3f tmp = lightRay.color * cosAtLight * bsdfFactor * cosToLight
 		/ (lightRay.originProb * dist2);
-
-	Real p1 = lightRay.originProb;
-	Real p2 = lightRay.originProb * (cosAtLight / M_PI) * cosToLight / dist2 * 
-		(partialPathNum * mergeRadius * mergeRadius * M_PI);
-	Real weightFactor = p1 / (p1 + p2);
 
 	//fprintf(fp , "weight = %.8f , bsdfToLightPdf = %.8f , cosAtLight = %.8f ,\ntoLightOriginPdf = %.8f , originProb = %.8f , dist = %.8f\n" , 
 	//	weightFactor , bsdfToLightPdf , cosAtLight , toLightOriginPdf , lightRay.originProb , dist);
 
 	vec3f res = tmp * decayFactor;
 
-	res *= weightFactor;
+	if (dirIlluWeight && useRayMarching)
+	{
+		Real p1 = lightRay.originProb;
+		Real p2 = lightRay.originProb * (cosAtLight / M_PI) * cosToLight / dist2 * 
+			(partialPathNum * mergeRadius * mergeRadius * M_PI);
+		Real weightFactor = p1 / (p1 + p2);
+		res *= weightFactor;
+	}
 	
+	if (dirIlluWeight && !useRayMarching)
+	{
+		Real p1 = lastRay.getDirectionSampleProbDensity(outRay);
+		Real p2 = lightRay.originProb * dist2 / cosAtLight;
+		Real weightFactor = p2 / (p1 + p2);
+		res *= weightFactor;
+	}
 	//printf("sur weight = %.8f\n" , weightFactor);
 
 	/*
@@ -933,6 +943,17 @@ vec3f IptTracer::colorByConnectingLights(Ray lastRay , Ray ray)
 	}
 	*/
 	return res;
+}
+
+vec3f IptTracer::colorByMergingPaths(IptPathState& cameraState, PointKDTree<IptPathState>& partialSubPaths)
+{
+	GatherQuery query(this);
+	query.cameraState = &cameraState;
+	query.color = vec3f(0, 0, 0);
+
+	partialSubPaths.searchInRadius(0 , query.cameraState->pos , mergeRadius , query);
+
+	return query.color;
 }
 
 vec3f IptTracer::colorByRayMarching(Path& eyeMergePath , PointKDTree<IptPathState>& partialSubPaths)

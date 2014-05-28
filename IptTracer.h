@@ -52,9 +52,11 @@ protected:
 
 	void mergePartialPaths(vector<vec3f>& contribs , const IptPathState& interState);
 
+	vec3f colorByMergingPaths(IptPathState& cameraState, PointKDTree<IptPathState>& partialSubPaths);
+
 	vec3f colorByRayMarching(Path& eyeMergePath , PointKDTree<IptPathState>& partialSubPaths);
 
-	vec3f colorByConnectingLights(Ray lastRay , Ray ray);
+	vec3f colorByConnectingLights(Ray lastRay , Ray ray , bool dirIlluWeight = true);
 
 	void sampleMergePath(Path &path, Ray &prevRay, uint depth);
 
@@ -65,7 +67,7 @@ public:
 	Real totArea , totVol;
 	Real initialProb;
 	unsigned timeInterval , lastTime;
-	bool useWeight , usePPM , useDirIllu;
+	bool useWeight , usePPM , useDirIllu , isDebug , useRayMarching;
 
 	int pixelNum , lightPathNum , cameraPathNum , interPathNum , partialPathNum;
 	int lightPhotonNum , partialPhotonNum;
@@ -79,12 +81,14 @@ public:
 
 		pixelNum = renderer->camera.height * renderer->camera.width;
 		cameraPathNum = pixelNum;
-		lightPathNum = pixelNum / 2;
+		lightPathNum = pixelNum / 2 * 3;
 		interPathNum = pixelNum / 2;
 		partialPathNum = interPathNum;
 
 		usePPM = false;
-		useDirIllu = false;
+		useDirIllu = true;
+		useRayMarching = true;
+		isDebug = false;
 		if (usePPM)
 		{
 			mergeIterations = 0;
@@ -92,7 +96,7 @@ public:
 		}
 		else
 		{
-			mergeIterations = 1000;
+			mergeIterations = 100;
 			useWeight = true;
 		}
 	}
@@ -143,6 +147,7 @@ struct GatherQuery
 			volMergeScale = 4.f / 3.f * tracer->mergeRadius;
 		
 		Real originProb = 1.f / tracer->totArea;
+		Real dirProb;
 		if (cameraState->ray->insideObject && cameraState->ray->contactObject == NULL)
 		{
 			if (lightState.ray->insideObject == NULL || 
@@ -188,14 +193,18 @@ struct GatherQuery
 
 		vec3f tmp = totContrib * bsdfFactor * cameraState->throughput; 
 
-		//Real lastPdf , weightFactor;
-		//lastPdf = lightState.lastRay->getDirectionSampleProbDensity(outRay);
-		//lastPdf = cameraState->accuProb;
-		//originProb = cameraState->accuProb;
-		//originProb = tracer->getOriginProb(tracer->countHashGrid , outRay.origin);
+		/*
+		if (cameraState->ray->contactObject && cameraState->ray->contactObject->hasCosineTerm())
+			dirProb = cameraState->ray->getContactNormal().dot(-cameraState->lastRay->direction) / M_PI;
+		else
+			dirProb = 0.25f / M_PI;
 
-		//weightFactor = (tracer->mergeFactor(&volMergeScale , &originProb , &INV_2_PI)) /
-		//	(tracer->connectFactor(lastPdf) + tracer->mergeFactor(&volMergeScale , &originProb , &INV_2_PI));
+		Real lastPdf;
+		lastPdf = lightState.lastRay->getDirectionSampleProbDensity(outRay);
+
+		Real weightFactor = (tracer->mergeFactor(&volMergeScale , &originProb , &dirProb)) /
+			(tracer->connectFactor(lastPdf) + tracer->mergeFactor(&volMergeScale , &originProb , &dirProb));
+		*/
 
 		//fprintf(fp , "weight = %.8f , cameraAccuProb = %.8f , hashOriginProb = %.8f\n" , weightFactor , cameraState->accuProb , originProb);
 
@@ -230,7 +239,7 @@ struct GatherQuery
 
 			res = tmp * mergeKernel;
 		}
-			
+		
 		//res *= weightFactor;
 
 		if (!tracer->usePPM && tracer->useDirIllu && lightState.index < tracer->lightPhotonNum && 

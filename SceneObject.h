@@ -24,6 +24,7 @@ protected:
 	vector<Material*> materialList;
 	CountHashGrid *countHashGrid;
 public:
+	vector<float> energyDensity;
 	float weight;
 	float volumeWeight;
 	float totalArea;

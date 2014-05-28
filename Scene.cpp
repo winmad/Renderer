@@ -168,7 +168,8 @@ void Scene::preprocessOtherSampler()
 	otherSurfaceSampler = new SurfaceSampler(this);
 	for(unsigned i=0; i<objects.size(); i++)
 	{
-		if (objects[i]->canMerge && !objects[i]->isVolumetric() && !objects[i]->emissive())
+		if (objects[i]->canMerge && !objects[i]->isVolumetric() && !objects[i]->emissive() &&
+			i == 7)
 			otherSurfaceSampler->targetObjects.push_back(objects[i]);
 	}
 	otherSurfaceSampler->preprocess();
@@ -321,7 +322,7 @@ SceneObject* Scene::findInsideObject(const Ray& ray, const SceneObject* currentO
 			unsigned tid;
 			vec3f normal;
 			float dist;
-			if(currentObject == objects[i])
+			if(currentObject == objects[i] || !objects[i]->isVolumetric())
 				continue;
 			dist = objKDTrees[i].intersect(kdray_back, tid);
 			if(dist<1e-6f)

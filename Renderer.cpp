@@ -53,7 +53,7 @@ void Renderer::waitForCommand()
 {
 	int key = cvWaitKey(10);
 	loadConfig("Data/Config.xml");
-	cvDestroyAllWindows();
+	//cvDestroyAllWindows();
 	render();
 	/*
 	while(key != 'q')
@@ -84,6 +84,21 @@ void Renderer::loadConfig(const string& configFilePath)
 	configManager = NULL;
 	configManager = new ConfigManager(this);
 	configManager->load(configFilePath);
+	
+	/*
+	printf("%d\n" , scene.objects.size());
+	for (int i = 0; i < 3; i++)
+	{
+		printf("=================\n");
+		printf("%d , %d\n" , scene.objects[i]->vertexList.size() , 
+			scene.objects[i]->faceVertexIndexList.size());
+		for (int j = 0; j < scene.objects[i]->faceVertexIndexList.size(); j++)
+		{
+			printf("%d, %d, %d\n" , scene.objects[i]->faceVertexIndexList[j][0] , 
+				scene.objects[i]->faceVertexIndexList[j][1] , scene.objects[i]->faceVertexIndexList[j][2]);
+		}
+	}
+	*/
 }
 
 

@@ -210,7 +210,9 @@ void MCRenderer::samplePath(Path& path, Ray& prevRay, unsigned depth, bool first
 	}
 
 	//if (nextRay.contactObject && nextRay.contactObjectTriangleID >= nextRay.contactObject->faceVertexIndexList.size())
+	//{
 	//	printf("sample path error, %d , %d\n" , (int)nextRay.contactObjectTriangleID , (int)nextRay.contactObject->faceVertexIndexList.size());
+	//}
 	
 	samplePath(path, nextRay, depth + 1, firstDiff);
 }

@@ -81,14 +81,14 @@ public:
 
 		pixelNum = renderer->camera.height * renderer->camera.width;
 		cameraPathNum = pixelNum;
-		lightPathNum = pixelNum / 2 * 3;
-		interPathNum = pixelNum / 2;
+		lightPathNum = pixelNum;
+		interPathNum = pixelNum;
 		partialPathNum = interPathNum;
 
 		usePPM = false;
-		useDirIllu = true;
+		useDirIllu = false;
 		useRayMarching = true;
-		isDebug = false;
+		isDebug = true;
 		if (usePPM)
 		{
 			mergeIterations = 0;
@@ -189,7 +189,7 @@ struct GatherQuery
 			totContrib = lightState.throughput;
 		else
 			totContrib = lightState.indirContrib;
-		//totContrib = lightState.indirContrib;
+		//totContrib = lightState.throughput;
 
 		vec3f tmp = totContrib * bsdfFactor * cameraState->throughput; 
 

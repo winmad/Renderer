@@ -505,7 +505,7 @@ Ray IptTracer::genIntermediateSamples(Scene& scene)
 {
 	if (totVol > 1e-7f)
 	{
-		float volProb = 0.2f , surProb = 1 - volProb;
+		float volProb = 0.5f , surProb = 1 - volProb;
 		if (totArea < 1e-7f)
 		{
 			volProb = 1.f; surProb = 0.f;
@@ -541,15 +541,6 @@ void IptTracer::genIntermediatePaths(omp_lock_t& cmdLock , vector<Path*>& interP
 		}
 
 		Path& interPath = *interPathList[p];
-		/*
-		if (interPath.size() >= 3)
-		{
-			if (interPath[2].contactObject && interPath[2].contactObjectTriangleID >= interPath[2].contactObject->faceVertexIndexList.size())
-			{
-				printf("init contact triangle error, %d %d\n" , interPath[2].contactObjectTriangleID , interPath[2].contactObject->faceVertexIndexList.size());
-			}
-		}
-		*/
 
 		//fprintf(fp , "=================\n");
 		partPathMergeIndex[p].clear();
@@ -610,10 +601,6 @@ void IptTracer::genIntermediatePaths(omp_lock_t& cmdLock , vector<Path*>& interP
 			if (interPath[i].direction.length() < 0.5f)
 				break;
 
-			/*
-			if (interPath[i].contactObjectTriangleID >= interPath[i].contactObject->faceVertexIndexList.size())
-				printf("contact triangle error, %d %d\n" , interPath[i].contactObjectTriangleID , interPath[i].contactObject->faceVertexIndexList.size());
-			*/
 			vec3f scatterFactor = (interPath[i].color * interPath[i].getCosineTerm() / 
 				(interPath[i + 1].originProb * interPath[i].directionProb));
 
@@ -739,7 +726,7 @@ void IptTracer::mergePartialPaths(omp_lock_t& cmdLock)
 
 	bool f = true;
 	int checkTime = 100;
-	while (f)
+	while (f && totVol > 1e-6)
 	{
 		f = false;
 		// check cycle

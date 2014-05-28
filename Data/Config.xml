@@ -1,14 +1,13 @@
 <Config>
 	<Scene>
-		<path>scenes/fog_cornell_box.xml</path>
-		<name>Balls</name>
+		<path>FuckyLight1.xml</path>
 		<camera>c1</camera>
 	</Scene>
 	<Renderer>
 		<type>IPT</type>
 		<radius>0.005</radius>
 	</Renderer>
-	<savePath>results/fog_cb_ipt_5_24.pfm</savePath>
+	<savePath>results/fuckyLight_path_2x_no_dir.pfm</savePath>
 </Config>
 
 <Config>
@@ -21,7 +20,71 @@
 		<type>IPT</type>
 		<radius>0.005</radius>
 	</Renderer>
-	<savePath>results/debug.pfm</savePath>
+	<savePath>results/sss_ipt_5_28_path_2x_no_dir.pfm</savePath>
+</Config>
+
+<Config>
+	<Scene>
+		<path>Scene_vol.xml</path>
+		<camera>c1</camera>
+	</Scene>
+	<Renderer>
+		<type>PM</type>
+		<radius>0.007</radius>
+	</Renderer>
+	<savePath>results/vol_pm_5_28_cpu.pfm</savePath>
+</Config>
+
+<Config>
+	<Scene>
+		<path>scenes/fog_cornell_box.xml</path>
+		<name>Balls</name>
+		<camera>c1</camera>
+	</Scene>
+	<Renderer>
+		<type>IPT</type>
+		<radius>0.003</radius>
+	</Renderer>
+	<savePath>results/fog_cb_ipt_5_27_debug.pfm</savePath>
+</Config>
+
+<Config>
+	<Scene>
+		<path>scenes/2balls_cornell_box.xml</path>
+		<name>Boxes</name>
+		<camera>c1</camera>
+	</Scene>
+	<Renderer>
+		<type>IPT</type>
+		<radius>0.003</radius>
+	</Renderer>
+	<savePath>results/2balls_cornell_box_ipt_5_27_debug.pfm</savePath>
+</Config>
+
+<Config>
+	<Scene>
+		<path>Scene_VPM.xml</path>
+		<name>SubTest</name>
+		<camera>c1</camera>
+	</Scene>
+	<Renderer>
+		<type>VCM</type>
+		<radius>0.003</radius>
+	</Renderer>
+	<savePath>results/subtest_vcm_5_26_cpu/subtest_vcm_5_26_cpu.pfm</savePath>
+</Config>
+
+<Config>
+	<Scene>
+		<path>scenes/torus_in_box.xml</path>
+		<!--name>Toys</name-->
+		<camera>c1</camera>
+	</Scene>
+	<Renderer>
+		<type>IPT</type>
+		<radius>0.003</radius>
+	</Renderer>
+	<savePath>results/torus_in_box_ipt_5_23.pfm</savePath>
 </Config>
 
 <Config>
@@ -31,10 +94,23 @@
 		<camera>c1</camera>
 	</Scene>
 	<Renderer>
-		<type>PM</type>
+		<type>IPT</type>
 		<radius>0.005</radius>
 	</Renderer>
-	<savePath>results/heterogeneousSSS_pm_5_21.pfm</savePath>
+	<savePath>results/heterogeneousSSS_ipt_5_21_x.pfm</savePath>
+</Config>
+
+<Config>
+	<Scene>
+		<path>Scene_sss.xml</path>
+		<name>SSS</name>
+		<camera>c1</camera>
+	</Scene>
+	<Renderer>
+		<type>VCM</type>
+		<radius>0.005</radius>
+	</Renderer>
+	<savePath>results/SSS_vcm_box_5_21.pfm</savePath>
 </Config>
 
 <Config>
@@ -49,19 +125,6 @@
 		<initProb>1</initProb>
 	</Renderer>
 	<savePath>results/toys_vcm_4_22.pfm</savePath>
-</Config>
-
-<Config>
-	<Scene>
-		<path>scenes/torus_in_box.xml</path>
-		<!--name>Toys</name-->
-		<camera>c1</camera>
-	</Scene>
-	<Renderer>
-		<type>VCM</type>
-		<radius>0.003</radius>
-	</Renderer>
-	<savePath>results/torus_in_box_vcm_4_22.pfm</savePath>
 </Config>
 
 <Config>
@@ -130,19 +193,6 @@
 		<initProb>1</initProb>
 	</Renderer>
 	<savePath>results/toys_ipt_4_13.pfm</savePath>
-</Config>
-
-<Config>
-	<Scene>
-		<path>scenes/fog_cornell_box.xml</path>
-		<name>BallsInFog</name>
-		<camera>c1</camera>
-	</Scene>
-	<Renderer>
-		<type>IPT</type>
-		<radius>0.003</radius>
-	</Renderer>
-	<savePath>results/fog_cb_ipt_4_6.pfm</savePath>
 </Config>
 
 <Config>

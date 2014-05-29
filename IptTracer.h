@@ -33,12 +33,13 @@ protected:
 
 	vector<IptPathState> partialSubPathList;
 
-	vector<int> vis;
+	vector<bool> vis;
+	vector<bool> inStack;
 
 	stack<int> cycle;
 	vector<pair<int , int> > edgeToRemove;
 
-	bool dfs(int cur , int col);
+	bool dfs(int cur);
 
 	void movePaths(omp_lock_t& cmdLock , vector<Path>& , vector<Path*>&);
 
@@ -76,7 +77,7 @@ public:
 	IptTracer(Renderer* renderer) : MCRenderer(renderer)
 	{ 
 		alpha = 2.f / 3.f;
-		spp = -1; 
+		spp = 1; 
 		initialProb = 1.f;
 		timeInterval = lastTime = 3600;
 
@@ -87,10 +88,10 @@ public:
 		partialPathNum = interPathNum;
 
 		usePPM = false;
-		useDirIllu = false;
+		useDirIllu = true;
 		useRayMarching = true;
 		useUniformInterSampler = false;
-		checkCycle = true;
+		checkCycle = false;
 		isDebug = true;
 
 		if (usePPM)

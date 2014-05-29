@@ -348,8 +348,16 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 		{
 			if (!isIllegal(singleImageColors[i]))
 			{
-				pixelColors[i] *= (Real)s / ((Real)s + 1.f);
-				pixelColors[i] += singleImageColors[i] / ((Real)s + 1.f); 
+				if (useUniformInterSampler)
+				{
+					pixelColors[i] *= (Real)s / ((Real)s + 1.f);
+					pixelColors[i] += singleImageColors[i] / ((Real)s + 1.f); 
+				}
+				else
+				{
+					pixelColors[i] *= ((Real)s - 1.f) / ((Real)s);
+					pixelColors[i] += singleImageColors[i] / ((Real)s); 
+				}
 			}
 			else
 			{
@@ -520,7 +528,7 @@ void IptTracer::genLightPaths(omp_lock_t& cmdLock , vector<Path*>& lightPathList
 				weightFactor = connectFactor(pdf) /
 					(connectFactor(pdf) + mergeFactor(&volMergeScale , &originProb , &dirProb , &lightPathNum));
 
-				if (_isnan(weightFactor) || abs(pdf) < 1e-6f || abs(mergeFactor(&volMergeScale , &originProb , &dirProb , &lightPathNum)) < 1e-6f)
+				if (_isnan(weightFactor) || abs(pdf) < 1e-6f)
 				{
 					fprintf(err , "sample light path error, %.8f , %.8f\n" , connectFactor(pdf) , 
 						mergeFactor(&volMergeScale , &originProb , &dirProb , &lightPathNum));
@@ -686,7 +694,7 @@ void IptTracer::genIntermediatePaths(omp_lock_t& cmdLock , vector<Path*>& interP
 				weightFactor = connectFactor(pdf) /
 					(connectFactor(pdf) + mergeFactor(&volMergeScale , &originProb , &dirProb , &partialPathNum));
 
-				if (_isnan(weightFactor) || abs(pdf) < 1e-6f || abs(mergeFactor(&volMergeScale , &originProb , &dirProb , &partialPathNum)) < 1e-6f)
+				if (_isnan(weightFactor) || abs(pdf) < 1e-6f)
 				{
 					fprintf(err , "sample inter path error, %.8f , %.8f\n" , connectFactor(pdf) , 
 						mergeFactor(&volMergeScale , &originProb , &dirProb , &partialPathNum));
@@ -771,22 +779,30 @@ void IptTracer::mergePartialPaths(omp_lock_t& cmdLock)
 
 	bool f = checkCycle;
 	int checkTime = 100;
+	vis.clear();
+	inStack.clear();
+	vis.resize(partialPhotonNum - lightPhotonNum);
+	inStack.resize(partialPhotonNum - lightPhotonNum);
 	while (f)
 	{
 		f = false;
 		// check cycle
-		vis.resize(partialPhotonNum - lightPhotonNum);
 		for (int i = 0; i < vis.size(); i++)
+		{
 			vis[i] = 0;
-		int totColor = 1;
+			inStack[i] = 0;
+		}
+
 		for (int st = lightPhotonNum; st < partialPhotonNum; st++)
 		{
-			if (vis[st - lightPhotonNum] > 0)
+			if (vis[st - lightPhotonNum])
 				continue;
-			//totColor++;
 			while (!cycle.empty())
+			{
+				inStack[cycle.top() - lightPhotonNum] = 0;
 				cycle.pop();
-			f |= dfs(st , totColor);
+			}
+			f |= dfs(st);
 		}
 
 		// eliminate cycle
@@ -849,50 +865,44 @@ void IptTracer::mergePartialPaths(omp_lock_t& cmdLock)
 	delete[] revIndex;
 }
 
-bool IptTracer::dfs(int cur , int col)
+bool IptTracer::dfs(int cur)
 {
 	//if (partialSubPathList[cur].ray->contactObject)
 	//	return false;
-	if (vis[cur - lightPhotonNum] == col)
+	if (vis[cur - lightPhotonNum])
 	{
-		stack<int> tmp(cycle);
-		while (!tmp.empty())
+		if (inStack[cur - lightPhotonNum])
 		{
-			if (cur == tmp.top())
+			edgeToRemove.push_back(pair<int , int>(cur , cycle.top()));
+
+			// print cycle
+			cycle.push(cur);
+			fprintf(fp , "!!!!!!!!!!!!!!!! CYCLE !!!!!!!!!!!!!!!\n");
+			while (!cycle.empty())
 			{
-				// mark cycle edges
-				edgeToRemove.push_back(pair<int , int>(cur , cycle.top()));
-				// end of mark
-
-				// print cycle
-				/*
-				cycle.push(cur);
-				fprintf(fp , "!!!!!!!!!!!!!!!! CYCLE !!!!!!!!!!!!!!!\n");
-				while (!cycle.empty())
-				{
-					fprintf(fp , "%d " , cycle.top());
-					int x = cycle.top();
-					cycle.pop();
-					int y;
-					if (cycle.empty())
-						break;
-					else
-						y = cycle.top();
-					fprintf(fp , "%.8f " , (partialSubPathList[x].pos - 
-						partialSubPathList[y].originRay->origin).length());
-				}
-				fprintf(fp , "\n");
-				*/
-				// end of print
-
-				return true;
+				fprintf(fp , "%d " , cycle.top());
+				int x = cycle.top();
+				inStack[x - lightPhotonNum] = false;
+				cycle.pop();
+				int y;
+				if (cycle.empty())
+					break;
+				else
+					y = cycle.top();
+				//fprintf(fp , "%.8f " , (partialSubPathList[x].pos - 
+				//	partialSubPathList[y].originRay->origin).length());
 			}
-			tmp.pop();
+			fprintf(fp , "\n");
+			// end of print
+
+			return true;
 		}
+		
 		return false;
 	}
+	vis[cur - lightPhotonNum] = 1;
 	cycle.push(cur);
-	vis[cur - lightPhotonNum] = col;
+	inStack[cur - lightPhotonNum] = 1;
 	int k = revIndex[cur - lightPhotonNum];
 	bool isCycle = false;
 	for (int j = 0; j < partPathMergeIndex[k].size(); j++)
@@ -901,11 +911,12 @@ bool IptTracer::dfs(int cur , int col)
 		if (pa < lightPhotonNum)
 			continue;
 
-		isCycle |= dfs(pa , col);
+		isCycle |= dfs(pa);
 		if (isCycle)
 			return true;
 	}
 	cycle.pop();
+	inStack[cur - lightPhotonNum] = 0;
 	return false;
 }
 

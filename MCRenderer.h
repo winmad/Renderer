@@ -66,15 +66,15 @@ protected:
 
 	void preprocessEmissionSampler();
 
-	void preprocessOtherSampler();
+	void preprocessOtherSampler(bool isUniformOrigin);
 
 	void preprocessVolumeSampler();
 
-	Ray genEmissiveSurfaceSample(bool isUniform = false) const;
+	Ray genEmissiveSurfaceSample(bool isUniformOrigin , bool isUniformDir) const;
 
-	Ray genOtherSurfaceSample(bool isUniform = false) const;
+	Ray genOtherSurfaceSample(bool isUniformOrigin , bool isUniformDir) const;
 
-	Ray genVolumeSample(bool isUniform = false) const;
+	Ray genVolumeSample(bool isUniformDir = false) const;
 
 	void resetInsideObject(Ray& ray);
 

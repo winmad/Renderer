@@ -21,7 +21,7 @@ public:
 	KDTree tree;
 	vector<KDTree> objKDTrees;
 
-private:
+public:
 	vector<unsigned> objTriangleOffsetMap;
 
 	bool useGPU;
@@ -37,7 +37,9 @@ private:
 		float totalArea;
 
 		void preprocess();
-		Ray genSample(bool isUniform = false) const;
+		void preprocessForInterpath();
+		void normalize();
+		Ray genSample(bool isUniformOrigin , bool isUniformDir) const;
 		float getDirectionProbDensity(const Ray& ray) const;
 		float getOriginProbDensity(const Ray& ray) const;
 		void print();
@@ -54,7 +56,7 @@ private:
 		float totalVolume;
 
 		void preprocess();
-		Ray genSample(bool isUniform = false) const;
+		Ray genSample(bool isUniformDir) const;
 		void print();
 	};
 
@@ -77,13 +79,15 @@ public:
 	void buildKDTree();
 	void buildObjKDTrees();
 
-	void preprocessAllSamplers();
 	void preprocessEmissionSampler();
-	void preprocessOtherSampler();
+	void preprocessOtherSampler(bool isUniformOrigin);
 	void preprocessVolumeSampler();
-	Ray genEmissionSample(bool isUniform = false) const;
-	Ray genOtherSample(bool isUniform = false) const;
-	Ray genVolumeSample(bool isUniform = false) const;
+	void beginUpdateOtherSampler(const int iter);
+	void updateOtherSampler(const int objId , const int triId , const int iter , const vec3f& thr);
+	void endUpdateOtherSampler();
+	Ray genEmissionSample(bool isUniformDir = false) const;
+	Ray genOtherSample(bool isUniformOrigin = true , bool isUniformDir = false) const;
+	Ray genVolumeSample(bool isUniformDir = false) const;
 
 	float intersect(const Ray& ray, ObjSourceInformation& objSource, const KDTree::Condition* condition = NULL);
 	void fillIntersectObject(vector<Ray>& rays);

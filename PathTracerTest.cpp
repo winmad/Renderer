@@ -86,7 +86,7 @@ vector<vec3f> PathTracerTest::renderPixels(const Camera& camera)
 
 vec3f PathTracerTest::colorByConnectingLights(const Camera& camera, const Ray& ray, const Ray& lastRay)
 {
-	Ray lightRay = genEmissiveSurfaceSample();
+	Ray lightRay = genEmissiveSurfaceSample(true , false);
 	lightRay.direction = (ray.origin - lightRay.origin);
 	float dist = lightRay.direction.length();
 	float dist2 = dist * dist;

@@ -37,7 +37,7 @@ public:
 	PhotonMap(Renderer *renderer) : MCRenderer(renderer)
 	{
 		mAlpha = 2.0/3;
-		mPhotonsNum = 2 * renderer->camera.width * renderer->camera.height;
+		mPhotonsNum = renderer->camera.width * renderer->camera.height;
 		spp = -1;
 		timeInterval = 3600;
 		recordTime = 3600;

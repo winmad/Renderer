@@ -80,7 +80,7 @@ vector<vec3f> PathTracer::renderPixels(const Camera& camera)
 			{
 				lightPathList.resize(pathList.size());
 				for(unsigned i=0; i<pathList.size(); i++)
-					lightPathList[i].push_back(genEmissiveSurfaceSample());
+					lightPathList[i].push_back(genEmissiveSurfaceSample(true , false));
 				visList = testPathListVisibility(pathList, lightPathList);
 			}
 

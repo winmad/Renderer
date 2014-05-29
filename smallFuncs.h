@@ -54,7 +54,7 @@ inline bool isIllegal(const vec3f& v)
 		return true;
 	if (v.x > 1e3f || v.y > 1e3f || v.z > 1e3f)
 		return true;
-	if (max(v.x , max(v.y , v.z)) > 100.f * min(v.x , min(v.y , v.z)))
-		return true;
+	//if (max(v.x , max(v.y , v.z)) > 100.f * min(v.x , min(v.y , v.z)))
+	//	return true;
 	return false;
 }

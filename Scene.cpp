@@ -32,6 +32,32 @@ void Scene::SurfaceSampler::preprocess()
 		targetObjects[i]->normalizeEmissionWeight(totalWeight);
 }
 
+void Scene::SurfaceSampler::preprocessForInterpath()
+{
+	totalWeight = totalArea = 0.f;
+	weightValues.clear();
+	weightValues.resize(targetObjects.size());
+	for (int i = 0; i < targetObjects.size(); i++)
+	{
+		targetObjects[i]->preprocessOtherSampler();
+
+		for(unsigned k=0; k<targetObjects[i]->getTriangleNum(); k++)
+			totalArea += targetObjects[i]->getTriangleArea(k);
+	}
+}
+
+void Scene::SurfaceSampler::normalize()
+{
+	totalWeight = 0.f;
+	for (int i = 0; i < targetObjects.size(); i++)
+	{
+		totalWeight += targetObjects[i]->totalEnergy;
+		weightValues[i] = totalWeight;
+	}
+	for (int i = 0; i < targetObjects.size(); i++)
+		targetObjects[i]->weight = targetObjects[i]->totalEnergy / totalWeight;
+}
+
 void Scene::VolumeSampler::preprocess()
 {
 	totalWeight = totalVolume = 0.f;
@@ -46,36 +72,31 @@ void Scene::VolumeSampler::preprocess()
 		targetObjects[i]->normalizeVolumeWeight(totalWeight);
 }
 
-Ray Scene::SurfaceSampler::genSample(bool isUniform) const
+Ray Scene::SurfaceSampler::genSample(bool isUniformOrigin , bool isUniformDir) const
 {
 	float rnd = RandGenerator::genFloat()*totalWeight;
 	unsigned index = (lower_bound(weightValues.begin(), weightValues.end(), rnd)-weightValues.begin());
 	if(index >= weightValues.size())
 		index = weightValues.size()-1;
-	return targetObjects[index]->emit(isUniform);
+	return targetObjects[index]->emit(isUniformOrigin , isUniformDir);
 }
 
-Ray Scene::VolumeSampler::genSample(bool isUniform /* = false */) const
+Ray Scene::VolumeSampler::genSample(bool isUniformDir /* = false */) const
 {
 	float rnd = RandGenerator::genFloat()*totalWeight;
 	unsigned index = (lower_bound(weightValues.begin(), weightValues.end(), rnd)-weightValues.begin());
 	if (index >= weightValues.size())
 		index = weightValues.size()-1;
-	return targetObjects[index]->emitVolume(isUniform);
+	return targetObjects[index]->emitVolume(isUniformDir);
 }
 
 void Scene::SurfaceSampler::print()
 {
+	printf("%.8f\n" , totalWeight);
 	for (int i = 0; i < targetObjects.size(); i++)
 	{
-		printf("%.8f %.8f\n" , targetObjects[i]->weight , targetObjects[i]->totalArea);
+		printf("%.8f %.8f\n" , targetObjects[i]->weight , targetObjects[i]->totalEnergy);
 	}
-	for (int i = 0; i < weightValues.size(); i++)
-	{
-		printf("%.8f\n" , weightValues[i]);
-	}
-	printf("%d\n" , lower_bound(weightValues.begin(), weightValues.end(), 4.1)-weightValues.begin());
-	printf("%.8f\n" , totalWeight);
 }
 
 void Scene::VolumeSampler::print()
@@ -94,19 +115,39 @@ void Scene::VolumeSampler::print()
 	printf("%.8f\n" , totalWeight);
 }
 
-Ray Scene::genEmissionSample(bool isUniform) const
+void Scene::beginUpdateOtherSampler(const int iter)
 {
-	return emissiveSurfaceSampler->genSample(isUniform);
+	for (int i = 0; i < otherSurfaceSampler->targetObjects.size(); i++)
+		otherSurfaceSampler->targetObjects[i]->sumEnergyToSingleEnergy();
+	for (int i = 0; i < otherSurfaceSampler->targetObjects.size(); i++)
+		otherSurfaceSampler->targetObjects[i]->scaleEnergyDensity((float)iter / ((float)iter + 1.f));
 }
 
-Ray Scene::genOtherSample(bool isUniform) const
+void Scene::updateOtherSampler(const int objId , const int triId , const int iter , const vec3f& thr)
 {
-	return otherSurfaceSampler->genSample(isUniform);
+	objects[objId]->addEnergyDensity(triId , thr / ((float)iter + 1));
 }
 
-Ray Scene::genVolumeSample(bool isUniform /* = false */) const
+void Scene::endUpdateOtherSampler()
 {
-	return volumeSampler->genSample(isUniform);
+	otherSurfaceSampler->normalize();
+	for (int i = 0; i < otherSurfaceSampler->targetObjects.size(); i++)
+		otherSurfaceSampler->targetObjects[i]->singleEnergyToSumEnergy();
+}
+
+Ray Scene::genEmissionSample(bool isUniformDir) const
+{
+	return emissiveSurfaceSampler->genSample(true , isUniformDir);
+}
+
+Ray Scene::genOtherSample(bool isUniformOrigin , bool isUniformDir) const
+{
+	return otherSurfaceSampler->genSample(isUniformOrigin , isUniformDir);
+}
+
+Ray Scene::genVolumeSample(bool isUniformDir /* = false */) const
+{
+	return volumeSampler->genSample(isUniformDir);
 }
 
 float Scene::SurfaceSampler::getDirectionProbDensity(const Ray& ray) const
@@ -118,34 +159,6 @@ float Scene::SurfaceSampler::getDirectionProbDensity(const Ray& ray) const
 	
 	//return uniformSphericalSampler.getProbDensity(lf, ray.direction) * 2;
 	return cosineSphericalSampler.getProbDensity(lf , ray.direction);
-}
-
-void Scene::preprocessAllSamplers()
-{
-	if(emissiveSurfaceSampler)
-		delete emissiveSurfaceSampler;
-	if(otherSurfaceSampler)
-		delete otherSurfaceSampler;
-	if (volumeSampler)
-		delete volumeSampler;
-	emissiveSurfaceSampler = new SurfaceSampler(this);
-	otherSurfaceSampler = new SurfaceSampler(this);
-	volumeSampler = new VolumeSampler(this);
-	for(unsigned i=0; i<objects.size(); i++)
-	{
-		if(objects[i]->emissive())
-			emissiveSurfaceSampler->targetObjects.push_back(objects[i]);
-		else
-		{
-			if (objects[i]->canMerge && !objects[i]->isVolumetric() && !objects[i]->emissive())
-				otherSurfaceSampler->targetObjects.push_back(objects[i]);
-		}
-		if(objects[i]->isVolumetric())
-			volumeSampler->targetObjects.push_back(objects[i]);
-	}
-	emissiveSurfaceSampler->preprocess();
-	otherSurfaceSampler->preprocess();
-	volumeSampler->preprocess();
 }
 
 void Scene::preprocessEmissionSampler()
@@ -161,18 +174,20 @@ void Scene::preprocessEmissionSampler()
 	emissiveSurfaceSampler->preprocess();
 }
 
-void Scene::preprocessOtherSampler()
+void Scene::preprocessOtherSampler(bool isUniformOrigin)
 {
 	if(otherSurfaceSampler)
 		delete otherSurfaceSampler;
 	otherSurfaceSampler = new SurfaceSampler(this);
 	for(unsigned i=0; i<objects.size(); i++)
 	{
-		if (objects[i]->canMerge && !objects[i]->isVolumetric() && !objects[i]->emissive() &&
-			i == 7)
+		if (objects[i]->canMerge && !objects[i]->isVolumetric() && !objects[i]->emissive())
 			otherSurfaceSampler->targetObjects.push_back(objects[i]);
 	}
-	otherSurfaceSampler->preprocess();
+	if (isUniformOrigin)
+		otherSurfaceSampler->preprocess();
+	else
+		otherSurfaceSampler->preprocessForInterpath();
 }
 
 void Scene::preprocessVolumeSampler()
@@ -208,6 +223,7 @@ void Scene::buildKDTree()
 	for(unsigned oi=0; oi<objects.size(); oi++)
 	{
 		SceneObject* obj = objects[oi];
+		obj->objectIndex = oi;
 		for(unsigned i=0; i<obj->getVertexNum(); i++)
 		{
 			tree.vertexPositionList.push_back(obj->getWorldVertexPosition(i));
@@ -245,7 +261,6 @@ void Scene::buildObjKDTrees()
 	for(unsigned oi=0; oi<objects.size(); oi++)
 	{
 		SceneObject* obj = objects[oi];
-		obj->objectIndex = oi;
 		for(unsigned i=0; i<obj->getVertexNum(); i++)
 		{
 			objKDTrees[oi].vertexPositionList.push_back(obj->getWorldVertexPosition(i));

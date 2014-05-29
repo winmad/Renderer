@@ -44,7 +44,7 @@ vector<vec3f> VCMTracer::renderPixels(const Camera& camera)
 #pragma omp parallel for
 			for(int p=0; p<pixelColors.size(); p++)
 			{
-				Ray lightRay = genEmissiveSurfaceSample();
+				Ray lightRay = genEmissiveSurfaceSample(true , false);
 				lightPathList[p] = new Path;
 				Path &lightPath = *lightPathList[p];
 				samplePath(lightPath, lightRay);
@@ -152,7 +152,7 @@ vector<vec3f> VCMTracer::renderPixels(const Camera& camera)
 			for(int p=0; p<pixelColors.size(); p++)
 			{
 				eyeRayList[p] = camera.generateRay(p);
-				lightRayList[p] = genEmissiveSurfaceSample();
+				lightRayList[p] = genEmissiveSurfaceSample(true , false);
 			}
 			eyePathList = samplePathList(eyeRayList);
 			lightPathList = samplePathList(lightRayList);

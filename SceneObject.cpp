@@ -19,6 +19,18 @@ void SceneObject::preprocessEmissionSampler()
 	weight = totalArea;
 }
 
+void SceneObject::preprocessOtherSampler()
+{
+	totalEnergy = 0.f;
+	energyDensity.clear();
+	energyDensity.resize(getTriangleNum());
+	for (int i = 0; i < getTriangleNum(); i++)
+	{
+		energyDensity[i] = 0.f;
+		areaValues.push_back(getTriangleArea(i));
+	}
+}
+
 void SceneObject::preprocessVolumeSampler()
 {
 	totalVolume = volumeWeight = 0.f;
@@ -29,10 +41,48 @@ void SceneObject::preprocessVolumeSampler()
 	countHashGrid->preprocess(scene , objectIndex);
 	totalVolume = volumeWeight = countHashGrid->totVolume;
 }
-Ray SceneObject::emit(bool isUniform) const
+
+void SceneObject::scaleEnergyDensity(const float scale)
+{
+	totalEnergy *= scale;
+	for (int i = 0; i < getTriangleNum(); i++)
+		energyDensity[i] *= scale;
+}
+
+void SceneObject::addEnergyDensity(const int triId , const vec3f& thr)
+{
+	float energyDens = intensity(thr) / areaValues[triId];
+	totalEnergy += energyDens;
+	energyDensity[triId] += energyDens;
+}
+
+void SceneObject::singleEnergyToSumEnergy()
+{
+	for (int i = 1; i < getTriangleNum(); i++)
+		energyDensity[i] += energyDensity[i - 1];
+}
+
+void SceneObject::sumEnergyToSingleEnergy()
+{
+	for (int i = getTriangleNum() - 1; i >= 1; i--)
+		energyDensity[i] -= energyDensity[i - 1];
+}
+
+float SceneObject::getOriginProb(const int triId)
+{
+	float res;
+	if (triId == 0)
+		res = energyDensity[triId];
+	else 
+		res = energyDensity[triId] - energyDensity[triId - 1];
+	res *= weight / (totalEnergy * areaValues[triId]);
+	return res;
+}
+
+Ray SceneObject::emit(bool isUniformOrigin , bool isUniformDir) const
 {
 	Ray ray;
-	float rnd = RandGenerator::genFloat()*totalArea;
+	
 	if(!areaValues.size())
 	{
 		ray.direction = vec3f(0, 0, 0);
@@ -40,19 +90,42 @@ Ray SceneObject::emit(bool isUniform) const
 		ray.color = vec3f(0, 0, 0);
 		return ray;
 	}
-	unsigned index = (lower_bound(areaValues.begin(), areaValues.end(), rnd)-areaValues.begin());
-	if(index >= areaValues.size())
-		index = areaValues.size() - 1; 
-	ray.contactObject = (SceneObject*)this;
-	ray.contactObjectTriangleID = index;
-	ray.origin = genRandTrianglePosition(ray.contactObjectTriangleID);
+
+	if (isUniformOrigin)
+	{
+		float rnd = RandGenerator::genFloat()*totalArea;
+		unsigned index = (lower_bound(areaValues.begin(), areaValues.end(), rnd)-areaValues.begin());
+		if(index >= areaValues.size())
+			index = areaValues.size() - 1; 
+		ray.contactObject = (SceneObject*)this;
+		ray.contactObjectTriangleID = index;
+		ray.origin = genRandTrianglePosition(ray.contactObjectTriangleID);
+		ray.originProb = weight / totalArea;
+	}
+	else
+	{
+		float rnd = RandGenerator::genFloat()*totalEnergy;
+		unsigned index = (lower_bound(energyDensity.begin(), energyDensity.end(), rnd)-energyDensity.begin());
+		if(index >= energyDensity.size())
+			index = energyDensity.size() - 1; 
+		ray.contactObject = (SceneObject*)this;
+		ray.contactObjectTriangleID = index;
+		ray.origin = genRandTrianglePosition(ray.contactObjectTriangleID);
+
+		float prob;
+		if (index == 0)
+			prob = energyDensity[index] / totalEnergy;
+		else
+			prob = (energyDensity[index] - energyDensity[index - 1]) / totalEnergy;
+		ray.originProb = weight * prob / areaValues[index];
+	}
 
 	UniformSphericalSampler uniformSphericalSampler;
 	CosineSphericalSampler cosineSphericalSampler;
 
 	LocalFrame lf = ray.contactObject->getAutoGenWorldLocalFrame(ray.contactObjectTriangleID, ray.origin);
 
-	if (isUniform)
+	if (isUniformDir)
 		ray.direction = uniformSphericalSampler.genSample(lf);
 	else
 		ray.direction = cosineSphericalSampler.genSample(lf);
@@ -67,12 +140,11 @@ Ray SceneObject::emit(bool isUniform) const
 	if(!emissive())
 		ray.color = vec3f(1, 1, 1);
 
-	if (isUniform)
+	if (isUniformDir)
 		ray.directionProb = uniformSphericalSampler.getProbDensity(lf , ray.direction) * 2.f;
 	else
 		ray.directionProb = cosineSphericalSampler.getProbDensity(lf, ray.direction);
 
-	ray.originProb = weight / totalArea;
 	ray.directionSampleType = ray.originSampleType = Ray::RANDOM;
 
 	if(!scene->usingGPU())
@@ -90,7 +162,7 @@ Ray SceneObject::emit(bool isUniform) const
 	return ray;
 }
 
-Ray SceneObject::emitVolume(bool isUniform /* = false */) const
+Ray SceneObject::emitVolume(bool isUniformDir /* = false */) const
 {
 	Ray ray = countHashGrid->emitVolume(scene);
 	//printf("%.8f , %.8f\n" , volumeWeight , ray.originProb);

@@ -24,6 +24,7 @@ protected:
 	vector<Material*> materialList;
 	CountHashGrid *countHashGrid;
 public:
+	float totalEnergy;
 	vector<float> energyDensity;
 	float weight;
 	float volumeWeight;
@@ -57,13 +58,19 @@ public:
 	virtual float getRefrCoeff() const{ return 1; }
 
 	virtual void preprocessEmissionSampler();
+	virtual void preprocessOtherSampler();
 	virtual void preprocessVolumeSampler();
 	void normalizeEmissionWeight(float totalWeight){ weight /= totalWeight; }
 	void normalizeVolumeWeight(float totalWeight) { volumeWeight /= totalWeight; }
-	virtual Ray emit(bool isUniform = false) const;
-	virtual Ray emitVolume(bool isUniform = false) const;
+	virtual Ray emit(bool isUniformOrigin , bool isUniformDir) const;
+	virtual Ray emitVolume(bool isUniformDir) const;
 	virtual float getEmissionWeight() const { return weight; }
 	virtual float getVolumeEmissionWeight() const { return volumeWeight; }
+	virtual void scaleEnergyDensity(const float scale);
+	virtual void addEnergyDensity(const int triId , const vec3f& thr);
+	virtual void singleEnergyToSumEnergy();
+	virtual void sumEnergyToSingleEnergy();
+	virtual float getOriginProb(const int triId);
 
 	virtual float getDirectionSampleProbDensity(const Ray& inRay, const Ray& outRay) const;
 	virtual float getOriginSampleProbDensity(const Ray& inRay, const Ray& outRay) const;

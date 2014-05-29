@@ -52,7 +52,7 @@ vector<vec3f> PhotonMap::renderPixels(const Camera& camera){
 #pragma omp parallel for
 		// step1: sample light paths and build range search struct independently for surface and volume
 		for(int p = 0; p < mPhotonsNum; p++){
-			Ray lightRay = genEmissiveSurfaceSample();
+			Ray lightRay = genEmissiveSurfaceSample(true , false);
 			pixelLightPaths[p] = new Path;
 			Path &lightPath = *pixelLightPaths[p];
 			samplePath(lightPath, lightRay);

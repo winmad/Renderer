@@ -571,12 +571,12 @@ vector<vector<unsigned>> MCRenderer::testPathListVisibility(const vector<Path>& 
 
 void MCRenderer::preprocessEmissionSampler(){ renderer->scene.preprocessEmissionSampler(); }
 
-void MCRenderer::preprocessOtherSampler() { renderer->scene.preprocessOtherSampler(); }
+void MCRenderer::preprocessOtherSampler(bool isUniformOrigin) { renderer->scene.preprocessOtherSampler(isUniformOrigin); }
 
 void MCRenderer::preprocessVolumeSampler() { renderer->scene.preprocessVolumeSampler(); }
 
-Ray MCRenderer::genEmissiveSurfaceSample(bool isUniform) const { return renderer->scene.genEmissionSample(isUniform); }
+Ray MCRenderer::genEmissiveSurfaceSample(bool isUniformOrigin , bool isUniformDir) const { return renderer->scene.genEmissionSample(isUniformDir); }
 
-Ray MCRenderer::genOtherSurfaceSample(bool isUniform) const { return renderer->scene.genOtherSample(isUniform); }
+Ray MCRenderer::genOtherSurfaceSample(bool isUniformOrigin , bool isUniformDir) const { return renderer->scene.genOtherSample(isUniformOrigin , isUniformDir); }
 
-Ray MCRenderer::genVolumeSample(bool isUniform) const { return renderer->scene.genVolumeSample(isUniform); }
+Ray MCRenderer::genVolumeSample(bool isUniformDir) const { return renderer->scene.genVolumeSample(isUniformDir); }

@@ -42,7 +42,7 @@ protected:
 
 	void movePaths(omp_lock_t& cmdLock , vector<Path>& , vector<Path*>&);
 
-	void genLightPaths(omp_lock_t& cmdLock , vector<Path*>&);
+	void genLightPaths(omp_lock_t& cmdLock , vector<Path*>& , bool);
 
 	void genIntermediatePaths(omp_lock_t& cmdLock , vector<Path*>&);
 
@@ -67,7 +67,8 @@ public:
 	Real totArea , totVol;
 	Real initialProb;
 	unsigned timeInterval , lastTime;
-	bool useWeight , usePPM , useDirIllu , isDebug , useRayMarching;
+	bool useWeight , usePPM , useDirIllu , useRayMarching , useUniformInterSampler , checkCycle;
+	bool isDebug;
 
 	int pixelNum , lightPathNum , cameraPathNum , interPathNum , partialPathNum;
 	int lightPhotonNum , partialPhotonNum;
@@ -88,7 +89,10 @@ public:
 		usePPM = false;
 		useDirIllu = false;
 		useRayMarching = true;
+		useUniformInterSampler = false;
+		checkCycle = true;
 		isDebug = true;
+
 		if (usePPM)
 		{
 			mergeIterations = 0;
@@ -109,7 +113,7 @@ public:
 		return pdf;
 	}
 
-	Real mergeFactor(Real *volScale = NULL , Real *initProb = NULL , Real *dirProb = NULL)
+	Real mergeFactor(Real *volScale , Real *initProb , Real *dirProb , int *pathNum)
 	{
 		Real s = 1.0;
 		if (volScale)
@@ -118,7 +122,9 @@ public:
 			s *= *initProb;
 		if (dirProb)
 			s *= *dirProb;
-		Real res = M_PI * mergeRadius * mergeRadius * partialPathNum * s;
+		if (pathNum)
+			s *= (float)*pathNum;
+		Real res = M_PI * mergeRadius * mergeRadius * s;
 		return res;
 	}
 	

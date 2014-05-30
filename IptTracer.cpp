@@ -874,7 +874,7 @@ bool IptTracer::dfs(int cur)
 		if (inStack[cur - lightPhotonNum])
 		{
 			edgeToRemove.push_back(pair<int , int>(cur , cycle.top()));
-
+			/*
 			// print cycle
 			cycle.push(cur);
 			fprintf(fp , "!!!!!!!!!!!!!!!! CYCLE !!!!!!!!!!!!!!!\n");
@@ -894,7 +894,7 @@ bool IptTracer::dfs(int cur)
 			}
 			fprintf(fp , "\n");
 			// end of print
-
+			*/
 			return true;
 		}
 		

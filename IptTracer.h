@@ -77,22 +77,22 @@ public:
 	IptTracer(Renderer* renderer) : MCRenderer(renderer)
 	{ 
 		alpha = 2.f / 3.f;
-		spp = 1; 
+		spp = -1; 
 		initialProb = 1.f;
 		timeInterval = lastTime = 3600;
 
 		pixelNum = renderer->camera.height * renderer->camera.width;
 		cameraPathNum = pixelNum;
-		lightPathNum = pixelNum;
-		interPathNum = pixelNum;
+		lightPathNum = pixelNum / 4;
+		interPathNum = pixelNum * 7 / 4;
 		partialPathNum = interPathNum;
 
 		usePPM = false;
 		useDirIllu = true;
 		useRayMarching = true;
 		useUniformInterSampler = false;
-		checkCycle = false;
-		isDebug = true;
+		checkCycle = true;
+		isDebug = false;
 
 		if (usePPM)
 		{

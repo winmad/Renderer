@@ -91,7 +91,7 @@ Ray SceneVPMObject::scatter(const Ray& inRay, const bool russian) const
 
 		outRay.origin = inRay.origin + inRay.direction * sampDist;
 		outRay.direction = hgPhaseSampler.genSample(lf); 
-		outRay.color = bsdf->evaluate(LocalFrame(), inRay.direction, outRay.direction);
+		outRay.color = bsdf->evaluate(lf, inRay.direction, outRay.direction);
 		outRay.insideObject = (SceneObject*)this;
 		//outRay.contactObject = NULL;
 		outRay.contactObjectTriangleID = inRay.intersectObjectTriangleID;

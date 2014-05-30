@@ -6,68 +6,67 @@
 
 
 class HeterogeneousVolume : public SceneObject{
-		vec3f scatteringCoeff;
-		vec3f absorptionCoeff;
-		vec3f extinctionCoeff;
-		HGPhaseFunc *bsdf;
-		float g;
-		typedef enum{ SCATTERING, ABSORPTION, EXTINCTION } LOOK_UP_TYPE; 
-		float IOR;
-		float stepSize; // for ray marching
-		float densityScale;
-		float scatteringScale;
-		float absorptionScale;
-		struct VolGridBox{
-			vec3f p0, p1;
-			int nx, ny, nz;
-		} mBBox;
-		float *mDensityMap;				// Smoke
-		vec3f *mSubSurfaceDensityMap_Scattering;   // SubSurface
-		vec3f *mSubSurfaceDensityMap_Absorption;   // SubSurface
-		vec3f *mSubSurfaceDensityMap_Extinction;   // SubSurface
-		inline float D(int x, int y, int z) const{
-			x = CLAMP(x, 0, mBBox.nx-1);
-			y = CLAMP(y, 0, mBBox.ny-1);
-			z = CLAMP(z, 0, mBBox.nz-1);
-			return mDensityMap[z*mBBox.nx*mBBox.ny + y*mBBox.nx + x] * densityScale;
-		}
-		bool  isSubsurface; // if subsurface, the density file will be RGB vec3f, instead of one float value.
-		int	  subsurfaceLookUpFlag;
-		inline vec3f SD(int x, int y, int z, LOOK_UP_TYPE type) const{
-			x = CLAMP(x, 0, mBBox.nx-1);
-			y = CLAMP(y, 0, mBBox.ny-1);
-			z = CLAMP(z, 0, mBBox.nz-1);
+	vec3f scatteringCoeff;
+	vec3f absorptionCoeff;
+	vec3f extinctionCoeff;
+	HGPhaseFunc *bsdf;
+	float g;
+	typedef enum{ SCATTERING, ABSORPTION, EXTINCTION } LOOK_UP_TYPE; 
+	float IOR;
+	float stepSize; // for ray marching
+	float densityScale;
+	float scatteringScale;
+	float absorptionScale;
+	struct VolGridBox{
+		vec3f p0, p1;
+		int nx, ny, nz;
+	} mBBox;
+	float *mDensityMap;				// Smoke
+	vec3f *mSubSurfaceDensityMap_Scattering;   // SubSurface
+	vec3f *mSubSurfaceDensityMap_Absorption;   // SubSurface
+	vec3f *mSubSurfaceDensityMap_Extinction;   // SubSurface
+	inline float D(int x, int y, int z) const{
+		x = CLAMP(x, 0, mBBox.nx-1);
+		y = CLAMP(y, 0, mBBox.ny-1);
+		z = CLAMP(z, 0, mBBox.nz-1);
+		return mDensityMap[z*mBBox.nx*mBBox.ny + y*mBBox.nx + x] * densityScale;
+	}
+	bool  isSubsurface; // if subsurface, the density file will be RGB vec3f, instead of one float value.
+	bool  volumeLookUpAll;
+	inline vec3f SD(int x, int y, int z, LOOK_UP_TYPE type) const{
+		x = CLAMP(x, 0, mBBox.nx-1);
+		y = CLAMP(y, 0, mBBox.ny-1);
+		z = CLAMP(z, 0, mBBox.nz-1);
 
-			int index = z*mBBox.nx*mBBox.ny + y*mBBox.nx + x;
-			vec3f densitySub;
-			if(subsurfaceLookUpFlag){
+		int index = z*mBBox.nx*mBBox.ny + y*mBBox.nx + x;
+		vec3f densitySub;
+		if(volumeLookUpAll){
 			switch(type){
-				case SCATTERING:
-					densitySub = mSubSurfaceDensityMap_Scattering[index];	
-					if(subsurfaceLookUpFlag)	break;
-				case ABSORPTION:
-					densitySub = mSubSurfaceDensityMap_Absorption[index];	break;
-				case EXTINCTION:
-					densitySub = mSubSurfaceDensityMap_Extinction[index];	break;
-				default:
-					break;
-				}
+			case SCATTERING:
+				densitySub = mSubSurfaceDensityMap_Scattering[index];	break;
+			case ABSORPTION:
+				densitySub = mSubSurfaceDensityMap_Absorption[index];	break;
+			case EXTINCTION:
+				densitySub = mSubSurfaceDensityMap_Extinction[index];	break;
+			default:
+				break;
 			}
-			else{
-				densitySub = mSubSurfaceDensityMap_Extinction[index];
-			}
-			return densitySub;
 		}
-		inline float lookUpDensity(const vec3f &worldPos) const;		   // Smoke
-		inline vec3f lookUpSubSurfaceVolumeData(const vec3f &worldPos, LOOK_UP_TYPE type) const; // SubSurface
-		bool checkIn(const vec3f &worldPos) const;
-		bool check(const Ray &inRay, float *intersectDist = NULL) const;
+		else{
+			densitySub = mSubSurfaceDensityMap_Extinction[index];
+		}
+		return densitySub;
+	}
+	inline float lookUpDensity(const vec3f &worldPos) const;		   // Smoke
+	inline vec3f lookUpSubSurfaceVolumeData(const vec3f &worldPos, LOOK_UP_TYPE type) const; // SubSurface
+	inline bool checkIn(const vec3f &worldPos, const int objId) const;
+	inline int check(const Ray &inRay, float *intersectDist = NULL) const;
 public:
 	HeterogeneousVolume(Scene *scene, float g) : SceneObject(scene),
-			mDensityMap(NULL), 
-			mSubSurfaceDensityMap_Scattering(NULL),
-			mSubSurfaceDensityMap_Absorption(NULL),
-			mSubSurfaceDensityMap_Extinction(NULL)
+		mDensityMap(NULL), 
+		mSubSurfaceDensityMap_Scattering(NULL),
+		mSubSurfaceDensityMap_Absorption(NULL),
+		mSubSurfaceDensityMap_Extinction(NULL)
 	{
 		this->g = g;
 		bsdf = new HGPhaseFunc(g);
@@ -77,7 +76,7 @@ public:
 		scatteringScale = 100;
 		absorptionScale = 100;
 		isSubsurface = false;
-		subsurfaceLookUpFlag = 1;
+		volumeLookUpAll = true;
 	}
 	~HeterogeneousVolume(){
 		delete bsdf;
@@ -88,8 +87,8 @@ public:
 	}
 	void loadDensityMap(const std::string &filename);
 	void loadSubSurfaceVolumeData(const std::string &filename, const std::string &filename2);
-		
-	
+
+
 	Ray scatter(const Ray& inRay, const bool russian = true) const;
 	vec3f getBSDF(const Ray &inRay, const Ray &outRay) const;
 	float getOriginSampleProbDensity(const Ray &inRay, const Ray &outRay) const;
@@ -100,14 +99,15 @@ public:
 	bool hasCosineTerm() { return false; }
 	bool isHomogeneous() { return false; }
 private:
+	float integrateDensity(const Ray& inRay, float dist) const;
 	vec3f tau(const Ray &inRay, float dist, bool noCheck = false) const;
 	float pMedium(const Ray &inRay, float dist) const;
 	float PSurface(const Ray &inRay, float dist) const;
 	float getAlbedo() const;
 	float getAlbedo(const vec3f &p) const;
-	void sampleDistance(const Ray &inRay, float &distance, float &pdfSuccess, float &pdfFailure) const;
+	bool sampleDistance(const Ray &inRay, float &distance, float &pdfSuccess, float &pdfFailure) const;
 
-	bool findDesiredIntegralDensity(const Ray &inRay, const float desiredDensity, 
+	int findDesiredIntegralDensity(const Ray &inRay, const float desiredDensity, 
 		float &t, float &integratedDensity, float &densityAtMinT, float &densityAtT) const;
 public:
 	void setSigma(vec3f sigmaS, vec3f sigmaA){
@@ -136,10 +136,10 @@ public:
 		isSubsurface = isSub;
 		return ;
 	}
-	void setSubsurfaceLookUpFlag(int flag){
+	void setVolumeLookUp(bool lookUpAll){
 		// set 0: use all extinction coeffs.
 		// set 1: use normal look up.
-		subsurfaceLookUpFlag = flag;
+		volumeLookUpAll = lookUpAll;
 		return ;
 	}
 };

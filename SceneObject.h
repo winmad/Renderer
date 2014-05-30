@@ -22,8 +22,8 @@ protected:
 	Scene *scene;
 	vector<float> areaValues;
 	vector<Material*> materialList;
-	CountHashGrid *countHashGrid;
 public:
+	CountHashGrid *countHashGrid;
 	float totalEnergy;
 	vector<float> energyDensity;
 	float weight;
@@ -59,18 +59,20 @@ public:
 
 	virtual void preprocessEmissionSampler();
 	virtual void preprocessOtherSampler();
-	virtual void preprocessVolumeSampler();
+	virtual void preprocessVolumeSampler(bool isUniformOrigin , float mergeRadius);
 	void normalizeEmissionWeight(float totalWeight){ weight /= totalWeight; }
-	void normalizeVolumeWeight(float totalWeight) { volumeWeight /= totalWeight; }
+	void normalizeVolumeWeight(float totalWeight);
 	virtual Ray emit(bool isUniformOrigin , bool isUniformDir) const;
 	virtual Ray emitVolume(bool isUniformDir) const;
 	virtual float getEmissionWeight() const { return weight; }
-	virtual float getVolumeEmissionWeight() const { return volumeWeight; }
 	virtual void scaleEnergyDensity(const float scale);
 	virtual void addEnergyDensity(const int triId , const vec3f& thr);
+	virtual void addEnergyDensity(const vec3f& pos , const vec3f& thr);
 	virtual void singleEnergyToSumEnergy();
 	virtual void sumEnergyToSingleEnergy();
 	virtual float getOriginProb(const int triId);
+	virtual float getOriginProb(const vec3f& pos);
+	virtual float getTotalEnergy() const;
 
 	virtual float getDirectionSampleProbDensity(const Ray& inRay, const Ray& outRay) const;
 	virtual float getOriginSampleProbDensity(const Ray& inRay, const Ray& outRay) const;

@@ -1,10 +1,11 @@
-
 #include "stdafx.h"
 #include "scene.h"
 #include "SceneHeterogeneousVolume.h"
 #include "NoSelfIntersectionCondition.h"
 #include <fstream>
 #include <limits>
+
+#define NEWTON_BISECTION_EPS 1e-4
 
 using namespace std;
 
@@ -90,7 +91,7 @@ void HeterogeneousVolume::loadSubSurfaceVolumeData(const std::string &fileScatte
 }
 
 inline float HeterogeneousVolume::lookUpDensity(const vec3f &worldPos) const{
-	if(!checkIn(worldPos))
+	if(!checkIn(worldPos , objectIndex))
 		return 0;
 	matrix4<float> inverseTransform = inverse(this->transform);
 	const vec3f localPos = vec3f(inverseTransform * vec4f(worldPos, 1));
@@ -137,7 +138,7 @@ inline float HeterogeneousVolume::lookUpDensity(const vec3f &worldPos) const{
 }
 
 inline vec3f HeterogeneousVolume::lookUpSubSurfaceVolumeData(const vec3f &worldPos, LOOK_UP_TYPE type) const{
-	if(!checkIn(worldPos))
+	if(!checkIn(worldPos , objectIndex))
 		return vec3f(0.f);
 	matrix4<float> inverseTransform = inverse(this->transform);
 	const vec3f localPos = vec3f(inverseTransform * vec4f(worldPos, 1));
@@ -182,80 +183,90 @@ inline vec3f HeterogeneousVolume::lookUpSubSurfaceVolumeData(const vec3f &worldP
 	return Lerp(dz, sd0, sd1);
 }
 
-bool HeterogeneousVolume::checkIn(const vec3f &worldPos) const{
+bool HeterogeneousVolume::checkIn(const vec3f &worldPos , const int objId) const{
 	Ray ray;
 	ray.origin = worldPos;
 	ray.direction = vec3f(0,1,0);
-	return this == scene->findInsideObject(ray);
+	return scene->checkInsideObject(ray , objId);
 }
 
-bool HeterogeneousVolume::check(const Ray &inRay, float *intersectDist) const{
+int HeterogeneousVolume::check(const Ray &inRay, float *intersectDist) const{
 	bool contactIsVol = inRay.contactObject && inRay.contactObject == this;
-	if(!checkIn(inRay.origin) && !contactIsVol)
-		return false;
+	if(!checkIn(inRay.origin , objectIndex) && !contactIsVol)
+		return 1;
 	NoSelfIntersectionCondition condition(scene, inRay);
 	Scene::ObjSourceInformation info;
 	float d = scene->intersect(inRay, info, &condition);
 	if(!(d > 0))
-		return false;
-	if(scene->objects[info.objID] != this){
-		return false;
-	}
+		return 2;
+
 	if(intersectDist)
 		*intersectDist = d;
-	return true;
+	return 0;
 }
 
 #undef max()
-vec3f HeterogeneousVolume::tau(const Ray &inRay, float dist, bool noCheck) const{
-	vec3f tau(0,0,0);
+float HeterogeneousVolume::integrateDensity(const Ray &inRay, float dist) const{
+	float densityAccumulation = 0;
 	float intersectDist = std::numeric_limits<float>::max();
-	if(!noCheck && !check(inRay, &intersectDist))
-		return tau;
-	dist = MIN(dist, intersectDist);
-	const uint nSteps = std::ceil(dist / MAX(EPSILON, 2*stepSize));
-	const float ss = dist / nSteps;
-
-	vec3f sigma = isSubsurface ? 
-		/*extinctionCoeff*lookUpSubSurfaceDensity(inRay.origin)*/ lookUpSubSurfaceVolumeData(inRay.origin, EXTINCTION) : 
-		extinctionCoeff*lookUpDensity(inRay.origin);
-
-	for(float s = 1; s <= nSteps; s++){
-		const vec3f sigma2 = isSubsurface ? 
-			/*extinctionCoeff*lookUpSubSurfaceDensity(inRay.origin+inRay.direction*s*ss) */ lookUpSubSurfaceVolumeData(inRay.origin + inRay.direction * s * ss, EXTINCTION): 
-			extinctionCoeff*lookUpDensity(inRay.origin+inRay.direction*s*ss);
-		sigma = (sigma + sigma2) * 0.5;
-		if(sigma.length() == 0){
-			sigma = sigma2;
-			continue;
-		}
-		for(uint i = 0; i < 3; i++){
-			tau[i] += sigma[i] > 0 ? sigma[i] * ss : 0.0;
-		}
-		sigma = sigma2;
+	if(check(inRay, &intersectDist)){
+		return densityAccumulation;
 	}
-	return tau;
+	dist = MIN(dist, intersectDist);
+
+	vec3f p = inRay.origin;
+	uint nSteps = std::ceil(dist / (2*stepSize));
+	double ss = dist / nSteps, multiplier = (1.0/6.0)*ss;
+	const vec3f fullStep = inRay.direction * ss, halfStep = fullStep * 0.5;
+
+	float node1 = isSubsurface ? Luminance(lookUpSubSurfaceVolumeData(p, EXTINCTION)) : lookUpDensity(p);
+
+	for(uint i = 0; i < nSteps; i++){
+		float node2 = isSubsurface ? Luminance(lookUpSubSurfaceVolumeData(p+halfStep, EXTINCTION)) : lookUpDensity(p+halfStep), 
+			node3 = isSubsurface ? Luminance(lookUpSubSurfaceVolumeData(p+fullStep, EXTINCTION)) : lookUpDensity(p+fullStep);
+		densityAccumulation += multiplier*(node1+node2*4+node3);
+		node1 = node3;
+		p += fullStep;
+	}
+	return densityAccumulation;
+}
+
+vec3f HeterogeneousVolume::tau(const Ray &inRay, float dist, bool noCheck) const{
+	vec3f tauAccumulation = vec3f(0.f);
+	float intersectDist = std::numeric_limits<float>::max();
+	if(check(inRay, &intersectDist)){
+		return tauAccumulation;
+	}
+	dist = MIN(dist, intersectDist);
+
+	vec3f p = inRay.origin;
+	uint nSteps = std::ceil(dist / (2*stepSize));
+	double ss = dist / nSteps, multiplier = (1.0/6.0)*ss;
+	const vec3f fullStep = inRay.direction * ss, halfStep = fullStep * 0.5;
+
+	vec3f node1 = isSubsurface ? lookUpSubSurfaceVolumeData(p, EXTINCTION) : extinctionCoeff*lookUpDensity(p);
+
+	for(uint i = 0; i < nSteps; i++){
+		vec3f node2 = isSubsurface ? lookUpSubSurfaceVolumeData(p+halfStep, EXTINCTION) : extinctionCoeff*lookUpDensity(p+halfStep), 
+			node3 = isSubsurface ? lookUpSubSurfaceVolumeData(p+fullStep, EXTINCTION) : extinctionCoeff*lookUpDensity(p+fullStep);
+		tauAccumulation += multiplier*(node1+node2*4+node3);
+		node1 = node3;
+		p += fullStep;
+	}
+	return tauAccumulation;
 }
 
 float HeterogeneousVolume::pMedium(const Ray &inRay, float dist) const{
-	const vec3f tau = HeterogeneousVolume::tau(inRay, dist);
+	const float tau = HeterogeneousVolume::integrateDensity(inRay, dist);
 	const vec3f sigmaAtT = isSubsurface ?
-		/*extinctionCoeff*lookUpSubSurfaceDensity(inRay.origin + inRay.direction * dist) */ lookUpSubSurfaceVolumeData(inRay.origin + inRay.direction * dist, EXTINCTION): 
-		extinctionCoeff*lookUpDensity(inRay.origin + inRay.direction * dist);
-	vec3f pm;
-	for(int i = 0; i < 3; i++){
-		pm[i] = sigmaAtT[i] * exp(-tau[i]);
-	}
-	return Luminance(pm);
+		lookUpSubSurfaceVolumeData(inRay.origin + inRay.direction * dist, EXTINCTION): 
+	extinctionCoeff*lookUpDensity(inRay.origin + inRay.direction * dist);
+	return Luminance(sigmaAtT) * exp(-tau);
 }
 
 float HeterogeneousVolume::PSurface(const Ray &inRay, float dist) const{
-	const vec3f tau = HeterogeneousVolume::tau(inRay, dist);
-	vec3f Pd;
-	for(int i = 0; i < 3; i++){
-		Pd[i] = exp(-tau[i]);
-	}
-	return Luminance(Pd);
+	const float tau = HeterogeneousVolume::integrateDensity(inRay, dist);
+	return exp(-tau);
 }
 
 float HeterogeneousVolume::getAlbedo() const{
@@ -266,12 +277,13 @@ float HeterogeneousVolume::getAlbedo(const vec3f &p) const{
 	return Luminance(lookUpSubSurfaceVolumeData(p, SCATTERING)) / Luminance(lookUpSubSurfaceVolumeData(p, EXTINCTION));
 }
 
-bool HeterogeneousVolume::findDesiredIntegralDensity(const Ray &inRay, const float desiredDensity, 
+int HeterogeneousVolume::findDesiredIntegralDensity(const Ray &inRay, const float desiredDensity, 
 													 float &t, float &integratedDensity, float &densityAtMinT, float &densityAtT) const
 {
 	float dist;
-	if(!check(inRay, &dist))
-		return 0;
+	if(check(inRay, &dist)){
+		return 1;
+	}
 
 	integratedDensity = 0;
 
@@ -288,7 +300,7 @@ bool HeterogeneousVolume::findDesiredIntegralDensity(const Ray &inRay, const flo
 		float node2 = isSubsurface ? Luminance(lookUpSubSurfaceVolumeData(p+halfStep, EXTINCTION)) : lookUpDensity(p+halfStep), 
 			node3 = isSubsurface ? Luminance(lookUpSubSurfaceVolumeData(p+fullStep, EXTINCTION)) : lookUpDensity(p+fullStep);
 		float newDensity = integratedDensity + multiplier*(node1+node2*4+node3);
-		if(newDensity > desiredDensity){
+		if(newDensity >= desiredDensity){
 			float a = 0, b = ss, x = a,
 				fx = integratedDensity - desiredDensity,
 				stepSizeSqr = ss * ss,
@@ -311,18 +323,25 @@ bool HeterogeneousVolume::findDesiredIntegralDensity(const Ray &inRay, const flo
 					+ 4 * (node1 - 2 * node2 + node3) * x * x));
 				fx = intval - desiredDensity;
 
-				if(std::abs(fx) < /*NEWTON_BISECTION_EPS*/EPSILON){
+				if(std::abs(fx) < NEWTON_BISECTION_EPS){
 					t = x + ss * i;
 					integratedDensity = intval;
 					densityAtT = temp * (node1 * stepSizeSqr
-						- (3 * node1 - 4 * node2 + node3) * ss * x
-						+ 2 * (node1 - 2 * node2 + node3) * x * x);
-					return true;
+						- (3*node1 - 4*node2 + node3)*ss*x
+						+ 2*(node1 - 2*node2 + node3)*x*x);
+					return 0;
 				}
 				else if(++it > 30){
+					// we still use the distance sample.
+					t = x + ss * i;
+					integratedDensity = intval;
+					densityAtT = temp * (node1 * stepSizeSqr
+						- (3*node1 - 4*node2 + node3)*ss*x
+						+ 2*(node1 - 2*node2 + node3)*x*x);
+
 					std::cerr << "findDesiredIntegralDensity(): stuck in Newton-Bisection -- fx = " << fx << " dfx = " << dfx 
 						<< " a = " << a << " b = " << b << " stepsize = " << ss << std::endl;
-					return false;
+					return 2;
 				}
 
 				if(fx > 0){
@@ -336,36 +355,86 @@ bool HeterogeneousVolume::findDesiredIntegralDensity(const Ray &inRay, const flo
 		}
 		vec3f next = p + fullStep;
 		if(p == next){
-			/*std::cerr << "findDesiredIntegralDensity(): can not make forward progress -- stepsize = " << ss << std::endl;*/
-			return false;
+			std::cerr << "findDesiredIntegralDensity(): can not make forward progress -- stepsize = " << ss << std::endl;
+			return 3;
 		}
 		integratedDensity = newDensity;
 		node1 = node3;
 		p = next;
 	}
-	return false;
+	return 4;
 }
 
-void HeterogeneousVolume::sampleDistance(const Ray &inRay, float &distance, float &pdfSuccess, float &pdfFailure) const{
+
+// 0 - success
+// 1 - check fail
+// 2 - iter > 30
+// 3 - can not make forward progress
+// 4 - finally failed. 
+// return true:		sample succeed, use pdfSuccess
+//		  false:	sample fail, use pdfFailure
+bool HeterogeneousVolume::sampleDistance(const Ray &inRay, float &distance, float &pdfSuccess, float &pdfFailure) const{
+	float intersectDist;
 	float desiredDensity = isSubsurface ? -log(1.0 - RandGenerator::genFloat()) : -log(1.0 - RandGenerator::genFloat()) / Luminance(extinctionCoeff);
 	float t = 0, integratedDensity = 0, densityAtMinT = 0, densityAtT = 0;
-	if(findDesiredIntegralDensity(inRay, desiredDensity, t, integratedDensity, densityAtMinT, densityAtT)){
+
+	int flag = findDesiredIntegralDensity(inRay, desiredDensity, t, integratedDensity, densityAtMinT, densityAtT);
+	float expVal = exp(-integratedDensity);
+
+	bool sampleState = false;
+	switch(flag){
+	case 0:
+		// success
+		// satisfying: [desiredDensity = integratedDensity], [denisityAtT is real], [sample distance = t].
+		pdfSuccess = expVal * densityAtT;
 		distance = t;
+		sampleState = true;
+		break;
+	case 1:
+		// check fail
+		// this one need extra calculation
+		pdfFailure = expVal;
+		distance = inRay.intersectDist;
+		sampleState = false;
+		break;
+
+	case 2:
+		// it > 30
+		// we may use the integratedDensity with errorbound
+		pdfSuccess = expVal * densityAtT;
+		distance = t;
+		sampleState = true;
+		break;
+
+	case 3:
+		// stuck in progress
+		pdfFailure = expVal;
+		distance = inRay.intersectDist;
+		sampleState = false;
+		break;
+	case 4:
+		// finally failed.
+		pdfFailure = expVal;
+		distance = inRay.intersectDist;
+		sampleState = false;
+		break;
+	default:
+		break;
 	}
-	else{
-		distance = std::numeric_limits<float>::max();
-	}
-	return ;
+
+	return sampleState;
 }
 
 vec3f HeterogeneousVolume::getBSDF(const Ray &inRay, const Ray &outRay) const{
+	LocalFrame lf;
+	lf.buildFromNormal(inRay.direction);
 	if(!outRay.contactObject){
 		if(!isSubsurface){
-			vec3f BSDF = scatteringCoeff * bsdf->evaluate(LocalFrame(), inRay.direction, outRay.direction);
+			vec3f BSDF = scatteringCoeff * bsdf->evaluate(lf, inRay.direction, outRay.direction);
 			return BSDF * lookUpDensity(outRay.origin);
 		}
 		else{
-			vec3f BSDF = bsdf->evaluate(LocalFrame(), inRay.direction, outRay.direction);
+			vec3f BSDF = bsdf->evaluate(lf, inRay.direction, outRay.direction);
 			return BSDF * lookUpSubSurfaceVolumeData(outRay.origin, SCATTERING);
 		}
 	}
@@ -487,10 +556,9 @@ Ray HeterogeneousVolume::scatter(const Ray &inRay, const bool russian ) const{
 
 	float p_medium, P_surface, sampleDist;
 
-	sampleDistance(inRay, sampleDist, p_medium, P_surface);
+	bool samplingState = sampleDistance(inRay, sampleDist, p_medium, P_surface);
 
-
-	bool out_of_vol = sampleDist >= inRay.intersectDist;
+	bool out_of_vol = (samplingState == false); //sampleDist >= inRay.intersectDist;
 
 	// CASE 2: Be in volume
 	if(be_in_vol && !out_of_vol){
@@ -500,7 +568,7 @@ Ray HeterogeneousVolume::scatter(const Ray &inRay, const bool russian ) const{
 
 		outRay.origin = inRay.origin + inRay.direction * sampleDist;
 		outRay.direction = hgPhaseSampler.genSample(lf); 
-		outRay.color = bsdf->evaluate(LocalFrame(), inRay.direction, outRay.direction);
+		outRay.color = bsdf->evaluate(lf, inRay.direction, outRay.direction);
 		outRay.insideObject = (SceneObject*)this;
 		//outRay.contactObject = NULL;
 		outRay.contactObjectTriangleID = inRay.intersectObjectTriangleID;
@@ -512,12 +580,16 @@ Ray HeterogeneousVolume::scatter(const Ray &inRay, const bool russian ) const{
 		float rander = RandGenerator::genFloat();
 		//outRay.originSampleType = Ray::RANDOM;
 
-		if(rander < albedo){
+		if(rander < albedo || (!russian)){
 			outRay.contactObject = NULL;
 			float oPdfW = hgPhaseSampler.getProbDensity(lf, outRay.direction);
-			outRay.directionProb = albedo * oPdfW;
+
+			if (russian)
+				outRay.directionProb = albedo * oPdfW;
+			else
+				outRay.directionProb = oPdfW;
 			 
-			outRay.originProb = pMedium(inRay, sampleDist);
+			outRay.originProb = p_medium;
 			outRay.directionSampleType = Ray::RANDOM;
 			outRay.color *= isSubsurface ? lookUpSubSurfaceVolumeData(outRay.origin, SCATTERING) : scatteringCoeff * lookUpDensity(outRay.origin);
 			outRay.photonType = Ray::INVOL;
@@ -527,13 +599,13 @@ Ray HeterogeneousVolume::scatter(const Ray &inRay, const bool russian ) const{
 			outRay.direction = vec3f(0, 0, 0); 
 			outRay.color = vec3f(0, 0, 0);  
 			outRay.directionProb = 1; 
-			outRay.originProb = pMedium(inRay, sampleDist);
+			outRay.originProb = p_medium;
 			
-			//outRay.insideObject = (SceneObject*)this; // FIXED
-			outRay.insideObject = NULL;
+			outRay.insideObject = (SceneObject*)this; // FIXED
+			//outRay.insideObject = NULL;
 			outRay.contactObject = NULL;
 			outRay.directionSampleType = Ray::RANDOM;
-			outRay.photonType = Ray::NOUSE;
+			outRay.photonType = Ray::INVOL;
 		}
 		return outRay;
 	}
@@ -567,7 +639,7 @@ Ray HeterogeneousVolume::scatter(const Ray &inRay, const bool russian ) const{
 				outRay.direction = reflDir;
 				outRay.insideObject = inRay.insideObject;
 				outRay.contactObject = (SceneObject*)this;
-				outRay.originProb = PSurface(inRay, inRay.intersectDist);//P_surface;//
+				outRay.originProb = P_surface;
 				outRay.photonType = Ray::NOUSE;
 				//outRay.isDeltaDirection = true;
 				outRay.directionSampleType = Ray::DEFINITE;
@@ -593,7 +665,7 @@ Ray HeterogeneousVolume::scatter(const Ray &inRay, const bool russian ) const{
 					outRay.direction = reflDir;
 					outRay.color *= er / outRay.getCosineTerm();
 					outRay.directionProb = p;
-					outRay.originProb =  PSurface(inRay, inRay.intersectDist);//P_surface;//
+					outRay.originProb =  P_surface;
 					outRay.insideObject = inRay.insideObject;
 					//outRay.isDeltaDirection = true;
 					outRay.directionSampleType = Ray::DEFINITE;
@@ -603,7 +675,7 @@ Ray HeterogeneousVolume::scatter(const Ray &inRay, const bool russian ) const{
 				{
 					outRay.color *= (1-er) / outRay.getCosineTerm();
 					outRay.directionProb = (1-p);
-					outRay.originProb = PSurface(inRay, inRay.intersectDist);// P_surface;//
+					outRay.originProb = P_surface;
 					outRay.insideObject = outSideObject;
 					//outRay.isDeltaDirection = true;
 					outRay.directionSampleType = Ray::DEFINITE;
@@ -616,7 +688,7 @@ Ray HeterogeneousVolume::scatter(const Ray &inRay, const bool russian ) const{
 			outRay.contactObject = NULL;
 			outRay.intersectDist = 0;
 			outRay = inRay.intersectObject->scatter(outRay);
-			outRay.originProb *= PSurface(inRay, inRay.intersectDist);// P_surface;//
+			outRay.originProb *= P_surface;
 			outRay.photonType = inRay.intersectObject->isVolumetric() ? Ray::NOUSE : Ray::OUTVOL;
 		}
 		return outRay;

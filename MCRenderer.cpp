@@ -573,7 +573,7 @@ void MCRenderer::preprocessEmissionSampler(){ renderer->scene.preprocessEmission
 
 void MCRenderer::preprocessOtherSampler(bool isUniformOrigin) { renderer->scene.preprocessOtherSampler(isUniformOrigin); }
 
-void MCRenderer::preprocessVolumeSampler() { renderer->scene.preprocessVolumeSampler(); }
+void MCRenderer::preprocessVolumeSampler(bool isUniformOrigin , float mergeRadius) { renderer->scene.preprocessVolumeSampler(isUniformOrigin , mergeRadius); }
 
 Ray MCRenderer::genEmissiveSurfaceSample(bool isUniformOrigin , bool isUniformDir) const { return renderer->scene.genEmissionSample(isUniformDir); }
 

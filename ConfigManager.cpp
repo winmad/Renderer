@@ -91,7 +91,7 @@ SceneObject* ConfigManager::generateSceneObject(xml_node<>* nodeObj, xml_node<>*
 			obj->setDensityScale(atof(nodeMat->first_node("absorption_scale")->value()));
 
 		if(nodeMat->first_node("lookup_flag"))
-			obj->setSubsurfaceLookUpFlag(atof(nodeMat->first_node("lookup_flag")->value()));
+			obj->setVolumeLookUp(atof(nodeMat->first_node("lookup_flag")->value()));
 
 
 		if(nodeMat->first_node("subsurface"))

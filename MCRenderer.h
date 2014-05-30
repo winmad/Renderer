@@ -68,7 +68,7 @@ protected:
 
 	void preprocessOtherSampler(bool isUniformOrigin);
 
-	void preprocessVolumeSampler();
+	void preprocessVolumeSampler(bool isUniformOrigin , float mergeRadius);
 
 	Ray genEmissiveSurfaceSample(bool isUniformOrigin , bool isUniformDir) const;
 

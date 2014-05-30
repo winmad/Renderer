@@ -55,8 +55,9 @@ public:
 
 		float totalVolume;
 
-		void preprocess();
+		void preprocess(bool isUniformOrigin , float mergeRadius);
 		Ray genSample(bool isUniformDir) const;
+		void normalize();
 		void print();
 	};
 
@@ -81,10 +82,13 @@ public:
 
 	void preprocessEmissionSampler();
 	void preprocessOtherSampler(bool isUniformOrigin);
-	void preprocessVolumeSampler();
+	void preprocessVolumeSampler(bool isUniformOrigin , float mergeRadius);
 	void beginUpdateOtherSampler(const int iter);
+	void beginUpdateVolumeSampler(const int iter);
 	void updateOtherSampler(const int objId , const int triId , const int iter , const vec3f& thr);
+	void updateVolumeSampler(const int objId , const vec3f& pos , const int iter , const vec3f& thr);
 	void endUpdateOtherSampler();
+	void endUpdateVolumeSampler();
 	Ray genEmissionSample(bool isUniformDir = false) const;
 	Ray genOtherSample(bool isUniformOrigin = true , bool isUniformDir = false) const;
 	Ray genVolumeSample(bool isUniformDir = false) const;

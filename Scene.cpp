@@ -58,18 +58,34 @@ void Scene::SurfaceSampler::normalize()
 		targetObjects[i]->weight = targetObjects[i]->totalEnergy / totalWeight;
 }
 
-void Scene::VolumeSampler::preprocess()
+void Scene::VolumeSampler::normalize()
+{
+	totalWeight = 0.f;
+	for (int i = 0; i < targetObjects.size(); i++)
+	{
+		targetObjects[i]->volumeWeight = targetObjects[i]->getTotalEnergy();
+		totalWeight += targetObjects[i]->volumeWeight;
+		weightValues[i] = totalWeight;
+	}
+	for (int i = 0; i < targetObjects.size(); i++)
+		targetObjects[i]->normalizeVolumeWeight(totalWeight);
+}
+
+void Scene::VolumeSampler::preprocess(bool isUniformOrigin , float mergeRadius)
 {
 	totalWeight = totalVolume = 0.f;
 	for(unsigned i=0; i<targetObjects.size(); i++)
 	{
-		targetObjects[i]->preprocessVolumeSampler();
-		totalWeight += targetObjects[i]->totalVolume;
+		targetObjects[i]->preprocessVolumeSampler(isUniformOrigin , mergeRadius);
+		totalWeight += targetObjects[i]->volumeWeight;
+		totalVolume += targetObjects[i]->totalVolume;
 		weightValues.push_back(totalWeight);
 	}
-	totalVolume = totalWeight;
-	for(unsigned i=0; i<targetObjects.size(); i++)
-		targetObjects[i]->normalizeVolumeWeight(totalWeight);
+	if (isUniformOrigin)
+	{
+		for(unsigned i=0; i<targetObjects.size(); i++)
+			targetObjects[i]->normalizeVolumeWeight(totalWeight);
+	}
 }
 
 Ray Scene::SurfaceSampler::genSample(bool isUniformOrigin , bool isUniformDir) const
@@ -101,18 +117,11 @@ void Scene::SurfaceSampler::print()
 
 void Scene::VolumeSampler::print()
 {
+	printf("%.8f\n" , totalWeight);
 	for (int i = 0; i < targetObjects.size(); i++)
 	{
-		printf("%.8f %.8f\n" , targetObjects[i]->weight , targetObjects[i]->totalVolume);
+		printf("%.8f %.8f\n" , weightValues[i] , targetObjects[i]->getTotalEnergy());
 	}
-	for (int i = 0; i < weightValues.size(); i++)
-	{
-		printf("%.8f\n" , weightValues[i]);
-	}
-	printf("%d\n" , lower_bound(weightValues.begin(), weightValues.end(), 2)-weightValues.begin());
-	printf("%d\n" , lower_bound(weightValues.begin(), weightValues.end(), 4)-weightValues.begin());
-	printf("%d\n" , lower_bound(weightValues.begin(), weightValues.end(), 6)-weightValues.begin());
-	printf("%.8f\n" , totalWeight);
 }
 
 void Scene::beginUpdateOtherSampler(const int iter)
@@ -123,9 +132,22 @@ void Scene::beginUpdateOtherSampler(const int iter)
 		otherSurfaceSampler->targetObjects[i]->scaleEnergyDensity((float)iter / ((float)iter + 1.f));
 }
 
+void Scene::beginUpdateVolumeSampler(const int iter)
+{
+	for (int i = 0; i < volumeSampler->targetObjects.size(); i++)
+		volumeSampler->targetObjects[i]->sumEnergyToSingleEnergy();
+	for (int i = 0; i < volumeSampler->targetObjects.size(); i++)
+		volumeSampler->targetObjects[i]->scaleEnergyDensity((float)iter / ((float)iter + 1.f));
+}
+
 void Scene::updateOtherSampler(const int objId , const int triId , const int iter , const vec3f& thr)
 {
-	objects[objId]->addEnergyDensity(triId , thr / ((float)iter + 1));
+	objects[objId]->addEnergyDensity(triId , thr / ((float)iter + 1.f));
+}
+
+void Scene::updateVolumeSampler(const int objId , const vec3f& pos , const int iter , const vec3f& thr)
+{
+	objects[objId]->addEnergyDensity(pos , thr / ((float)iter + 1.f));
 }
 
 void Scene::endUpdateOtherSampler()
@@ -133,6 +155,13 @@ void Scene::endUpdateOtherSampler()
 	otherSurfaceSampler->normalize();
 	for (int i = 0; i < otherSurfaceSampler->targetObjects.size(); i++)
 		otherSurfaceSampler->targetObjects[i]->singleEnergyToSumEnergy();
+}
+
+void Scene::endUpdateVolumeSampler()
+{
+	volumeSampler->normalize();
+	for (int i = 0; i < volumeSampler->targetObjects.size(); i++)
+		volumeSampler->targetObjects[i]->singleEnergyToSumEnergy();
 }
 
 Ray Scene::genEmissionSample(bool isUniformDir) const
@@ -190,7 +219,7 @@ void Scene::preprocessOtherSampler(bool isUniformOrigin)
 		otherSurfaceSampler->preprocessForInterpath();
 }
 
-void Scene::preprocessVolumeSampler()
+void Scene::preprocessVolumeSampler(bool isUniformOrigin , float mergeRadius)
 {
 	if(volumeSampler)
 		delete volumeSampler;
@@ -202,7 +231,7 @@ void Scene::preprocessVolumeSampler()
 			volumeSampler->targetObjects.push_back(objects[i]);
 		}
 	}
-	volumeSampler->preprocess();
+	volumeSampler->preprocess(isUniformOrigin , mergeRadius);
 }
 
 vec3f Scene::getDiagonal()

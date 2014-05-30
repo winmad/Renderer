@@ -68,7 +68,8 @@ public:
 	Real totArea , totVol;
 	Real initialProb;
 	unsigned timeInterval , lastTime;
-	bool useWeight , usePPM , useDirIllu , useRayMarching , useUniformInterSampler , checkCycle;
+	bool useWeight , usePPM , useDirIllu , useRayMarching , checkCycle;
+	bool useUniformInterSampler , useUniformSur , useUniformVol;
 	bool isDebug;
 
 	int pixelNum , lightPathNum , cameraPathNum , interPathNum , partialPathNum;
@@ -83,15 +84,20 @@ public:
 
 		pixelNum = renderer->camera.height * renderer->camera.width;
 		cameraPathNum = pixelNum;
-		lightPathNum = pixelNum / 4;
-		interPathNum = pixelNum * 7 / 4;
+		lightPathNum = pixelNum;
+		interPathNum = pixelNum;
 		partialPathNum = interPathNum;
 
 		usePPM = false;
 		useDirIllu = true;
 		useRayMarching = true;
-		useUniformInterSampler = false;
+
+		useUniformSur = true;
+		useUniformVol = true;
+		useUniformInterSampler = (useUniformSur && useUniformVol);
+
 		checkCycle = true;
+
 		isDebug = false;
 
 		if (usePPM)

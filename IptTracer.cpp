@@ -17,8 +17,8 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 	vector<omp_lock_t> pixelLocks(pixelColors.size());
 
 	preprocessEmissionSampler();
-	preprocessOtherSampler(useUniformInterSampler);
-	preprocessVolumeSampler();
+	preprocessOtherSampler(useUniformSur);
+	preprocessVolumeSampler(useUniformVol , mergeRadius * 0.1f);
 	
 	for(int i=0; i<pixelLocks.size(); i++)
 	{
@@ -82,17 +82,31 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 
 			if (!useUniformInterSampler)
 			{
-				renderer->scene.beginUpdateOtherSampler(s);
+				if (!useUniformSur)
+					renderer->scene.beginUpdateOtherSampler(s);
+				if (!useUniformVol)
+					renderer->scene.beginUpdateVolumeSampler(s);
 				for (int i = 0; i < partialSubPathList.size(); i++)
 				{
 					IptPathState& lightState = partialSubPathList[i];
-					if (lightState.ray->contactObject)
+					if (lightState.ray->contactObject && !useUniformSur)
 					{
 						renderer->scene.updateOtherSampler(lightState.ray->contactObject->objectIndex ,
 							lightState.ray->contactObjectTriangleID , s , lightState.throughput / (Real)lightPathNum);
 					}
+					else if (lightState.ray->insideObject && lightState.ray->insideObject->isVolumetric() &&
+						!lightState.ray->contactObject && !useUniformVol)
+					{
+						vec3f thr = lightState.throughput;
+						renderer->scene.updateVolumeSampler(lightState.ray->insideObject->objectIndex ,
+							lightState.ray->origin , s , thr / (Real)lightPathNum);
+					}
 				}
-				renderer->scene.endUpdateOtherSampler();
+				if (!useUniformSur)
+					renderer->scene.endUpdateOtherSampler();
+				if (!useUniformVol)
+					renderer->scene.endUpdateVolumeSampler();
+
 				/*
 				Scene::SurfaceSampler *interSampler = renderer->scene.otherSurfaceSampler;
 				fprintf(fp , "totWeight = %.8f\n" , interSampler->totalWeight);
@@ -104,6 +118,20 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 					for (int j = 0; j < obj->getTriangleNum(); j++)
 					{
 						fprintf(fp , "triId = %d , e = %.8f\n" , j , obj->energyDensity[j]);
+					}
+				}
+				
+				Scene::VolumeSampler *interVolSampler = renderer->scene.volumeSampler;
+				fprintf(fp , "totWeight = %.8f\n" , interVolSampler->totalWeight);
+				for (int i = 0; i < interVolSampler->targetObjects.size(); i++)
+				{
+					SceneObject *obj = interVolSampler->targetObjects[i];
+					fprintf(fp , "======= objId = %d , totEnergy = %.8f , weight = %.8f =======\n" , obj->objectIndex ,
+						obj->countHashGrid->sumWeights , obj->volumeWeight);
+					for (int j = 0; j < obj->countHashGrid->effectiveWeights.size(); j++)
+					{
+						fprintf(fp , "cellIndex = %d , e = %.8f\n" , obj->countHashGrid->effectiveIndex[j] , 
+							obj->countHashGrid->effectiveWeights[j]);
 					}
 				}
 				*/
@@ -508,7 +536,7 @@ void IptTracer::genLightPaths(omp_lock_t& cmdLock , vector<Path*>& lightPathList
 				Real dirProb;
 				if (lightPath[i].contactObject)
 				{
-					if (isFirstIter || useUniformInterSampler)
+					if (isFirstIter || useUniformSur)
 						originProb = 1.f / totArea;
 					else
 						originProb = lightPath[i].contactObject->getOriginProb(lightPath[i].contactObjectTriangleID);
@@ -521,7 +549,12 @@ void IptTracer::genLightPaths(omp_lock_t& cmdLock , vector<Path*>& lightPathList
 				if (lightPath[i].insideObject && !lightPath[i].contactObject && lightPath[i].insideObject->isVolumetric())
 				{
 					volMergeScale = 4.f / 3.f * mergeRadius;
-					originProb = 1.f / totVol;
+
+					if (isFirstIter || useUniformVol)
+						originProb = 1.f / totVol;
+					else
+						originProb = lightPath[i].insideObject->getOriginProb(lightPath[i].origin);
+					
 					dirProb = 0.25f / M_PI;
 				}
 
@@ -563,13 +596,13 @@ Ray IptTracer::genIntermediateSamples(Scene& scene)
 		}
 		else
 		{
-			Ray ray = genOtherSurfaceSample(useUniformInterSampler , false);
+			Ray ray = genOtherSurfaceSample(useUniformSur , false);
 			return ray;
 		}
 	}
 	else
 	{
-		Ray ray = genOtherSurfaceSample(useUniformInterSampler , false);
+		Ray ray = genOtherSurfaceSample(useUniformSur , false);
 		return ray;
 	}
 }
@@ -674,7 +707,7 @@ void IptTracer::genIntermediatePaths(omp_lock_t& cmdLock , vector<Path*>& interP
 				Real dirProb;
 				if (interPath[i].contactObject)
 				{
-					if (useUniformInterSampler)
+					if (useUniformSur)
 						originProb = 1.f / totArea;
 					else
 						originProb = interPath[i].contactObject->getOriginProb(interPath[i].contactObjectTriangleID);
@@ -687,7 +720,10 @@ void IptTracer::genIntermediatePaths(omp_lock_t& cmdLock , vector<Path*>& interP
 				if (interPath[i].insideObject && !interPath[i].contactObject && interPath[i].insideObject->isVolumetric())
 				{
 					volMergeScale = 4.f / 3.f * mergeRadius;
-					originProb = 1.f / totVol;
+					if (useUniformVol)
+						originProb = 1.f / totVol;
+					else
+						originProb = interPath[i].insideObject->getOriginProb(interPath[i].origin);
 					dirProb = 0.25f / M_PI;
 				}
 				

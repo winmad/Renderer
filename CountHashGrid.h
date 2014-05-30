@@ -27,16 +27,25 @@ public:
 		effectiveWeights.shrink_to_fit();
 	}
 
-	void init(Scene *scene , int objIndex)
+	void init(Scene *scene , int objIndex , float mergeRadius)
 	{
 		vec3f diag = scene->objKDTrees[objIndex].root->boundingBox.maxCoord -
 			scene->objKDTrees[objIndex].root->boundingBox.minCoord;
 		mBBoxMin = scene->objKDTrees[objIndex].root->boundingBox.minCoord;
 		mBBoxMax = scene->objKDTrees[objIndex].root->boundingBox.maxCoord;
 
+		//printf("AABB: (%.3f,%.3f,%.3f) , (%.3f,%.3f,%.3f)\n" , 
+		//	mBBoxMin.x , mBBoxMin.y , mBBoxMin.z ,
+		//	mBBoxMax.x , mBBoxMax.y , mBBoxMax.z);
+
 		sizeNum = 100;
 
 		mCellSize = diag / sizeNum;
+		/*
+		mCellSize.x = max(mCellSize.x , mergeRadius);
+		mCellSize.y = max(mCellSize.y , mergeRadius);
+		mCellSize.z = max(mCellSize.z , mergeRadius);
+		*/
 		mInvCellSize = 1.f / mCellSize;
 		cellVolume = mCellSize.x * mCellSize.y * mCellSize.z;
 		printf("cell size = (%.8f, %.8f, %.8f)\n" , mCellSize.x , mCellSize.y , mCellSize.z);
@@ -47,12 +56,34 @@ public:
 		this->objectIndex = objIndex;
 	}
 
+	void addValue(int cellIndex , float value)
+	{
+		if (revIndex[cellIndex] == -1)
+		{
+			return;
+			effectiveIndex.push_back(cellIndex);
+			effectiveWeights.push_back(value);
+			revIndex[cellIndex] = effectiveIndex.size() - 1;
+		}
+		else
+		{
+			sumWeights += value;
+			int i = revIndex[cellIndex];
+			effectiveWeights[i] += value;
+		}
+	}
+
 	void preprocess(Scene *scene , int objIndex)
 	{
 		printf("preprocess volume object \#%d...\n" , objIndex);
 
 		effectiveIndex.clear();
 		effectiveWeights.clear();
+		revIndex.clear();
+
+		revIndex.resize(sizeNum * sizeNum * sizeNum);
+		for (int i = 0; i < revIndex.size(); i++)
+			revIndex[i] = -1;
 
 		omp_lock_t lock;
 		omp_init_lock(&lock);
@@ -85,20 +116,74 @@ public:
 				omp_set_lock(&lock);
 				sumWeights += insideCellVol;
 				effectiveIndex.push_back(i);
-				effectiveWeights.push_back(sumWeights);
+				effectiveWeights.push_back(insideCellVol);
+				revIndex[i] = effectiveIndex.size() - 1;
 				omp_unset_lock(&lock);
 			}
 		}
 
-		for (int i = 0; i < effectiveWeights.size(); i++)
-			effectiveWeights[i] /= sumWeights;
+		for (int i = 1; i < effectiveWeights.size(); i++)
+			effectiveWeights[i] += effectiveWeights[i - 1];
 
 		totVolume = sumWeights * mCellSize.x * mCellSize.y * mCellSize.z;
+		weight = sumWeights;
 
 		omp_destroy_lock(&lock);
 	}
 
-public:
+	void preprocessNonUniform(Scene *scene , int objectIndex)
+	{
+		preprocess(scene , objectIndex);
+		sumWeights = weight = 0.f;
+		for (int i = 0; i < effectiveWeights.size(); i++)
+			effectiveWeights[i] = 0.f;
+	}
+
+	void scaleEnergyDensity(const float scale)
+	{
+		sumWeights *= scale;
+		for (int i = 0; i < effectiveWeights.size(); i++)
+			effectiveWeights[i] *= scale;
+	}
+
+	void addEnergyDensity(const vec3f& pos , const vec3f& thr)
+	{
+		int cellIndex = GetCellIndex(pos);
+		float energyDens = intensity(thr);
+		float value = energyDens / cellVolume;
+		addValue(cellIndex , value);
+	}
+
+	void singleEnergyToSumEnergy()
+	{
+		for (int i = 1; i < effectiveWeights.size(); i++)
+			effectiveWeights[i] += effectiveWeights[i - 1];
+		sumWeights = effectiveWeights[effectiveWeights.size() - 1];
+	}
+
+	void sumEnergyToSingleEnergy()
+	{
+		sumWeights = effectiveWeights[effectiveWeights.size() - 1];
+		for (int i = effectiveWeights.size() - 1; i >= 1; i--)
+			effectiveWeights[i] -= effectiveWeights[i - 1];
+	}
+
+	float getOriginProb(const vec3f& pos)
+	{
+		int cellIndex = GetCellIndex(pos);
+		int i = revIndex[cellIndex];
+		if (i == -1)
+			return 0.f;
+		float res;
+		if (i == 0)
+			res = effectiveWeights[i];
+		else
+			res = effectiveWeights[i] - effectiveWeights[i - 1];
+
+		res *= weight / (sumWeights * cellVolume);
+		return res;
+	}
+
 	int GetCellIndex(const vec3i &aCoord) const
 	{
 		uint x = uint(aCoord.x);
@@ -130,7 +215,7 @@ public:
 
 		return GetCellIndex(coordI);
 	}
-	
+
 	// offset in [(0,0,0) , (1,1,1)]
 	vec3f cellIndexToPosition(const int &index , const vec3f& offset)
 	{
@@ -147,7 +232,7 @@ public:
 
 	vec3f getRandomPosition(float &pdf , int *givenIndex = NULL)
 	{
-		float rnd = RandGenerator::genFloat();
+		float rnd = RandGenerator::genFloat() * sumWeights;
 		unsigned index = (lower_bound(effectiveWeights.begin(), effectiveWeights.end(), rnd)-effectiveWeights.begin());
 
 		if (givenIndex)
@@ -161,6 +246,7 @@ public:
 		{
 			pdf = effectiveWeights[index] - effectiveWeights[index - 1];
 		}
+		pdf /= (cellVolume * sumWeights);
 		vec3f rndOffset = vec3f(RandGenerator::genFloat() , RandGenerator::genFloat() , RandGenerator::genFloat());
 		vec3f res = cellIndexToPosition(effectiveIndex[index] , rndOffset);
 		return res;
@@ -179,11 +265,8 @@ public:
 		else
 			ray.origin = getRandomPosition(ray.originProb , givenIndex);
 
-		// not sure
-		//ray.originProb /= cellVolume;
-		ray.originProb = 1.f / totVolume;
-
-		//printf("%.8f , %.8f\n" , ray.originProb , 1.f / scene->getTotalVolume());
+		ray.originProb *= weight;
+		//printf("%.8f , %.8f , %.8f\n" , weight , ray.originProb , 1.f / scene->getTotalVolume());
 
 		ray.direction = RandGenerator::genSphericalDirection();
 		
@@ -197,15 +280,14 @@ public:
 		HGPhaseSampler hgSampler(ray.insideObject->getG());
 		LocalFrame lf;
 		lf.buildFromNormal(RandGenerator::genSphericalDirection());
-		/*
+		
 		ray.direction = RandGenerator::genSphericalDirection();
 		ray.directionProb = 0.25f / M_PI;
-		*/
 		
 		float albedo = ray.insideObject->getContinueProbability(ray , ray);
 
-		ray.direction = hgSampler.genSample(lf);
-		ray.directionProb = hgSampler.getProbDensity(lf , ray.direction);
+		//ray.direction = hgSampler.genSample(lf);
+		//ray.directionProb = hgSampler.getProbDensity(lf , ray.direction);
 		
 		//printf("%.8f\n" , ray.directionProb);
 
@@ -260,11 +342,13 @@ public:
 
 	std::vector<double> effectiveWeights;
 	std::vector<int> effectiveIndex;
+	std::vector<int> revIndex;
 
 	vec3f mCellSize;
 	vec3f mInvCellSize;
 
 	float sumWeights;
+	float weight;
 	float cellVolume;
 	float totVolume;
 	int sizeNum;

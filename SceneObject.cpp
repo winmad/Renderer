@@ -31,19 +31,40 @@ void SceneObject::preprocessOtherSampler()
 	}
 }
 
-void SceneObject::preprocessVolumeSampler()
+void SceneObject::preprocessVolumeSampler(bool isUniformOrigin , float mergeRadius)
 {
 	totalVolume = volumeWeight = 0.f;
 	if (!isVolumetric())
 		return;
 	countHashGrid = new CountHashGrid();
-	countHashGrid->init(scene , objectIndex);
-	countHashGrid->preprocess(scene , objectIndex);
-	totalVolume = volumeWeight = countHashGrid->totVolume;
+	countHashGrid->init(scene , objectIndex , mergeRadius);
+	if (isUniformOrigin)
+	{
+		countHashGrid->preprocess(scene , objectIndex);
+		volumeWeight = countHashGrid->totVolume;
+	}
+	else
+	{
+		countHashGrid->preprocessNonUniform(scene , objectIndex);
+		volumeWeight = countHashGrid->sumWeights;
+	}
+	totalVolume = countHashGrid->totVolume;
+}
+
+void SceneObject::normalizeVolumeWeight(float totalWeight)
+{
+	volumeWeight /= totalWeight;
+	if (countHashGrid)
+		countHashGrid->weight = volumeWeight;
 }
 
 void SceneObject::scaleEnergyDensity(const float scale)
 {
+	if (this->isVolumetric() && countHashGrid)
+	{
+		countHashGrid->scaleEnergyDensity(scale);
+		return;
+	}
 	totalEnergy *= scale;
 	for (int i = 0; i < getTriangleNum(); i++)
 		energyDensity[i] *= scale;
@@ -52,18 +73,37 @@ void SceneObject::scaleEnergyDensity(const float scale)
 void SceneObject::addEnergyDensity(const int triId , const vec3f& thr)
 {
 	float energyDens = intensity(thr) / areaValues[triId];
-	totalEnergy += energyDens;
-	energyDensity[triId] += energyDens;
+	float value = energyDens * energyDens;
+	totalEnergy += value;
+	energyDensity[triId] += value;
+}
+
+void SceneObject::addEnergyDensity(const vec3f& pos , const vec3f& thr)
+{
+	if (this->isVolumetric() && countHashGrid)
+		countHashGrid->addEnergyDensity(pos , thr);
 }
 
 void SceneObject::singleEnergyToSumEnergy()
 {
+	if (this->isVolumetric() && countHashGrid)
+	{
+		countHashGrid->singleEnergyToSumEnergy();
+		return;
+	}
 	for (int i = 1; i < getTriangleNum(); i++)
 		energyDensity[i] += energyDensity[i - 1];
+	totalEnergy = energyDensity[getTriangleNum() - 1];
 }
 
 void SceneObject::sumEnergyToSingleEnergy()
 {
+	if (this->isVolumetric() && countHashGrid)
+	{
+		countHashGrid->sumEnergyToSingleEnergy();
+		return;
+	}
+	totalEnergy = energyDensity[getTriangleNum() - 1];
 	for (int i = getTriangleNum() - 1; i >= 1; i--)
 		energyDensity[i] -= energyDensity[i - 1];
 }
@@ -77,6 +117,21 @@ float SceneObject::getOriginProb(const int triId)
 		res = energyDensity[triId] - energyDensity[triId - 1];
 	res *= weight / (totalEnergy * areaValues[triId]);
 	return res;
+}
+
+float SceneObject::getOriginProb(const vec3f& pos)
+{
+	if (countHashGrid)
+		return countHashGrid->getOriginProb(pos);
+	return 0.f;
+}
+
+float SceneObject::getTotalEnergy() const
+{
+	if (countHashGrid)
+		return countHashGrid->sumWeights;
+	else 
+		return totalEnergy;
 }
 
 Ray SceneObject::emit(bool isUniformOrigin , bool isUniformDir) const
@@ -166,7 +221,6 @@ Ray SceneObject::emitVolume(bool isUniformDir /* = false */) const
 {
 	Ray ray = countHashGrid->emitVolume(scene);
 	//printf("%.8f , %.8f\n" , volumeWeight , ray.originProb);
-	ray.originProb *= volumeWeight;
 	return ray;
 }
 

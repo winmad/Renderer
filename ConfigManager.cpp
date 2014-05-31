@@ -307,7 +307,8 @@ void ConfigManager::load(const string &configFilePath)
 		{
 			renderer->mcRenderer = new IptTracer(renderer);
 			((IptTracer*)renderer->mcRenderer)->setRadius(atof(nodeConfig->first_node("radius")->value()));
-			((IptTracer*)renderer->mcRenderer)->setInitProb(atof(nodeConfig->first_node("initProb")->value()));
+			if (nodeConfig->first_node("gatherRadius"))
+				((IptTracer*)renderer->mcRenderer)->gatherRadius = (atof(nodeConfig->first_node("gatherRadius")->value()));
 		}
 		if (nodeConfig->first_node("maxDepth"))
 			renderer->mcRenderer->setMaxDepth(atoi(nodeConfig->first_node("maxDepth")->value()));
@@ -353,8 +354,10 @@ void ConfigManager::load(const string &configFilePath)
 			renderer->mcRenderer = new IptTracer(renderer);
 			if(nodeRenderer->first_node("radius"))
 				((IptTracer*)renderer->mcRenderer)->setRadius(atof(nodeRenderer->first_node("radius")->value()));
-			if (nodeRenderer->first_node("initProb"))
-				((IptTracer*)renderer->mcRenderer)->setInitProb(atof(nodeRenderer->first_node("initProb")->value()));
+			if (nodeRenderer->first_node("gatherRadius"))
+				((IptTracer*)renderer->mcRenderer)->gatherRadius = (atof(nodeRenderer->first_node("gatherRadius")->value()));
+			if (nodeRenderer->first_node("pathRatio"))
+				((IptTracer*)renderer->mcRenderer)->pathRatio = (atof(nodeRenderer->first_node("pathRatio")->value())); 
 		}
 		if (nodeRenderer->first_node("maxDepth"))
 			renderer->mcRenderer->setMaxDepth(atoi(nodeRenderer->first_node("maxDepth")->value()));

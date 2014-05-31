@@ -71,10 +71,11 @@ public:
 		this->g = g;
 		bsdf = new HGPhaseFunc(g);
 		IOR = 1.5;
-		stepSize = 0.005;
+		stepSize = 0.0005;
 		densityScale = 100;
 		scatteringScale = 100;
 		absorptionScale = 100;
+		canMerge = true;
 		isSubsurface = false;
 		volumeLookUpAll = true;
 	}

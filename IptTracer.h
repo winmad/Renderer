@@ -3,6 +3,7 @@
 #include <omp.h>
 #include <stack>
 #include <utility>
+#include <queue>
 #include "PointKDTree.h"
 #include "CountHashGrid.h"
 #include "macros.h"
@@ -15,6 +16,7 @@ struct IptPathState
 	int pathLen;
 	vec3f pos;
 	int index;
+	double mergedPath;
 	//double accuProb;
 };
 
@@ -24,6 +26,7 @@ protected:
 	unsigned spp;
 
 	int mergeIterations;
+	int checkCycleIters;
 
 	vector<vector<int> > partPathMergeIndex;
 
@@ -35,11 +38,13 @@ protected:
 
 	vector<bool> vis;
 	vector<bool> inStack;
+	vector<bool> cannotBeCycle;
 
+	queue<int> q;
 	stack<int> cycle;
 	vector<pair<int , int> > edgeToRemove;
 
-	bool dfs(int cur);
+	bool dfs(int depth , int cur);
 
 	void movePaths(omp_lock_t& cmdLock , vector<Path>& , vector<Path*>&);
 
@@ -51,7 +56,7 @@ protected:
 
 	Ray genIntermediateSamples(Scene& scene);
 
-	void mergePartialPaths(vector<vec3f>& contribs , const IptPathState& interState);
+	void mergePartialPaths(vector<vec3f>& contribs , vector<double>& mergedPath , const IptPathState& interState);
 
 	vec3f colorByMergingPaths(IptPathState& cameraState, PointKDTree<IptPathState>& partialSubPaths);
 
@@ -63,7 +68,10 @@ protected:
 
 public:
 	Real mergeRadius;
+	Real gatherRadius;
+	Real pathRatio;
 	Real lightMergeKernel , interMergeKernel;
+	Real lightGatherKernel , interGatherKernel;
 	Real alpha;
 	Real totArea , totVol;
 	Real initialProb;
@@ -81,15 +89,13 @@ public:
 		spp = -1; 
 		initialProb = 1.f;
 		timeInterval = lastTime = 3600;
+		gatherRadius = 0.f;
+		pathRatio = 0.5f;
 
 		pixelNum = renderer->camera.height * renderer->camera.width;
-		cameraPathNum = pixelNum;
-		lightPathNum = pixelNum;
-		interPathNum = pixelNum;
-		partialPathNum = interPathNum;
 
 		usePPM = false;
-		useDirIllu = true;
+		useDirIllu = false;
 		useRayMarching = true;
 
 		useUniformSur = true;
@@ -97,6 +103,7 @@ public:
 		useUniformInterSampler = (useUniformSur && useUniformVol);
 
 		checkCycle = true;
+		checkCycleIters = 100;
 
 		isDebug = false;
 
@@ -107,7 +114,7 @@ public:
 		}
 		else
 		{
-			mergeIterations = 100;
+			mergeIterations = maxDepth;
 			useWeight = true;
 		}
 	}
@@ -157,7 +164,7 @@ struct GatherQuery
 	{
 		Real volMergeScale = 1;
 		if (cameraState->ray->insideObject && !cameraState->ray->contactObject)
-			volMergeScale = 4.f / 3.f * tracer->mergeRadius;
+			volMergeScale = 4.f / 3.f * tracer->gatherRadius;
 		
 		Real originProb = 1.f / tracer->totArea;
 		Real dirProb;
@@ -171,7 +178,7 @@ struct GatherQuery
 			{
 				return;
 			}
-			volMergeScale = 4.f / 3.f * tracer->mergeRadius;
+			volMergeScale = 4.f / 3.f * tracer->gatherRadius;
 			originProb = 1.f / tracer->totVol;
 		}
 		else if (cameraState->ray->contactObject)
@@ -202,7 +209,7 @@ struct GatherQuery
 			totContrib = lightState.throughput;
 		else
 			totContrib = lightState.indirContrib;
-		//totContrib = lightState.throughput;
+		//totContrib = lightState.indirContrib;
 
 		vec3f tmp = totContrib * bsdfFactor * cameraState->throughput; 
 
@@ -227,12 +234,12 @@ struct GatherQuery
 		float mergeKernel , pathNum;
 		if (lightState.index < tracer->lightPhotonNum)
 		{
-			mergeKernel = tracer->lightMergeKernel / volMergeScale;
+			mergeKernel = tracer->lightGatherKernel / volMergeScale;
 			pathNum = tracer->lightPathNum;
 		}
 		else
 		{
-			mergeKernel = tracer->interMergeKernel / volMergeScale;
+			mergeKernel = tracer->interGatherKernel / volMergeScale;
 			pathNum = tracer->partialPathNum;
 		}
 
@@ -244,11 +251,11 @@ struct GatherQuery
 		{
 			float distSqr = (cameraState->pos - lightState.pos).length();
 			distSqr = distSqr * distSqr;
-			mergeKernel = tracer->kernel(distSqr , tracer->mergeRadius * tracer->mergeRadius);
+			mergeKernel = tracer->kernel(distSqr , tracer->gatherRadius * tracer->gatherRadius);
 			if (abs(volMergeScale - 1.f) > 1e-6f)
-				mergeKernel /= pathNum * tracer->mergeRadius * tracer->mergeRadius * tracer->mergeRadius;
+				mergeKernel /= pathNum * tracer->gatherRadius * tracer->gatherRadius * tracer->gatherRadius;
 			else 
-				mergeKernel /= pathNum * tracer->mergeRadius * tracer->mergeRadius;
+				mergeKernel /= pathNum * tracer->gatherRadius * tracer->gatherRadius;
 
 			res = tmp * mergeKernel;
 		}
@@ -262,7 +269,7 @@ struct GatherQuery
 			float cosToLight = clampf(lightState.ray->getContactNormal().dot(-lightState.lastRay->direction) , 0.f , 1.f);
 			float p1 = lightState.lastRay->originProb;
 			float p2 = lightState.lastRay->originProb * lightState.lastRay->directionProb * cosToLight / (dist * dist) *
-				M_PI * tracer->mergeRadius * tracer->mergeRadius * tracer->partialPathNum;
+				M_PI * tracer->gatherRadius * tracer->gatherRadius * tracer->partialPathNum;
 			float weightFactor = p2 / (p1 + p2);
 
 			//printf("merge weight = %.8f\n" , weightFactor);

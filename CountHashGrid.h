@@ -310,8 +310,8 @@ public:
 
 			if (ray.insideObject && !ray.intersectObject)
 			{
-				printf("%.8f\n" , dist);
-				printf("weird! It has insideObject but no intersectObject\n");
+				//printf("%.8f\n" , dist);
+				//printf("weird! It has insideObject but no intersectObject\n");
 				continue;
 			}
 		}

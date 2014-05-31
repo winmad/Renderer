@@ -210,7 +210,7 @@ void Scene::preprocessOtherSampler(bool isUniformOrigin)
 	otherSurfaceSampler = new SurfaceSampler(this);
 	for(unsigned i=0; i<objects.size(); i++)
 	{
-		if (objects[i]->canMerge && !objects[i]->isVolumetric() && !objects[i]->emissive())
+		if (objects[i]->canMerge && !objects[i]->isVolumetric() && !objects[i]->emissive())// && i == 7)
 			otherSurfaceSampler->targetObjects.push_back(objects[i]);
 	}
 	if (isUniformOrigin)

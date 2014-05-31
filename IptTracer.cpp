@@ -13,6 +13,21 @@ float INV_2_PI = 0.5 / M_PI;
 
 vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 {
+	if (!usePPM)
+	{
+		lightPathNum = pixelNum * pathRatio;
+		interPathNum = pixelNum * (1.f - pathRatio);
+		partialPathNum = interPathNum;
+	}
+	else
+	{
+		lightPathNum = pixelNum;
+		interPathNum = pixelNum;
+		partialPathNum = interPathNum;
+	}
+	cameraPathNum = pixelNum;
+	
+
 	vector<vec3f> pixelColors(camera.width * camera.height, vec3f(0, 0, 0));
 	vector<omp_lock_t> pixelLocks(pixelColors.size());
 
@@ -28,7 +43,10 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 	omp_lock_t cmdLock;
 	omp_init_lock(&cmdLock);
 
+	if (gatherRadius < 1e-6f)
+		gatherRadius = mergeRadius;
 	Real r0 = mergeRadius;
+	Real gr0 = gatherRadius;
 
 	totArea = renderer->scene.getTotalArea();
 	totVol = renderer->scene.getTotalVolume();
@@ -54,13 +72,26 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 			mergeRadius *= shrinkRatio;
 		*/
 
-		if (totVol > 1e-6f)
-			mergeRadius = r0 * powf(powf(max((float)s , 1.f) , alpha - 1.f) , 1.f / 3.f);
-		else
-			mergeRadius = r0 * powf(powf(max((float)s , 1.f) , alpha - 1.f) , 1.f / 2.f);
-		mergeRadius = std::max(mergeRadius , 1e-7f);
+		float base;
+		if (useUniformInterSampler)
+			base = (float)s + 1.f;
+		else 
+			base = (float)s;
 
-		printf("mergeRadius = %.8f\n" , mergeRadius);
+		if (totVol > 1e-6f)
+		{
+			mergeRadius = r0 * powf(powf(max(base , 1.f) , alpha - 1.f) , 1.f / 3.f);
+			gatherRadius = gr0 * powf(powf(max(base , 1.f) , alpha - 1.f) , 1.f / 3.f);
+		}
+		else
+		{
+			mergeRadius = r0 * powf(powf(max(base , 1.f) , alpha - 1.f) , 1.f / 2.f);
+			gatherRadius = gr0 * powf(powf(max(base , 1.f) , alpha - 1.f) , 1.f / 2.f);
+		}
+		mergeRadius = std::max(mergeRadius , 1e-7f);
+		gatherRadius = std::max(gatherRadius , 1e-7f);
+
+		printf("mergeRadius = %.8f, gatherRadius = %.8f\n" , mergeRadius , gatherRadius);
 
 		vector<vec3f> singleImageColors(pixelColors.size(), vec3f(0, 0, 0));
 
@@ -75,6 +106,11 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 			mergeRadius * (Real)partialPathNum);
 		lightMergeKernel = 1.f / (M_PI * mergeRadius *
 			mergeRadius * (Real)lightPathNum);
+
+		interGatherKernel = 1.f / (M_PI * gatherRadius * 
+			gatherRadius * (Real)partialPathNum);
+		lightGatherKernel = 1.f / (M_PI * gatherRadius *
+			gatherRadius * (Real)lightPathNum);
 
 		if (!renderer->scene.usingGPU())
 		{
@@ -148,27 +184,29 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 
 			PointKDTree<IptPathState> partialSubPaths(partialSubPathList);
 			
-			/*
+			
 			for (int i = 0; i < partialPhotonNum; i++)
 			{
 				IptPathState& subPath = partialSubPathList[i];
 				if (s == 0)
 				{
-					fprintf(fp , "==============\n");
 					vec3f contrib;
 					if (i < lightPhotonNum)
 					{
-						contrib = subPath.throughput;
-						fprintf(fp , "dirContrib=(%.8f,%.8f,%.8f)\n" , contrib.x , contrib.y , contrib.z);
+						//contrib = subPath.throughput;
+						//fprintf(fp , "dirContrib=(%.8f,%.8f,%.8f), pathNum = %d\n" , contrib.x , contrib.y , contrib.z , subPath.mergedPath);
 					}
 					else
 					{
 						contrib = subPath.indirContrib;
-						fprintf(fp , "indirContrib=(%.8f,%.8f,%.8f)\n" , contrib.x , contrib.y , contrib.z);
+						if (intensity(contrib) < 1e-6f)
+							continue;
+						fprintf(fp , "==============\n");
+						fprintf(fp , "indirContrib=(%.8f,%.8f,%.8f), pathNum = %.1lf\n" , contrib.x , contrib.y , contrib.z , subPath.mergedPath);
 					}			
 				}
 			}
-			*/
+			
 
 #pragma omp parallel for
 			for(int p=0; p<cameraPathNum; p++)
@@ -467,6 +505,7 @@ void IptTracer::genLightPaths(omp_lock_t& cmdLock , vector<Path*>& lightPathList
 			(lightPath[0].originProb * lightPath[0].directionProb *
 			lightPath[1].originProb);
 		lightState.indirContrib = vec3f(0.0);
+		lightState.mergedPath = 1;
 		/*
 		fprintf(fp , "====================\n");
 		vec3f decay = lightPath[0].getRadianceDecay((lightPath[0].origin - lightPath[1].origin).length());
@@ -572,6 +611,8 @@ void IptTracer::genLightPaths(omp_lock_t& cmdLock , vector<Path*>& lightPathList
 				else
 					printf("volume %.8f %.8f\n" , weightFactor);
 				*/
+
+				//if (lightPath[i].contactObject && lightPath[i].contactObject->objectIndex == 7)
 				lightState.throughput *= weightFactor;
 			}
 		}
@@ -633,6 +674,7 @@ void IptTracer::genIntermediatePaths(omp_lock_t& cmdLock , vector<Path*>& interP
 		interState.throughput = interPath[0].color * interPath[0].getCosineTerm() / 
 			(interPath[0].originProb * interPath[0].directionProb * interPath[1].originProb);
 		interState.indirContrib = vec3f(0.f);
+		interState.mergedPath = 0;
 
 		//if (intensity(interState.throughput) > 30.f)
 		//	continue;
@@ -736,6 +778,7 @@ void IptTracer::genIntermediatePaths(omp_lock_t& cmdLock , vector<Path*>& interP
 						mergeFactor(&volMergeScale , &originProb , &dirProb , &partialPathNum));
 				}
 
+				//if (interPath[i].contactObject && interPath[i].contactObject->objectIndex == 7)
 				interState.throughput *= weightFactor;
 			}
 		}
@@ -763,6 +806,7 @@ void IptTracer::mergePartialPaths(omp_lock_t& cmdLock)
 	};
 
 	vector<vec3f> contribs(partialPhotonNum - lightPhotonNum);
+	vector<double> mergedPath(partialPhotonNum - lightPhotonNum);
 
 	for (int i = 0; i < partialSubPathList.size(); i++)
 	{
@@ -814,11 +858,68 @@ void IptTracer::mergePartialPaths(omp_lock_t& cmdLock)
 	}
 
 	bool f = checkCycle;
-	int checkTime = 100;
+	int checkTime = checkCycleIters;
 	vis.clear();
 	inStack.clear();
+	cannotBeCycle.clear();
 	vis.resize(partialPhotonNum - lightPhotonNum);
 	inStack.resize(partialPhotonNum - lightPhotonNum);
+	cannotBeCycle.resize(partialPhotonNum - lightPhotonNum);
+
+	// topological sort
+	for (int i = 0; i < vis.size(); i++)
+	{
+		vis[i] = cannotBeCycle[i] = 0;
+	}
+	if (checkCycle)
+	{
+		int totEdges = 0;
+		vector<int> indeg(partialPhotonNum - lightPhotonNum , 0);
+		for (int i = lightPhotonNum; i < partialPhotonNum; i++)
+		{
+			int k = revIndex[i - lightPhotonNum];
+			for (int j = 0; j < partPathMergeIndex[k].size(); j++)
+			{
+				int pa = partPathMergeIndex[k][j];
+				if (pa >= lightPhotonNum)
+				{
+					totEdges++;
+					indeg[pa - lightPhotonNum]++;
+				}
+			}
+		}
+		printf("inter path graph has %d edges\n" , totEdges);
+
+		while (!q.empty())
+			q.pop();
+		for (int i = lightPhotonNum; i < partialPhotonNum; i++)
+			if (indeg[i - lightPhotonNum] == 0)
+				q.push(i);
+		while (!q.empty())
+		{
+			int i = q.front();
+			cannotBeCycle[i - lightPhotonNum] = true;
+			q.pop();
+			int k = revIndex[i - lightPhotonNum];
+			for (int j = 0; j < partPathMergeIndex[k].size(); j++)
+			{
+				int pa = partPathMergeIndex[k][j];
+				if (pa >= lightPhotonNum)
+				{
+					indeg[pa - lightPhotonNum]--;
+					if (indeg[pa - lightPhotonNum] == 0)
+						q.push(pa);
+				}
+			}
+		}
+		
+		int cnt = 0;
+		for (int i = lightPhotonNum; i < partialPhotonNum; i++)
+			if (cannotBeCycle[i - lightPhotonNum])
+				cnt++;
+		printf("%d/%d nodes may be in a cycle\n" , partialPhotonNum - lightPhotonNum - cnt , partialPhotonNum - lightPhotonNum);
+	}
+
 	while (f)
 	{
 		f = false;
@@ -829,16 +930,28 @@ void IptTracer::mergePartialPaths(omp_lock_t& cmdLock)
 			inStack[i] = 0;
 		}
 
-		for (int st = lightPhotonNum; st < partialPhotonNum; st++)
+		vector<int> nodePerm(partialPhotonNum - lightPhotonNum);
+		for (int i = lightPhotonNum; i < partialPhotonNum; i++)
+			nodePerm[i - lightPhotonNum] = i;
+		int N = nodePerm.size();
+		for (int i = 0; i < nodePerm.size() / 10; i++)
 		{
-			if (vis[st - lightPhotonNum])
+			int x = rand() % N;
+			int y = rand() % N;
+			swap(nodePerm[x] , nodePerm[y]);
+		}
+
+		for (int i = 0; i < nodePerm.size(); i++)
+		{
+			int st = nodePerm[i];
+			if (cannotBeCycle[st - lightPhotonNum] || vis[st - lightPhotonNum])
 				continue;
 			while (!cycle.empty())
 			{
 				inStack[cycle.top() - lightPhotonNum] = 0;
 				cycle.pop();
 			}
-			f |= dfs(st);
+			f |= dfs(1 , st);
 		}
 
 		// eliminate cycle
@@ -855,15 +968,17 @@ void IptTracer::mergePartialPaths(omp_lock_t& cmdLock)
 			}
 			if (index != -1)
 				partPathMergeIndex[k].erase(partPathMergeIndex[k].begin() + index);
+
 		}
 		edgeToRemove.clear();
 
 		checkTime--;
+		//printf("eliminating cycles: iteration %d\n" , checkCycleIters - checkTime);
 		if (checkTime == 0)
 			break;
 	}
 
-	printf("check & eliminate cycles\n");
+	printf("check & eliminate cycles, use %d iterations\n" , checkCycleIters - checkTime);
 	
 	f = true;
 	int totMergeIter = 0;
@@ -873,7 +988,7 @@ void IptTracer::mergePartialPaths(omp_lock_t& cmdLock)
 #pragma omp parallel for
 		for (int i = lightPhotonNum; i < partialPhotonNum; i++)
 		{
-			mergePartialPaths(contribs , partialSubPathList[i]);
+			mergePartialPaths(contribs , mergedPath , partialSubPathList[i]);
 		}
 
 		f = false;
@@ -883,6 +998,7 @@ void IptTracer::mergePartialPaths(omp_lock_t& cmdLock)
 				intensity(contribs[i - lightPhotonNum])) > 1e-3f)
 				f = true;
 			partialSubPathList[i].indirContrib = contribs[i - lightPhotonNum];
+			partialSubPathList[i].mergedPath = mergedPath[i - lightPhotonNum];
 		}
 
 		if (totMergeIter > mergeIterations) break;
@@ -901,10 +1017,8 @@ void IptTracer::mergePartialPaths(omp_lock_t& cmdLock)
 	delete[] revIndex;
 }
 
-bool IptTracer::dfs(int cur)
+bool IptTracer::dfs(int depth , int cur)
 {
-	//if (partialSubPathList[cur].ray->contactObject)
-	//	return false;
 	if (vis[cur - lightPhotonNum])
 	{
 		if (inStack[cur - lightPhotonNum])
@@ -936,6 +1050,10 @@ bool IptTracer::dfs(int cur)
 		
 		return false;
 	}
+
+	if (depth > maxDepth)
+		return false;
+
 	vis[cur - lightPhotonNum] = 1;
 	cycle.push(cur);
 	inStack[cur - lightPhotonNum] = 1;
@@ -944,10 +1062,10 @@ bool IptTracer::dfs(int cur)
 	for (int j = 0; j < partPathMergeIndex[k].size(); j++)
 	{
 		int pa = partPathMergeIndex[k][j];
-		if (pa < lightPhotonNum)
+		if (pa < lightPhotonNum || cannotBeCycle[pa - lightPhotonNum])
 			continue;
 
-		isCycle |= dfs(pa);
+		isCycle |= dfs(depth + 1 , pa);
 		if (isCycle)
 			return true;
 	}
@@ -1084,7 +1202,7 @@ vec3f IptTracer::colorByRayMarching(Path& eyeMergePath , PointKDTree<IptPathStat
 					cameraState.pos = outRay.origin;
 					query.cameraState = &cameraState;
 
-					partialSubPaths.searchInRadius(0 , query.cameraState->pos , mergeRadius , query);
+					partialSubPaths.searchInRadius(0 , query.cameraState->pos , gatherRadius , query);
 
 					outRay.origin -= volRay.direction * t;
 					tr *= vol->getRadianceDecay(outRay , step);
@@ -1126,9 +1244,9 @@ vec3f IptTracer::colorByRayMarching(Path& eyeMergePath , PointKDTree<IptPathStat
 					cameraState.pos = outRay.origin;
 					query.cameraState = &cameraState;
 
-					partialSubPaths.searchInRadius(0 , query.cameraState->pos , mergeRadius , query);
+					partialSubPaths.searchInRadius(0 , query.cameraState->pos , gatherRadius , query);
 
-					outRay.origin -= volRay.direction * t;
+					outRay.direction = -volRay.direction;
 					tr *= vol->getRadianceDecay(outRay , step);
 
 					volumeRes += query.color * tr * step;
@@ -1161,7 +1279,7 @@ vec3f IptTracer::colorByRayMarching(Path& eyeMergePath , PointKDTree<IptPathStat
 
 			query.cameraState = &cameraState;
 
-			partialSubPaths.searchInRadius(0 , query.cameraState->pos , mergeRadius , query);
+			partialSubPaths.searchInRadius(0 , query.cameraState->pos , gatherRadius , query);
 
 			surfaceRes = query.color;
 
@@ -1179,11 +1297,12 @@ vec3f IptTracer::colorByRayMarching(Path& eyeMergePath , PointKDTree<IptPathStat
 	return color;
 }
 
-void IptTracer::mergePartialPaths(vector<vec3f>& contribs , const IptPathState& interState)
+void IptTracer::mergePartialPaths(vector<vec3f>& contribs , vector<double>& mergedPath , const IptPathState& interState)
 {
 	struct MergeQuery
 	{
 		vec3f color;
+		double mergedPath;
 		IptTracer *tracer;
 		const IptPathState* interState;
 
@@ -1322,6 +1441,14 @@ void IptTracer::mergePartialPaths(vector<vec3f>& contribs , const IptPathState& 
 			res *= weightFactor;
 
 			color += res;
+			mergedPath += lightState.mergedPath;
+
+			//if (res.x > totContrib.x || res.y > totContrib.y || res.z > totContrib.z)
+			//{
+			//	printf("(%.8f,%.8f,%.8f)>(%.8f,%.8f,%.8f)\n" , res.x , res.y , res.z ,
+			//		totContrib.x , totContrib.y , totContrib.z);
+			//}
+
 			/*
 			vec3f resx = res;	
 			if (resx.x > totContrib.x || resx.y > totContrib.y || resx.z > totContrib.z)
@@ -1340,6 +1467,7 @@ void IptTracer::mergePartialPaths(vector<vec3f>& contribs , const IptPathState& 
 	MergeQuery query(this);
 	query.interState = &interState;
 	query.color = vec3f(0, 0, 0);
+	query.mergedPath = 0;
 
 	int pa = revIndex[interState.index - lightPhotonNum];
 	/*
@@ -1354,6 +1482,7 @@ void IptTracer::mergePartialPaths(vector<vec3f>& contribs , const IptPathState& 
 	}
 
 	contribs[interState.index - lightPhotonNum] = query.color;
+	mergedPath[interState.index - lightPhotonNum] = query.mergedPath;
 }
 
 void IptTracer::movePaths(omp_lock_t& cmdLock , vector<Path>& pathListGPU , vector<Path*>& pathList)

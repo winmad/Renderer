@@ -213,9 +213,6 @@
     <ClInclude Include="CountHashGrid.h">
       <Filter>头文件\Accleration</Filter>
     </ClInclude>
-    <ClInclude Include="LogDistSampler.h">
-      <Filter>头文件\Sampler</Filter>
-    </ClInclude>
     <ClInclude Include="UniformSphericalSampler.h">
       <Filter>头文件\Sampler</Filter>
     </ClInclude>

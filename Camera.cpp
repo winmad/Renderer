@@ -41,6 +41,9 @@ Ray Camera::generateRay(unsigned pixelID , bool flag) const
 	ray.directionSampleType = Ray::RANDOM;
 	ray.originSampleType = Ray::DEFINITE;
 	ray.pixelID = pixelID;
+
+	//if (x == 42 && y == 233)
+	//	printf("pixel=(%d,%d), dir=(%.3f,%.3f,%.3f)\n" , x , y , ray.direction.x , ray.direction.y , ray.direction.z);
 	return ray;
 }
 

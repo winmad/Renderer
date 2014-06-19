@@ -6,7 +6,8 @@
 #include "SceneVPMObject.h"
 #include "SceneHeteroGeneousVolume.h"
 
-static FILE *fp = fopen("debug_ipt_y.txt" , "w");
+static FILE *fp = fopen("debug_ipt_inter.txt" , "w");
+//static FILE *fp1 = fopen("debug_ipt_light.txt" , "w");
 static FILE *err = fopen("error_report.txt" , "w");
 
 float INV_2_PI = 0.5 / M_PI;
@@ -15,18 +16,25 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 {
 	if (!usePPM)
 	{
-		lightPathNum = pixelNum * pathRatio;
-		interPathNum = pixelNum * (1.f - pathRatio);
+		lightPathNum = totPathNum * pathRatio;
+		interPathNum = totPathNum * (1.f - pathRatio);
 		partialPathNum = interPathNum;
+
+		mergeIterations = maxDepth;
+		useWeight = true;
 	}
 	else
 	{
-		lightPathNum = pixelNum;
-		interPathNum = pixelNum;
+		lightPathNum = totPathNum;
+		interPathNum = totPathNum;
 		partialPathNum = interPathNum;
+
+		mergeIterations = 0;
+		useWeight = false;
 	}
 	cameraPathNum = pixelNum;
 	
+	useUniformInterSampler = (useUniformSur && useUniformVol);
 
 	vector<vec3f> pixelColors(camera.width * camera.height, vec3f(0, 0, 0));
 	vector<omp_lock_t> pixelLocks(pixelColors.size());
@@ -88,6 +96,7 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 			mergeRadius = r0 * powf(powf(max(base , 1.f) , alpha - 1.f) , 1.f / 2.f);
 			gatherRadius = gr0 * powf(powf(max(base , 1.f) , alpha - 1.f) , 1.f / 2.f);
 		}
+		mergeRadius = r0;
 		mergeRadius = std::max(mergeRadius , 1e-7f);
 		gatherRadius = std::max(gatherRadius , 1e-7f);
 
@@ -188,13 +197,14 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 			for (int i = 0; i < partialPhotonNum; i++)
 			{
 				IptPathState& subPath = partialSubPathList[i];
-				if (s == 0)
+				if ((useUniformInterSampler && s == 0) || (!useUniformInterSampler && s == 1))
 				{
 					vec3f contrib;
 					if (i < lightPhotonNum)
 					{
 						//contrib = subPath.throughput;
-						//fprintf(fp , "dirContrib=(%.8f,%.8f,%.8f), pathNum = %d\n" , contrib.x , contrib.y , contrib.z , subPath.mergedPath);
+						//fprintf(fp1 , "==============\n");
+						//fprintf(fp1 , "dirContrib=(%.8f,%.8f,%.8f), pathNum = %.1lf\n" , contrib.x , contrib.y , contrib.z , subPath.mergedPath);
 					}
 					else
 					{
@@ -211,6 +221,7 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 #pragma omp parallel for
 			for(int p=0; p<cameraPathNum; p++)
 			{
+				//fprintf(fp2 , "========== pixel id = %d ==========\n" , p);
 				Path eyePath;
 				
 				sampleMergePath(eyePath , camera.generateRay(p) , 0);
@@ -245,16 +256,6 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 
 				float weightFactor = 1.f;
 				vec3f colorHitLight(0.f);
-
-				for(unsigned i = 1; i < eyePath.size(); i++)
-				{
-					if (eyePath[i].contactObject && eyePath[i].contactObject->emissive())
-						break;
-					if (eyePath[i].directionSampleType == Ray::RANDOM)
-						nonSpecLength++;
-					if (eyePath[i].direction.length() < 0.5f)
-						break;
-				}
 
 				int N = maxDepth;
 				nonSpecLength = 0;
@@ -579,8 +580,10 @@ void IptTracer::genLightPaths(omp_lock_t& cmdLock , vector<Path*>& lightPathList
 						originProb = 1.f / totArea;
 					else
 						originProb = lightPath[i].contactObject->getOriginProb(lightPath[i].contactObjectTriangleID);
-					//dirProb = INV_2_PI;
-					dirProb = lightPath[i].getCosineTerm() / M_PI;
+					if (useUniformDir)
+						dirProb = INV_2_PI;
+					else
+						dirProb = lightPath[i].getCosineTerm() / M_PI;
 				}
 
 				//if (lightPath[i].insideObject && lightPath[i].contactObject)
@@ -637,13 +640,13 @@ Ray IptTracer::genIntermediateSamples(Scene& scene)
 		}
 		else
 		{
-			Ray ray = genOtherSurfaceSample(useUniformSur , false);
+			Ray ray = genOtherSurfaceSample(useUniformSur , useUniformDir);
 			return ray;
 		}
 	}
 	else
 	{
-		Ray ray = genOtherSurfaceSample(useUniformSur , false);
+		Ray ray = genOtherSurfaceSample(useUniformSur , useUniformDir);
 		return ray;
 	}
 }
@@ -753,8 +756,10 @@ void IptTracer::genIntermediatePaths(omp_lock_t& cmdLock , vector<Path*>& interP
 						originProb = 1.f / totArea;
 					else
 						originProb = interPath[i].contactObject->getOriginProb(interPath[i].contactObjectTriangleID);
-					//dirProb = INV_2_PI;
-					dirProb = interPath[i].getCosineTerm() / M_PI;
+					if (useUniformDir)
+						dirProb = INV_2_PI;
+					else
+						dirProb = interPath[i].getCosineTerm() / M_PI;
 				}
 
 				//if (interPath[i].insideObject && interPath[i].contactObject)
@@ -1148,7 +1153,7 @@ vec3f IptTracer::colorByMergingPaths(IptPathState& cameraState, PointKDTree<IptP
 	query.cameraState = &cameraState;
 	query.color = vec3f(0, 0, 0);
 
-	partialSubPaths.searchInRadius(0 , query.cameraState->pos , mergeRadius , query);
+	partialSubPaths.searchInRadius(0 , query.cameraState->pos , gatherRadius , query);
 
 	return query.color;
 }

@@ -358,6 +358,18 @@ void ConfigManager::load(const string &configFilePath)
 				((IptTracer*)renderer->mcRenderer)->gatherRadius = (atof(nodeRenderer->first_node("gatherRadius")->value()));
 			if (nodeRenderer->first_node("pathRatio"))
 				((IptTracer*)renderer->mcRenderer)->pathRatio = (atof(nodeRenderer->first_node("pathRatio")->value())); 
+			if (nodeRenderer->first_node("mergeRatio"))
+				((IptTracer*)renderer->mcRenderer)->mergeRatio = (atof(nodeRenderer->first_node("mergeRatio")->value())); 
+			if (nodeRenderer->first_node("usePPM"))
+				((IptTracer*)renderer->mcRenderer)->usePPM = (atoi(nodeRenderer->first_node("usePPM")->value()) == 1 ? true : false);
+			if (nodeRenderer->first_node("pathNum"))
+				((IptTracer*)renderer->mcRenderer)->totPathNum = (atoi(nodeRenderer->first_node("pathNum")->value()));
+			if (nodeRenderer->first_node("isDebug"))
+				((IptTracer*)renderer->mcRenderer)->isDebug = (atoi(nodeRenderer->first_node("isDebug")->value()) == 1 ? true : false);
+			if (nodeRenderer->first_node("useUniformSur"))
+				((IptTracer*)renderer->mcRenderer)->useUniformSur = (atoi(nodeRenderer->first_node("useUniformSur")->value()) == 1 ? true : false);
+			if (nodeRenderer->first_node("useDirIllu"))
+				((IptTracer*)renderer->mcRenderer)->useDirIllu = (atoi(nodeRenderer->first_node("useDirIllu")->value()) == 1 ? true : false);
 		}
 		if (nodeRenderer->first_node("maxDepth"))
 			renderer->mcRenderer->setMaxDepth(atoi(nodeRenderer->first_node("maxDepth")->value()));

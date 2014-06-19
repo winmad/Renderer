@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "nvVector.h"
+#include "smallFuncs.h"
 #include <string>
 #include <iostream>
 #include <fstream>
@@ -87,6 +88,7 @@ int main(int argc, char* argv[])
 	return 0;
 }
 */
+
 /*
 int main()
 {
@@ -123,12 +125,9 @@ IplImage *readImagePFM(const string& fileName)
 			fread((float*)&data[3*(j*img->width+i)+2], sizeof(float), 1, file);
 			fread((float*)&data[3*(j*img->width+i)+1], sizeof(float), 1, file);
 			fread((float*)&data[3*(j*img->width+i)], sizeof(float), 1, file);
-			if (data[3*(j*img->width+i)+2] > 50.f)
-			{
-				data[3*(j*img->width+i)+2] = 50.f;
-				data[3*(j*img->width+i)+1] = 50.f;
-				data[3*(j*img->width+i)] = 50.f;
-			}
+			data[3*(j*img->width+i)+2] = clampf(data[3*(j*img->width+i)+2] , 0.f , 1.f);
+			data[3*(j*img->width+i)+1] = clampf(data[3*(j*img->width+i)+1] , 0.f , 1.f);
+			data[3*(j*img->width+i)] = clampf(data[3*(j*img->width+i)] , 0.f , 1.f);
 		}
 	}
 

@@ -8,6 +8,8 @@
 #include "CountHashGrid.h"
 #include "macros.h"
 
+static FILE *fp2 = fopen("debug_ipt_gather_y.txt" , "w");
+
 struct IptPathState
 {
 	vec3f throughput , indirContrib;
@@ -74,52 +76,42 @@ public:
 	Real lightGatherKernel , interGatherKernel;
 	Real alpha;
 	Real totArea , totVol;
-	Real initialProb;
+	Real mergeRatio;
 	unsigned timeInterval , lastTime;
 	bool useWeight , usePPM , useDirIllu , useRayMarching , checkCycle;
-	bool useUniformInterSampler , useUniformSur , useUniformVol;
+	bool useUniformInterSampler , useUniformSur , useUniformVol , useUniformDir;
 	bool isDebug;
 
 	int pixelNum , lightPathNum , cameraPathNum , interPathNum , partialPathNum;
+	int totPathNum;
 	int lightPhotonNum , partialPhotonNum;
 
 	IptTracer(Renderer* renderer) : MCRenderer(renderer)
 	{ 
 		alpha = 2.f / 3.f;
 		spp = -1; 
-		initialProb = 1.f;
+		mergeRatio = 1.f;
 		timeInterval = lastTime = 3600;
 		gatherRadius = 0.f;
 		pathRatio = 0.5f;
 
 		pixelNum = renderer->camera.height * renderer->camera.width;
+		totPathNum = pixelNum;
 
 		usePPM = false;
-		useDirIllu = false;
+		useDirIllu = true;
 		useRayMarching = true;
 
 		useUniformSur = true;
 		useUniformVol = true;
-		useUniformInterSampler = (useUniformSur && useUniformVol);
+		useUniformDir = false;
 
 		checkCycle = true;
 		checkCycleIters = 100;
 
-		isDebug = false;
-
-		if (usePPM)
-		{
-			mergeIterations = 0;
-			useWeight = false;
-		}
-		else
-		{
-			mergeIterations = maxDepth;
-			useWeight = true;
-		}
+		isDebug = true;
 	}
 	void setRadius(const Real& r) { mergeRadius = r; }
-	void setInitProb(const Real& r) { initialProb = r; }
 	virtual vector<vec3f> renderPixels(const Camera& camera);
 	
 	Real connectFactor(Real pdf)
@@ -139,7 +131,7 @@ public:
 		if (pathNum)
 			s *= (float)*pathNum;
 		Real res = M_PI * mergeRadius * mergeRadius * s;
-		return res;
+		return res * mergeRatio;
 	}
 	
 	Real kernel(Real distSqr , Real radiusSqr)
@@ -156,7 +148,7 @@ struct GatherQuery
 	IptTracer *tracer;
 	IptPathState* cameraState;
 	bool constKernel;
-	int mergeNum;
+	double mergeNum;
 
 	GatherQuery(IptTracer* tracer) { this->tracer = tracer; mergeNum = 0; constKernel = true; }
 
@@ -276,6 +268,11 @@ struct GatherQuery
 
 			res *= weightFactor;
 		}
+
+// 		if (lightState.index < tracer->lightPhotonNum)
+// 			fprintf(fp2 , "dir , contrib = (%.4f,%.4f,%.4f)\n" , res.x , res.y , res.z);
+// 		else
+// 			fprintf(fp2 , "indir , contrib = (%.4f,%.4f,%.4f)\n" , res.x , res.y , res.z);
 
 		color += res;
 		/*

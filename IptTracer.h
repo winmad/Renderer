@@ -7,6 +7,7 @@
 #include "PointKDTree.h"
 #include "CountHashGrid.h"
 #include "macros.h"
+#include "SceneVPMObject.h"
 
 static FILE *fp2 = fopen("debug_ipt_gather_y.txt" , "w");
 

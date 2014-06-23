@@ -199,7 +199,7 @@ void SimpleShape::loadShape(const string &fileName, bool normalize, vector<Simpl
 
 		matrix4<float> changeHandness;
 		changeHandness.set_scale(vec3f(-1.f , 1.f , 1.f));
-		matrix4<float> trans = transform * unitizeMat;
+		matrix4<float> trans = changeHandness * transform * unitizeMat;
 		printf("=================\n");
 		for (int i = 0; i < 4; i++)
 		{

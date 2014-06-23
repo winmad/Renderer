@@ -32,7 +32,6 @@ private:
 	unordered_map<string, pair<xml_document<>*, char*>> path_doc;
 
 	Renderer* renderer;
-	
 
 	xml_node<>* findNode(const string& filePath, const string& nodeTag, const string& nodeName);
 

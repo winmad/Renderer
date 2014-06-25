@@ -1178,7 +1178,7 @@ vec3f IptTracer::colorByRayMarching(Path& eyeMergePath , PointKDTree<IptPathStat
 			{
 				GatherQuery query(this);
 				query.color = vec3f(0.f);
-				query.constKernel = false;
+				query.constKernel = useConstantKernel;
 
 				Ray volRay = eyeMergePath[i - 1];
 				SceneVPMObject *vol = static_cast<SceneVPMObject*>(volRay.insideObject);
@@ -1220,7 +1220,7 @@ vec3f IptTracer::colorByRayMarching(Path& eyeMergePath , PointKDTree<IptPathStat
 			{
 				GatherQuery query(this);
 				query.color = vec3f(0.f);
-				query.constKernel = false;
+				query.constKernel = useConstantKernel;
 
 				Ray volRay = eyeMergePath[i - 1];
 				HeterogeneousVolume *vol = static_cast<HeterogeneousVolume*>(volRay.insideObject);
@@ -1274,7 +1274,7 @@ vec3f IptTracer::colorByRayMarching(Path& eyeMergePath , PointKDTree<IptPathStat
 
 			GatherQuery query(this);
 			query.color = vec3f(0.f);
-			query.constKernel = false;
+			query.constKernel = useConstantKernel;
 
 			IptPathState cameraState;
 			cameraState.throughput = vec3f(1.f);

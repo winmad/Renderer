@@ -1,5 +1,6 @@
 #include "StdAfx.h"
 #include "SimpleShape.h"
+#include "nvMatrix.h"
 
 vec3f SimpleShape::getCenter() const
 {
@@ -192,6 +193,7 @@ void SimpleShape::loadShape(const string &fileName, bool normalize, vector<Simpl
 		matrix4<float> unitizeMat = this->unitize();
 		for(unsigned i=0; split && i<splitedShapes.size(); i++)
 		{
+			printf("unitized!!!\n");
 			splitedShapes[i]->setTransform(unitizeMat);
 			splitedShapes[i]->applyTransform();
 			splitedShapes[i]->setTransform(transform);
@@ -199,7 +201,12 @@ void SimpleShape::loadShape(const string &fileName, bool normalize, vector<Simpl
 
 		matrix4<float> changeHandness;
 		changeHandness.set_scale(vec3f(-1.f , 1.f , 1.f));
-		matrix4<float> trans = changeHandness * transform * unitizeMat;
+		matrix4<float> trans;
+		if (split)
+			trans = changeHandness * transform * unitizeMat;
+		else
+			trans = changeHandness * transform;
+
 		printf("=================\n");
 		for (int i = 0; i < 4; i++)
 		{
@@ -215,8 +222,12 @@ void SimpleShape::loadShape(const string &fileName, bool normalize, vector<Simpl
 void SimpleShape::applyTransform()
 {
 	matrix4<float> normalMat = transpose(inverse(transform));
-	for(unsigned i=0; i<vertexList.size(); i++)
-		vertexList[i] = vec3f(transform*vec4<float>(vertexList[i], 1));
+	for(unsigned i=0; i<vertexList.size(); i++) 
+	{
+		//printf("(%.6f,%.6f,%.6f)" , vertexList[i][0] , vertexList[i][1] , vertexList[i][2]);
+		vertexList[i] = vec3f(transform*vec4<float>(vertexList[i], 1));	
+		//printf("->(%.6f,%.6f,%.6f)\n" , vertexList[i][0] , vertexList[i][1] , vertexList[i][2]);
+	}
 	for(unsigned i=0; i<vertexNormalList.size(); i++)
 		vertexNormalList[i] = vec3f(normalMat*vec4<float>(vertexNormalList[i], 0));
 	transform.make_identity();
@@ -256,8 +267,8 @@ matrix4<float> SimpleShape::unitize()
 		vertexList[i] -= center;
 		vertexList[i] /= maxLen/2;
 	}
-	//return matrix4<float>(2/maxLen, 0, 0, -2/maxLen*center.x, 0, 2/maxLen, 0, -2/maxLen*center.y, 0, 0, 2/maxLen, -2/maxLen*center.z, 0, 0, 0, 1);
-	return matrix4<float>(2/maxLen, 0, 0, 0, 0, 2/maxLen, 0, 0, 0, 0, 2/maxLen, 0, -2/maxLen*center.x, -2/maxLen*center.y, -2/maxLen*center.z, 1);
+	return matrix4<float>(2/maxLen, 0, 0, -2/maxLen*center.x, 0, 2/maxLen, 0, -2/maxLen*center.y, 0, 0, 2/maxLen, -2/maxLen*center.z, 0, 0, 0, 1);
+	//return matrix4<float>(2/maxLen, 0, 0, 0, 0, 2/maxLen, 0, 0, 0, 0, 2/maxLen, 0, -2/maxLen*center.x, -2/maxLen*center.y, -2/maxLen*center.z, 1);
 }
 
 vec3f SimpleShape::getTexCoord(unsigned fi, const vec3f& position) const

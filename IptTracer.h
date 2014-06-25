@@ -81,6 +81,7 @@ public:
 	unsigned timeInterval , lastTime;
 	bool useWeight , usePPM , useDirIllu , useRayMarching , checkCycle;
 	bool useUniformInterSampler , useUniformSur , useUniformVol , useUniformDir;
+	bool useConstantKernel;
 	bool isDebug;
 
 	int pixelNum , lightPathNum , cameraPathNum , interPathNum , partialPathNum;
@@ -106,6 +107,8 @@ public:
 		useUniformSur = true;
 		useUniformVol = true;
 		useUniformDir = false;
+
+		useConstantKernel = false;
 
 		checkCycle = true;
 		checkCycleIters = 100;

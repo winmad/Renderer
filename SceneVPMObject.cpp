@@ -37,12 +37,16 @@ Ray SceneVPMObject::scatter(const Ray& inRay, const bool russian) const
 		outRay.contactObject = (SceneObject*)this;
 		outRay.contactObjectTriangleID = inRay.intersectObjectTriangleID;
 
-		if(sin_phi > 1){
+		if(sin_phi >= 1){
 			outRay.direction = reflDir;
 			outRay.insideObject = inRay.insideObject;
 			outRay.directionProb = 1;
 			outRay.directionSampleType = Ray::DEFINITE;
 			outRay.photonType = Ray::NOUSE;
+			outRay.color /= outRay.getCosineTerm();
+
+			//if (abs(outRay.getCosineTerm() - 1.f) > 1e-6f)
+			//	printf("exception1: %.6f\n" , outRay.getCosineTerm());
 		}
 		else{
 			float phi = asin(sin_phi);
@@ -58,7 +62,7 @@ Ray SceneVPMObject::scatter(const Ray& inRay, const bool russian) const
 			float esr = powf(abs(current_n*cos_theta-next_n*cos_phi)/(current_n*cos_theta+next_n*cos_phi),2);
 			float epr = powf(abs(next_n*cos_theta-current_n*cos_phi)/(next_n*cos_theta+current_n*cos_phi),2);
 			float er = (esr+epr)*0.5f;
-			float p = er;
+			float p = clampf(er , 0.f , 1.f);
 
 			if(RandGenerator::genFloat() < p)
 			{
@@ -158,13 +162,17 @@ Ray SceneVPMObject::scatter(const Ray& inRay, const bool russian) const
 			float sin_phi = current_n / next_n * sin(theta);
 
 			outRay.intersectObject = NULL;
-			if(sin_phi > 1){
+			if(sin_phi >= 1){
 				outRay.direction = reflDir;
 				outRay.insideObject = inRay.insideObject;
 				outRay.contactObject = (SceneObject*)this;
 				outRay.originProb = P_surface(inRay.intersectDist);
 				outRay.photonType = Ray::NOUSE;
 				outRay.directionSampleType = Ray::DEFINITE;
+				outRay.color /= outRay.getCosineTerm();
+
+				//if (abs(outRay.getCosineTerm() - 1.f) > 1e-6f)
+				//	printf("exception2: %.6f\n" , outRay.getCosineTerm());
 			}
 			else{
 				float phi = asin(sin_phi);
@@ -180,7 +188,7 @@ Ray SceneVPMObject::scatter(const Ray& inRay, const bool russian) const
 				float esr = powf(abs(current_n*cos_theta-next_n*cos_phi)/(current_n*cos_theta+next_n*cos_phi),2);
 				float epr = powf(abs(next_n*cos_theta-current_n*cos_phi)/(next_n*cos_theta+current_n*cos_phi),2);
 				float er = (esr+epr)/2.f;
-				float p = er;
+				float p = clampf(er , 0.f , 1.f);
 
 				if(RandGenerator::genFloat() < p)
 				{

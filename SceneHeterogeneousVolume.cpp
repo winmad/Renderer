@@ -197,7 +197,7 @@ int HeterogeneousVolume::check(const Ray &inRay, float *intersectDist) const{
 	NoSelfIntersectionCondition condition(scene, inRay);
 	Scene::ObjSourceInformation info;
 	float d = scene->intersect(inRay, info, &condition);
-	if(!(d > 0))
+	if(!(d > 1e-6f))
 		return 2;
 
 	if(intersectDist)

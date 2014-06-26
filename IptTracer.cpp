@@ -9,6 +9,7 @@
 static FILE *fp = fopen("debug_ipt_inter.txt" , "w");
 //static FILE *fp1 = fopen("debug_ipt_light.txt" , "w");
 static FILE *err = fopen("error_report.txt" , "w");
+static FILE *fm = fopen("mask.txt" , "w");
 
 float INV_2_PI = 0.5 / M_PI;
 
@@ -38,6 +39,7 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 
 	vector<vec3f> pixelColors(camera.width * camera.height, vec3f(0, 0, 0));
 	vector<omp_lock_t> pixelLocks(pixelColors.size());
+	volMask.resize(camera.width * camera.height);
 
 	preprocessEmissionSampler();
 	preprocessOtherSampler(useUniformSur);
@@ -225,7 +227,7 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 				Path eyePath;
 				
 				sampleMergePath(eyePath , camera.generateRay(p) , 0);
-				singleImageColors[p] += colorByRayMarching(eyePath , partialSubPaths);
+				singleImageColors[p] += colorByRayMarching(eyePath , partialSubPaths , p);
 				
 				// abandon all the rest!
 				/*
@@ -402,7 +404,7 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 				}
 				*/
 				//sampleMergePath(eyePath , camera.generateRay(p , true) , 0);
-				singleImageColors[p] += colorByRayMarching(eyePath , partialSubPaths);
+				singleImageColors[p] += colorByRayMarching(eyePath , partialSubPaths , p);
 			}
 		}
 
@@ -459,6 +461,21 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 
 		printf("Iter: %d  IterTime: %ds  TotalTime: %ds\n", s, (clock()-t)/1000, clock()/1000);
 
+		if ((useUniformInterSampler && s == 0) || (!useUniformInterSampler && s == 1))
+		{
+			for (int y = camera.height - 1; y >= 0; y--)
+			{
+				for (int x = 0; x < camera.width; x++)
+				{
+					if (volMask[y * camera.width + x])
+						fprintf(fm , "1 ");
+					else
+						fprintf(fm , "0 ");
+				}
+				fprintf(fm , "\n");
+			}
+		}
+
 		//if (clock() / 1000 >= lastTime)
 		if (s % outputIter == 0 && !isDebug)
 		{
@@ -469,7 +486,7 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 		}
 		else
 			showCurrentResult(pixelColors);
-	}
+	}	
 
 	for(int i=0; i<pixelLocks.size(); i++)
 	{
@@ -1158,7 +1175,7 @@ vec3f IptTracer::colorByMergingPaths(IptPathState& cameraState, PointKDTree<IptP
 	return query.color;
 }
 
-vec3f IptTracer::colorByRayMarching(Path& eyeMergePath , PointKDTree<IptPathState>& partialSubPaths)
+vec3f IptTracer::colorByRayMarching(Path& eyeMergePath , PointKDTree<IptPathState>& partialSubPaths , int pixelID)
 {
 	vec3f tr(1.f) , surfaceRes(0.f) , volumeRes(0.f);
 	for (int i = 1; i < eyeMergePath.size(); i++)
@@ -1174,6 +1191,7 @@ vec3f IptTracer::colorByRayMarching(Path& eyeMergePath , PointKDTree<IptPathStat
 		Real dist = std::max((eyeMergePath[i - 1].origin - eyeMergePath[i].origin).length() , 1e-5f);
 		if (eyeMergePath[i - 1].insideObject && eyeMergePath[i - 1].insideObject->isVolumetric())
 		{
+			volMask[pixelID] = true;
 			if (eyeMergePath[i - 1].insideObject->isHomogeneous())
 			{
 				GatherQuery query(this);

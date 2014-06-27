@@ -88,6 +88,80 @@ void HeterogeneousVolume::loadSubSurfaceVolumeData(const std::string &fileScatte
 		mSubSurfaceDensityMap_Extinction[i] = mSubSurfaceDensityMap_Scattering[i] + mSubSurfaceDensityMap_Absorption[i];
 	}
 	std::cout << "load SubSurface volume data done. " << std::endl;
+
+	writeMitsubaDensityMap("het_dragon_density.vol");
+	writeMitsubaAlbedo("het_dragon_albedo.vol");
+
+	std::cout << "export volume data to mitsuba format. " << std::endl;
+}
+
+void HeterogeneousVolume::writeMitsubaDensityMap(const std::string& filename)
+{
+	FILE *fw = fopen(filename.c_str() , "wb");
+	fwrite("VOL" , sizeof(char) , 3 , fw);
+	char ch = 3;
+	fwrite(&ch , sizeof(char) , 1 , fw);
+	int type , X , Y , Z , channels;
+	type = 1;
+	X = mBBox.nx; Y = mBBox.ny; Z = mBBox.nz;
+	channels = 1;
+
+	fwrite(&type , sizeof(int) , 1 , fw);
+	fwrite(&X , sizeof(int) , 1 , fw);
+	fwrite(&Y , sizeof(int) , 1 , fw);
+	fwrite(&Z , sizeof(int) , 1 , fw);
+	fwrite(&channels , sizeof(int) , 1 , fw);
+
+	fwrite(&mBBox.p0[0] , sizeof(float) , 1 , fw);
+	fwrite(&mBBox.p0[1] , sizeof(float) , 1 , fw);
+	fwrite(&mBBox.p0[2] , sizeof(float) , 1 , fw);
+	fwrite(&mBBox.p1[0] , sizeof(float) , 1 , fw);
+	fwrite(&mBBox.p1[1] , sizeof(float) , 1 , fw);
+	fwrite(&mBBox.p1[2] , sizeof(float) , 1 , fw);
+
+	int N = X * Y * Z;
+	for (int i = 0; i < N; i++)
+	{
+		float den = Luminance(mSubSurfaceDensityMap_Extinction[i]) / 20.f;
+		fwrite(&den , sizeof(float) , 1 , fw);
+	}
+
+	fclose(fw);
+}
+
+void HeterogeneousVolume::writeMitsubaAlbedo(const std::string& filename)
+{
+	FILE *fw = fopen(filename.c_str() , "wb");
+	fwrite("VOL" , sizeof(char) , 3 , fw);
+	char ch = 3;
+	fwrite(&ch , sizeof(char) , 1 , fw);
+	int type , X , Y , Z , channels;
+	type = 1;
+	X = mBBox.nx; Y = mBBox.ny; Z = mBBox.nz;
+	channels = 3;
+	fwrite(&type , sizeof(int) , 1 , fw);
+	fwrite(&X , sizeof(int) , 1 , fw);
+	fwrite(&Y , sizeof(int) , 1 , fw);
+	fwrite(&Z , sizeof(int) , 1 , fw);
+	fwrite(&channels , sizeof(int) , 1 , fw);
+
+	fwrite(&mBBox.p0[0] , sizeof(float) , 1 , fw);
+	fwrite(&mBBox.p0[1] , sizeof(float) , 1 , fw);
+	fwrite(&mBBox.p0[2] , sizeof(float) , 1 , fw);
+	fwrite(&mBBox.p1[0] , sizeof(float) , 1 , fw);
+	fwrite(&mBBox.p1[1] , sizeof(float) , 1 , fw);
+	fwrite(&mBBox.p1[2] , sizeof(float) , 1 , fw);
+
+	int N = X * Y * Z;
+	for (int i = 0; i < N; i++)
+	{
+		vec3f den = mSubSurfaceDensityMap_Scattering[i] / mSubSurfaceDensityMap_Extinction[i];
+		fwrite(&den[0] , sizeof(float) , 1 , fw);
+		fwrite(&den[1] , sizeof(float) , 1 , fw);
+		fwrite(&den[2] , sizeof(float) , 1 , fw);
+	}
+
+	fclose(fw);
 }
 
 inline float HeterogeneousVolume::lookUpDensity(const vec3f &worldPos) const{

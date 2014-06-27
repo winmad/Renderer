@@ -68,9 +68,9 @@ void Compare(IplImage *img1, IplImage *img2, IplImage *ref){
 			vec3f &var1C = ((vec3f*)rst1->imageData)[y*width + x];
 			vec3f &var2C = ((vec3f*)rst2->imageData)[y*width + x];
 
-			vec3f RGB = convertLuminanceToRGB((double)var1[y*width+x]*5.f);
+			vec3f RGB = convertLuminanceToRGB((double)var1[y*width+x]*10.f);
 			var1C = vec3f(255*RGB.z, 255*RGB.y, 255*RGB.x);
-			RGB = convertLuminanceToRGB((double)var2[y*width+x]*5.f);
+			RGB = convertLuminanceToRGB((double)var2[y*width+x]*10.f);
 			var2C = vec3f(255*RGB.z, 255*RGB.y, 255*RGB.x);
 			
 		}
@@ -118,8 +118,7 @@ double CalculateRMSE(IplImage *img1, IplImage *ref){
 	return Var1;
 }
 
-/*
-int main(int argc, char* argv[])
+void cmpTwoImages(int argc, char* argv[])
 {
 	std::string file1, file2, fileRef, fileMask;
 	//std::cin >> file1 >> file2 >> fileRef;
@@ -148,10 +147,7 @@ int main(int argc, char* argv[])
 	}
 
 	Compare(img1, img2, imgRef);
-
-	return 0;
 }
-*/
 
 struct Data
 {
@@ -168,7 +164,7 @@ struct Data
 
 vector<Data> data;
 
-int main()
+void calcRMSEs()
 {
 	_finddata_t file;
 	long flag;
@@ -238,8 +234,14 @@ int main()
 	fclose(fp);
 	_findclose(flag);
 }
-
-
+/*
+int main(int argc, char* argv[])
+{
+	cmpTwoImages(argc , argv);
+	//calcRMSEs();
+	return 0;
+}
+*/
 IplImage *readImagePFM(const string& fileName)
 {
 	FILE* file;

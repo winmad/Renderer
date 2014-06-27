@@ -205,7 +205,7 @@ void SimpleShape::loadShape(const string &fileName, bool normalize, vector<Simpl
 		if (split)
 			trans = changeHandness * transform * unitizeMat;
 		else
-			trans = changeHandness * transform;
+			trans = changeHandness * transform * transpose(unitizeMat);
 
 		printf("=================\n");
 		for (int i = 0; i < 4; i++)

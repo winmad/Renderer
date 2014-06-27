@@ -256,8 +256,8 @@ matrix4<float> SimpleShape::unitize()
 		vertexList[i] -= center;
 		vertexList[i] /= maxLen/2;
 	}
-	//return matrix4<float>(2/maxLen, 0, 0, -2/maxLen*center.x, 0, 2/maxLen, 0, -2/maxLen*center.y, 0, 0, 2/maxLen, -2/maxLen*center.z, 0, 0, 0, 1);
-	return matrix4<float>(2/maxLen, 0, 0, 0, 0, 2/maxLen, 0, 0, 0, 0, 2/maxLen, 0, -2/maxLen*center.x, -2/maxLen*center.y, -2/maxLen*center.z, 1);
+	return matrix4<float>(2/maxLen, 0, 0, -2/maxLen*center.x, 0, 2/maxLen, 0, -2/maxLen*center.y, 0, 0, 2/maxLen, -2/maxLen*center.z, 0, 0, 0, 1);
+	//return matrix4<float>(2/maxLen, 0, 0, 0, 0, 2/maxLen, 0, 0, 0, 0, 2/maxLen, 0, -2/maxLen*center.x, -2/maxLen*center.y, -2/maxLen*center.z, 1);
 }
 
 vec3f SimpleShape::getTexCoord(unsigned fi, const vec3f& position) const

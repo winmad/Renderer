@@ -86,9 +86,9 @@ SceneObject* ConfigManager::generateSceneObject(xml_node<>* nodeObj, xml_node<>*
 		if(nodeMat->first_node("density_scale"))
 			obj->setDensityScale(atof(nodeMat->first_node("density_scale")->value()));
 		if(nodeMat->first_node("scattering_scale"))
-			obj->setDensityScale(atof(nodeMat->first_node("scattering_scale")->value()));
+			obj->setScatteringScale(atof(nodeMat->first_node("scattering_scale")->value()));
 		if(nodeMat->first_node("absorption_scale"))
-			obj->setDensityScale(atof(nodeMat->first_node("absorption_scale")->value()));
+			obj->setAbsorptionScale(atof(nodeMat->first_node("absorption_scale")->value()));
 
 		if(nodeMat->first_node("lookup_flag"))
 			obj->setVolumeLookUp(atof(nodeMat->first_node("lookup_flag")->value()));

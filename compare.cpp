@@ -23,6 +23,8 @@ vec3f convertLuminanceToRGB(double luminance);
 IplImage *readImagePFM(const string& fileName);
 void saveImagePFM(const string& fileName, const IplImage* image);
 
+static vector<bool> volMask;
+
 void Compare(IplImage *img1, IplImage *img2, IplImage *ref){
 	int width = ref->width, height = ref->height;
 	std::vector<double> var1(width*height), var2(width*height);
@@ -35,17 +37,29 @@ void Compare(IplImage *img1, IplImage *img2, IplImage *ref){
 	int count = 0;
 	for(int x = 0; x < width; x++){
 		for(int y = 0; y < height; y++){
+			if (!volMask[y * width + x])
+				continue;
+
 			vec3f bgr_ref = ((vec3f*)ref->imageData)[y*width + x];
 			vec3f bgr_img1 = ((vec3f*)img1->imageData)[y*width + x];
 			vec3f bgr_img2 = ((vec3f*)img2->imageData)[y*width + x];
 			
 			var1[y*width+x] = pow((bgr_ref - bgr_img1).length(),2); 
 			var2[y*width+x] = pow((bgr_ref - bgr_img2).length(),2); 
+
+			if (_isnan(var1[y*width+x]))
+				printf("(%d,%d): (%.6f,%.6f,%.6f), (%.6f,%.6f,%.6f)\n" , y , x , bgr_ref[0] , bgr_ref[1] , bgr_ref[2] ,
+					bgr_img1[0] , bgr_img1[1] , bgr_img1[2]);
+			if (_isnan(var2[y*width+x]))
+				printf("(%d,%d): (%.6f,%.6f,%.6f), (%.6f,%.6f,%.6f)\n" , y , x , bgr_ref[0] , bgr_ref[1] , bgr_ref[2] ,
+					bgr_img2[0] , bgr_img2[1] , bgr_img2[2]);
 				
 			int index = width * y + x;
 			
 			TotalVar1 += pow((bgr_img1-bgr_ref).length(),2);
 			TotalVar2 += pow((bgr_img2-bgr_ref).length(),2);
+
+			count++;
 		}
 	}
 
@@ -58,7 +72,6 @@ void Compare(IplImage *img1, IplImage *img2, IplImage *ref){
 			var1C = vec3f(255*RGB.z, 255*RGB.y, 255*RGB.x);
 			RGB = convertLuminanceToRGB((double)var2[y*width+x]*5.f);
 			var2C = vec3f(255*RGB.z, 255*RGB.y, 255*RGB.x);
-			count++;
 			
 		}
 	}
@@ -73,48 +86,167 @@ void Compare(IplImage *img1, IplImage *img2, IplImage *ref){
 	std::cout << "Var1 = " << Var1 << " Var2 = " << Var2 << std::endl;
 }
 
+double CalculateRMSE(IplImage *img1, IplImage *ref){
+	int width = ref->width, height = ref->height;
+	std::vector<double> var1(width*height);
+
+	double TotalVar1 = 0;
+	int count = 0;
+	for(int x = 0; x < width; x++){
+		for(int y = 0; y < height; y++){
+			if (!volMask[y * width + x])
+				continue;
+
+			vec3f bgr_ref = ((vec3f*)ref->imageData)[y*width + x];
+			vec3f bgr_img1 = ((vec3f*)img1->imageData)[y*width + x];
+
+			var1[y*width+x] = pow((bgr_ref - bgr_img1).length(),2); 
+
+			if (_isnan(var1[y*width+x]))
+				printf("(%d,%d): (%.6f,%.6f,%.6f), (%.6f,%.6f,%.6f)\n" , y , x , bgr_ref[0] , bgr_ref[1] , bgr_ref[2] ,
+					bgr_img1[0] , bgr_img1[1] , bgr_img1[2]);
+
+			int index = width * y + x;
+
+			TotalVar1 += pow((bgr_img1-bgr_ref).length(),2);
+
+			count++;
+		}
+	}
+
+	double Var1 = sqrt(TotalVar1 / (count));
+	return Var1;
+}
+
 /*
 int main(int argc, char* argv[])
 {
-	std::string file1, file2, fileRef;
+	std::string file1, file2, fileRef, fileMask;
 	//std::cin >> file1 >> file2 >> fileRef;
 	
 	IplImage *img1 = convert_to_float32(readImagePFM(argv[1]));
 	IplImage *img2 = convert_to_float32(readImagePFM(argv[2]));
 	IplImage *imgRef = convert_to_float32(readImagePFM(argv[3]));
 	
+	volMask.resize(img1->height * img1->width);
+	for (int i = 0; i < img1->height * img1->width; i++)
+		volMask[i] = 1;
+
+	if (argc >= 5)
+	{
+		FILE *fm = fopen(argv[4] , "r");
+		for (int y = img1->height - 1; y >= 0; y--)
+		{
+			for (int x = 0; x < img1->width; x++)
+			{
+				int f;
+				fscanf(fm , "%d " , &f);
+				volMask[y * img1->width + x] = (f == 1);
+			}
+		}
+		fclose(fm);
+	}
+
 	Compare(img1, img2, imgRef);
 
 	return 0;
 }
 */
 
-/*
+struct Data
+{
+	int iter , time;
+	double rmse;
+
+	Data(int _iter , int _time , double _rmse) : iter(_iter) , time(_time) , rmse(_rmse) {}
+
+	bool operator <(const Data& rhs)
+	{
+		return iter < rhs.iter;
+	}
+};
+
+vector<Data> data;
+
 int main()
 {
 	_finddata_t file;
 	long flag;
-	flag = _findfirst("D:\\Winmad\\RendererGPU\\Release\\Data\\results\\sss_vcm_5_26_gpu\\*.pfm" , &file);
+	string root = "D:\\Winmad\\RendererGPU\\Release\\Data\\results\\subtest_ppm_6_2\\";
+	flag = _findfirst("D:\\Winmad\\RendererGPU\\Release\\Data\\results\\subtest_ppm_6_2\\*.pfm" , &file);
+	IplImage *ref = convert_to_float32(readImagePFM("D:\\Winmad\\RendererGPU\\Release\\Data\\results\\subtest_ref_volpt.pfm"));
+
+	volMask.resize(ref->height * ref->width);
+	for (int i = 0; i < ref->height * ref->width; i++)
+		volMask[i] = 1;
+
+	FILE *fp = fopen("result_subtest_ppm.txt" , "w");
+
 	for (;;)
 	{
 		printf("%s\n", file.name);
-		string root = "D:\\Winmad\\RendererGPU\\Release\\Data\\results\\sss_vcm_5_26_gpu\\";
 		IplImage *img = convert_to_float32(readImagePFM(root + file.name));
-		saveImagePFM(root + file.name , img);
+		
+		double rmse = CalculateRMSE(img , ref);
+
+		string name = file.name;
+		string str = "";
+
+		int iter = -1 , time = -1;
+		bool iterReady = 0 , timeReady = 0;
+
+		for (int i = 0; i <= name.length(); i++)
+		{
+			if (i == name.length() || name[i] == '_' || name[i] == '.')
+			{
+				if (iterReady)
+				{
+					iter = atoi(str.c_str());
+					iterReady = 0;
+				}
+				if (timeReady)
+				{
+					time = atoi(str.c_str());
+					timeReady = 0;
+				}
+				if (str == "iter")
+					iterReady = 1;
+				if (str == "time")
+					timeReady = 1;
+				str = "";
+				continue;
+			}
+			str += name[i];
+		}
+
 		cvReleaseImage(&img);
+
+		if (iter != -1 && time != -1)
+		{
+			data.push_back(Data(iter , time , rmse));
+		}
+
 		if (_findnext(flag , &file) == -1)
 			break;
 	}
+
+	sort(data.begin() , data.end());
+	for (int i = 0; i < data.size(); i++)
+	{
+		fprintf(fp , "%d %d %.8lf\n" , data[i].iter , data[i].time , data[i].rmse);
+	}
+	fclose(fp);
 	_findclose(flag);
 }
-*/
+
+
 IplImage *readImagePFM(const string& fileName)
 {
 	FILE* file;
-	int height, width;
+	int height, width, f;
 	fopen_s(&file, fileName.c_str(), "rb");
 
-	fscanf(file, "PF\n%d %d\n-1.000000\n" , &width , &height);
+	fscanf(file, "PF\n%d %d\n%f\n" , &width , &height, &f);
 
 	IplImage *img = cvCreateImage(cvSize(width, height), IPL_DEPTH_32F, 3);
 	float* data = (float*)img->imageData;

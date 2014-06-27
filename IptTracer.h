@@ -47,6 +47,8 @@ protected:
 	stack<int> cycle;
 	vector<pair<int , int> > edgeToRemove;
 
+	vector<bool> volMask;
+
 	bool dfs(int depth , int cur);
 
 	void movePaths(omp_lock_t& cmdLock , vector<Path>& , vector<Path*>&);
@@ -63,7 +65,7 @@ protected:
 
 	vec3f colorByMergingPaths(IptPathState& cameraState, PointKDTree<IptPathState>& partialSubPaths);
 
-	vec3f colorByRayMarching(Path& eyeMergePath , PointKDTree<IptPathState>& partialSubPaths);
+	vec3f colorByRayMarching(Path& eyeMergePath , PointKDTree<IptPathState>& partialSubPaths , int pixelID);
 
 	vec3f colorByConnectingLights(Ray lastRay , Ray ray , bool dirIlluWeight = true);
 
@@ -81,6 +83,7 @@ public:
 	unsigned timeInterval , lastTime;
 	bool useWeight , usePPM , useDirIllu , useRayMarching , checkCycle;
 	bool useUniformInterSampler , useUniformSur , useUniformVol , useUniformDir;
+	bool useConstantKernel;
 	bool isDebug;
 
 	int pixelNum , lightPathNum , cameraPathNum , interPathNum , partialPathNum;
@@ -106,6 +109,8 @@ public:
 		useUniformSur = true;
 		useUniformVol = true;
 		useUniformDir = false;
+
+		useConstantKernel = false;
 
 		checkCycle = true;
 		checkCycleIters = 100;

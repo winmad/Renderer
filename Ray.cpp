@@ -70,7 +70,7 @@ vec3f Ray::getRadianceDecay(const float& dist) const
 
 float Ray::getCosineTerm(bool flat) const
 {
-	float d = 1;
+	float d = 1.f;
 	if(contactObject && contactObject->hasCosineTerm() && direction.length() > 0.5)
 		d = abs(getContactNormal(flat).dot(direction));
 	d = max(d, COS_TERM_MIN);

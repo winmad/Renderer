@@ -71,7 +71,7 @@ public:
 		this->g = g;
 		bsdf = new HGPhaseFunc(g);
 		IOR = 1.5;
-		stepSize = 0.0005;
+		stepSize = 0.1;
 		densityScale = 100;
 		scatteringScale = 100;
 		absorptionScale = 100;
@@ -122,6 +122,18 @@ public:
 	}
 	float getDensityScale() const{
 		return densityScale;
+	}
+	void setScatteringScale(float s){
+		scatteringScale = s;
+	}
+	float getScatteringScale() const{
+		return scatteringScale;
+	}
+	void setAbsorptionScale(float s){
+		absorptionScale = s;
+	}
+	float getAbsorptionScale() const{
+		return absorptionScale;
 	}
 	void setStepSize(float s){
 		stepSize = s;

@@ -62,6 +62,9 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 	totVol = renderer->scene.getTotalVolume();
 	printf("scene: totArea = %.8f, totVol = %.8f\n" , totArea , totVol);
 
+	// abandon surface
+	totArea = 0.f;
+
 	if (totVol > 1e-6f && totArea > 1e-6f)
 		partialPathNum = interPathNum / 2;
 

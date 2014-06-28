@@ -235,12 +235,12 @@ void calcRMSEs()
 	_findclose(flag);
 }
 
-int main(int argc, char* argv[])
-{
-	//cmpTwoImages(argc , argv);
-	calcRMSEs();
-	return 0;
-}
+// int main(int argc, char* argv[])
+// {
+// 	//cmpTwoImages(argc , argv);
+// 	calcRMSEs();
+// 	return 0;
+// }
 
 IplImage *readImagePFM(const string& fileName)
 {

@@ -88,7 +88,8 @@ public:
 	}
 	void loadDensityMap(const std::string &filename);
 	void loadSubSurfaceVolumeData(const std::string &filename, const std::string &filename2);
-
+	void writeMitsubaDensityMap(const std::string& filename);
+	void writeMitsubaAlbedo(const std::string& filename);
 
 	Ray scatter(const Ray& inRay, const bool russian = true) const;
 	vec3f getBSDF(const Ray &inRay, const Ray &outRay) const;

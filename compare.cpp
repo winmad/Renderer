@@ -168,15 +168,15 @@ void calcRMSEs()
 {
 	_finddata_t file;
 	long flag;
-	string root = "D:\\Winmad\\RendererGPU\\Release\\Data\\results\\subtest_ppm_6_2\\";
-	flag = _findfirst("D:\\Winmad\\RendererGPU\\Release\\Data\\results\\subtest_ppm_6_2\\*.pfm" , &file);
-	IplImage *ref = convert_to_float32(readImagePFM("D:\\Winmad\\RendererGPU\\Release\\Data\\results\\subtest_ref_volpt.pfm"));
+	string root = "D:\\Winmad\\RendererGPU\\Release\\Data\\results\\vol_ipt_6_28\\";
+	flag = _findfirst("D:\\Winmad\\RendererGPU\\Release\\Data\\results\\vol_ipt_6_28\\*.pfm" , &file);
+	FILE *fp = fopen("result_vol_ipt_6_28.txt" , "w");
+
+	IplImage *ref = convert_to_float32(readImagePFM("D:\\Winmad\\RendererGPU\\Release\\Data\\results\\vol_ref_10w.pfm"));
 
 	volMask.resize(ref->height * ref->width);
 	for (int i = 0; i < ref->height * ref->width; i++)
 		volMask[i] = 1;
-
-	FILE *fp = fopen("result_subtest_ppm.txt" , "w");
 
 	for (;;)
 	{
@@ -234,14 +234,14 @@ void calcRMSEs()
 	fclose(fp);
 	_findclose(flag);
 }
-/*
+
 int main(int argc, char* argv[])
 {
-	cmpTwoImages(argc , argv);
-	//calcRMSEs();
+	//cmpTwoImages(argc , argv);
+	calcRMSEs();
 	return 0;
 }
-*/
+
 IplImage *readImagePFM(const string& fileName)
 {
 	FILE* file;

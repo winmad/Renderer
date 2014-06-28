@@ -112,12 +112,15 @@ void HeterogeneousVolume::writeMitsubaDensityMap(const std::string& filename)
 	fwrite(&Z , sizeof(int) , 1 , fw);
 	fwrite(&channels , sizeof(int) , 1 , fw);
 
-	fwrite(&mBBox.p0[0] , sizeof(float) , 1 , fw);
-	fwrite(&mBBox.p0[1] , sizeof(float) , 1 , fw);
-	fwrite(&mBBox.p0[2] , sizeof(float) , 1 , fw);
-	fwrite(&mBBox.p1[0] , sizeof(float) , 1 , fw);
-	fwrite(&mBBox.p1[1] , sizeof(float) , 1 , fw);
-	fwrite(&mBBox.p1[2] , sizeof(float) , 1 , fw);
+	vec3f p0 , p1;
+	p0[0] = -0.65; p0[1] = -0.843829; p0[2] = -0.704359;
+	p1[0] = 0.65; p1[1] = 0.443829; p1[2] = 0.304359;
+	fwrite(&p0[0] , sizeof(float) , 1 , fw);
+	fwrite(&p0[1] , sizeof(float) , 1 , fw);
+	fwrite(&p0[2] , sizeof(float) , 1 , fw);
+	fwrite(&p1[0] , sizeof(float) , 1 , fw);
+	fwrite(&p1[1] , sizeof(float) , 1 , fw);
+	fwrite(&p1[2] , sizeof(float) , 1 , fw);
 
 	int N = X * Y * Z;
 	for (int i = 0; i < N; i++)
@@ -145,17 +148,20 @@ void HeterogeneousVolume::writeMitsubaAlbedo(const std::string& filename)
 	fwrite(&Z , sizeof(int) , 1 , fw);
 	fwrite(&channels , sizeof(int) , 1 , fw);
 
-	fwrite(&mBBox.p0[0] , sizeof(float) , 1 , fw);
-	fwrite(&mBBox.p0[1] , sizeof(float) , 1 , fw);
-	fwrite(&mBBox.p0[2] , sizeof(float) , 1 , fw);
-	fwrite(&mBBox.p1[0] , sizeof(float) , 1 , fw);
-	fwrite(&mBBox.p1[1] , sizeof(float) , 1 , fw);
-	fwrite(&mBBox.p1[2] , sizeof(float) , 1 , fw);
+	vec3f p0 , p1;
+	p0[0] = -0.65; p0[1] = -0.843829; p0[2] = -0.704359;
+	p1[0] = 0.65; p1[1] = 0.443829; p1[2] = 0.304359;
+	fwrite(&p0[0] , sizeof(float) , 1 , fw);
+	fwrite(&p0[1] , sizeof(float) , 1 , fw);
+	fwrite(&p0[2] , sizeof(float) , 1 , fw);
+	fwrite(&p1[0] , sizeof(float) , 1 , fw);
+	fwrite(&p1[1] , sizeof(float) , 1 , fw);
+	fwrite(&p1[2] , sizeof(float) , 1 , fw);
 
 	int N = X * Y * Z;
 	for (int i = 0; i < N; i++)
 	{
-		vec3f den = mSubSurfaceDensityMap_Scattering[i] / mSubSurfaceDensityMap_Extinction[i];
+		vec3f den = mSubSurfaceDensityMap_Scattering[i] / Luminance(mSubSurfaceDensityMap_Extinction[i]);
 		fwrite(&den[0] , sizeof(float) , 1 , fw);
 		fwrite(&den[1] , sizeof(float) , 1 , fw);
 		fwrite(&den[2] , sizeof(float) , 1 , fw);

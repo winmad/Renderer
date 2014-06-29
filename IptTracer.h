@@ -103,7 +103,7 @@ public:
 		totPathNum = pixelNum;
 
 		usePPM = false;
-		useDirIllu = true;
+		useDirIllu = false;
 		useRayMarching = true;
 
 		useUniformSur = true;

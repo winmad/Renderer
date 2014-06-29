@@ -68,6 +68,8 @@ SceneObject* ConfigManager::generateSceneObject(xml_node<>* nodeObj, xml_node<>*
 		obj->setG(atof(nodeMat->first_node("g")->value()));
 		if (nodeMat->first_node("stepsize"))
 			obj->setStepSize(atof(nodeMat->first_node("stepsize")->value()));
+		if (nodeMat->first_node("scale"))
+			obj->setScale(atof(nodeMat->first_node("scale")->value()));
 		if(shape)
 			*((SimpleShape*)obj) = *shape;
 	}

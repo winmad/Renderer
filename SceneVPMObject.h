@@ -95,5 +95,10 @@ public:
 	void setStepSize(float step){
 		stepSize = step;
 	}
+	void setScale(float scale){
+		ds *= scale;
+		da *= scale;
+		dt *= scale;
+	}
 };
 

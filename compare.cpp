@@ -164,19 +164,34 @@ struct Data
 
 vector<Data> data;
 
-void calcRMSEs()
+void calcRMSEs(int argc, char* argv[])
 {
 	_finddata_t file;
 	long flag;
-	string root = "D:\\Winmad\\RendererGPU\\Release\\Data\\results\\vol_ipt_6_28\\";
-	flag = _findfirst("D:\\Winmad\\RendererGPU\\Release\\Data\\results\\vol_ipt_6_28\\*.pfm" , &file);
-	FILE *fp = fopen("result_vol_ipt_6_28.txt" , "w");
+	string root = "D:\\Winmad\\RendererGPU\\Release\\Data\\results\\vol_ipt_6_29\\";
+	flag = _findfirst("D:\\Winmad\\RendererGPU\\Release\\Data\\results\\vol_ipt_6_29\\*.pfm" , &file);
+	FILE *fp = fopen("result_vol_ipt_6_29.txt" , "w");
 
 	IplImage *ref = convert_to_float32(readImagePFM("D:\\Winmad\\RendererGPU\\Release\\Data\\results\\vol_ref_10w.pfm"));
 
 	volMask.resize(ref->height * ref->width);
 	for (int i = 0; i < ref->height * ref->width; i++)
 		volMask[i] = 1;
+
+	if (argc >= 5)
+	{
+		FILE *fm = fopen(argv[4] , "r");
+		for (int y = ref->height - 1; y >= 0; y--)
+		{
+			for (int x = 0; x < ref->width; x++)
+			{
+				int f;
+				fscanf(fm , "%d " , &f);
+				volMask[y * ref->width + x] = (f == 1);
+			}
+		}
+		fclose(fm);
+	}
 
 	for (;;)
 	{
@@ -238,7 +253,7 @@ void calcRMSEs()
 // int main(int argc, char* argv[])
 // {
 // 	//cmpTwoImages(argc , argv);
-// 	calcRMSEs();
+// 	calcRMSEs(argc , argv);
 // 	return 0;
 // }
 

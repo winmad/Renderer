@@ -45,8 +45,8 @@ public:
 	vec3ui getVertexIndices(int ti) const { return faceVertexIndexList[ti]; }
 	vec3f getWorldVertexPosition(int vi) const { return vec3f(transform*vec4<float>(vertexList[vi], 1)); }
 	virtual vec3f getTexCoord(unsigned fi, const vec3f& position) const;
-	virtual vec3f getWorldNormal(unsigned fi, const vec3f& position, bool flat = false) const;
-	virtual LocalFrame getAutoGenWorldLocalFrame(unsigned fi, const vec3f& position, bool flat = false) const;
+	virtual vec3f getWorldNormal(unsigned fi, const vec3f& position, bool flat = true) const;
+	virtual LocalFrame getAutoGenWorldLocalFrame(unsigned fi, const vec3f& position, bool flat = true) const;
 	unsigned getVertexNum() const { return vertexList.size(); }
 	unsigned getTriangleNum() const { return faceVertexIndexList.size(); }
 	float getTriangleArea(unsigned ti) const;

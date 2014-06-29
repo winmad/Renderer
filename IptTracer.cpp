@@ -63,7 +63,7 @@ vector<vec3f> IptTracer::renderPixels(const Camera& camera)
 	printf("scene: totArea = %.8f, totVol = %.8f\n" , totArea , totVol);
 
 	// abandon surface
-	totArea = 0.f;
+	//totArea = 0.f;
 
 	if (totVol > 1e-6f && totArea > 1e-6f)
 		partialPathNum = interPathNum / 2;
@@ -1141,7 +1141,7 @@ vec3f IptTracer::colorByConnectingLights(Ray lastRay , Ray ray , bool dirIlluWei
 	{
 		Real p1 = lightRay.originProb;
 		Real p2 = lightRay.originProb * (cosAtLight / M_PI) * cosToLight / dist2 * 
-			(partialPathNum * mergeRadius * mergeRadius * M_PI);
+			(partialPathNum * gatherRadius * gatherRadius * M_PI);
 		Real weightFactor = p1 / (p1 + p2);
 		res *= weightFactor;
 	}
